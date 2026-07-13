@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api, { getFileUrl } from '../services/api';
 import { FiPlus, FiBriefcase, FiTrash2, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { Card, Button } from '../components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
 
 const Projects = () => {
-  const backendBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3072/api').replace('/api', '');
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -28,7 +27,7 @@ const Projects = () => {
 
   const fetchProjects = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/projects', { withCredentials: true });
+      const res = await api.get('/projects');
       setProjects(res.data);
     } catch (err) {
       console.error('Error fetching projects:', err);
@@ -44,7 +43,7 @@ const Projects = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/projects', formData, { withCredentials: true });
+      await api.post('/projects', formData);
       fetchProjects();
       setIsModalOpen(false);
       setFormData({
@@ -59,7 +58,7 @@ const Projects = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/projects/${id}`, { withCredentials: true });
+        await api.delete(`/projects/${id}`);
         fetchProjects();
       } catch (err) {
         console.error(err);
@@ -153,7 +152,7 @@ const Projects = () => {
                       {project.team.slice(0, 4).map((emp, i) => (
                         <div key={i} className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300" title={emp.name}>
                           {emp.profilePicture ? (
-                            <img src={`http://localhost:5000${emp.profilePicture}`} alt={emp.name} className="w-full h-full rounded-full object-cover" />
+                            <img src={getFileUrl(emp.profilePicture)} alt={emp.name} className="w-full h-full rounded-full object-cover" />
                           ) : emp.name.charAt(0)}
                         </div>
                       ))}

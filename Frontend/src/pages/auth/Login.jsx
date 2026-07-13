@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 
@@ -20,11 +20,9 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/employees/login', {
+      const response = await api.post('/employees/login', {
         email,
         password
-      }, {
-        withCredentials: true
       });
       
       // Save token and user info to Redux

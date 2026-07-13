@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components';
 import { FiClock, FiCheckCircle, FiBriefcase } from 'react-icons/fi';
-import axios from 'axios';
+import api, { getFileUrl } from '../services/api';
 import { useSelector } from 'react-redux';
 
 const Tasks = () => {
-  const backendBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3072/api').replace('/api', '');
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,8 +23,8 @@ const Tasks = () => {
       const userId = user.employeeId || user._id;
 
       const [tasksRes, projectsRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/tasks?employeeId=${userId}`, { withCredentials: true }),
-        axios.get('http://localhost:5000/api/projects', { withCredentials: true })
+        api.get(`/tasks?employeeId=${userId}`),
+        api.get('/projects')
       ]);
       setTasks(tasksRes.data);
       setProjects(projectsRes.data);
@@ -44,7 +43,7 @@ const Tasks = () => {
         if (comment) payload.employeeComment = comment;
       }
 
-      await axios.put(`http://localhost:5000/api/tasks/${taskId}`, payload);
+      await api.put(`/tasks/${taskId}`, payload);
       fetchTasks();
     } catch (error) {
       console.error('Error updating task:', error);
@@ -225,7 +224,7 @@ const Tasks = () => {
                     <div key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50">
                       <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-sm font-bold text-slate-600 dark:text-slate-300 overflow-hidden shrink-0">
                         {emp.profilePicture ? (
-                          <img src={`${backendBaseUrl}${emp.profilePicture}`} alt={emp.name} className="w-full h-full object-cover" />
+                          <img src={getFileUrl(emp.profilePicture)} alt={emp.name} className="w-full h-full object-cover" />
                         ) : emp.name.charAt(0)}
                       </div>
                       <div>

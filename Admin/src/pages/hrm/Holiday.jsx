@@ -4,9 +4,7 @@ import { Card, Button } from '../../components';
 import Modal from '../../components/Modal';
 import AddHolidayForm from '../../features/holiday/components/AddHolidayForm';
 
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api/holidays';
+import api from '../../services/api';
 
 const Holiday = () => {
   const [holidays, setHolidays] = useState([]);
@@ -16,7 +14,7 @@ const Holiday = () => {
   React.useEffect(() => {
     const fetchHolidays = async () => {
       try {
-        const res = await axios.get(API_URL);
+        const res = await api.get('/holidays');
         setHolidays(res.data);
       } catch (err) {
         console.error('Failed to fetch holidays', err);
@@ -29,7 +27,7 @@ const Holiday = () => {
 
   const handleAddHoliday = async (newHoliday) => {
     try {
-      const res = await axios.post(API_URL, newHoliday);
+      const res = await api.post('/holidays', newHoliday);
       const updated = [...holidays, res.data].sort((a, b) => new Date(a.date) - new Date(b.date));
       setHolidays(updated);
       setIsAddModalOpen(false);
@@ -41,7 +39,7 @@ const Holiday = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await api.delete(`/holidays/${id}`);
       setHolidays(holidays.filter(h => h.id !== id));
     } catch (error) {
       console.error('Error deleting holiday', error);

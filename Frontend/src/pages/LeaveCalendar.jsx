@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../services/api';
 import { useSelector } from 'react-redux';
 import { 
   FiChevronLeft, 
@@ -34,11 +34,11 @@ const LeaveCalendar = () => {
     try {
       if (user) {
         const userId = user._id || user.employeeId;
-        const response = await axios.get(`http://localhost:5000/api/leaves?employeeId=${userId}`, { withCredentials: true });
+        const response = await api.get(`/leaves?employeeId=${userId}`);
         const fetchedLeaves = response.data;
         
         // Fetch holidays
-        const holidayResponse = await axios.get('http://localhost:5000/api/holidays');
+        const holidayResponse = await api.get('/holidays');
         const fetchedHolidays = holidayResponse.data;
 
         const newEvents = {};
@@ -405,14 +405,14 @@ const LeaveCalendar = () => {
                     return;
                   }
 
-                  await axios.post('http://localhost:5000/api/leaves', {
+                  await api.post('/leaves', {
                     employeeId: user._id, // the mongo _id
                     employeeName: user.name,
                     type: leaveType,
                     startDate,
                     endDate,
                     reason
-                  }, { withCredentials: true });
+                  });
 
                   alert('Leave request submitted successfully!');
                   setIsModalOpen(false);

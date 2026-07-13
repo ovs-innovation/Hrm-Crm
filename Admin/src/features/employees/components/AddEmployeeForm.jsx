@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import axios from 'axios';
+import api from '../../../services/api';
 import { FiEye, FiEyeOff, FiUploadCloud } from 'react-icons/fi';
 
 // Define the validation schema using Zod
@@ -85,7 +85,7 @@ const AddEmployeeForm = ({ onCancel, onSuccess }) => {
         role: data.role || 'Employee',
       };
 
-      const response = await axios.post('http://localhost:5000/api/employees/register', payload);
+      const response = await api.post('/employees/register', payload);
       onSuccess(response.data);
     } catch (error) {
       console.error('Error adding employee:', error);

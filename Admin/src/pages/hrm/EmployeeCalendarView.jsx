@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 const EmployeeCalendarView = ({ employeeId, monthStr }) => {
@@ -21,7 +21,7 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
         const newEvents = {};
 
         // 1. Fetch Holidays
-        const holidayRes = await axios.get('http://localhost:5000/api/holidays');
+        const holidayRes = await api.get('/holidays');
         holidayRes.data.forEach(holiday => {
           if (!newEvents[holiday.date]) newEvents[holiday.date] = [];
           newEvents[holiday.date].push({
@@ -32,7 +32,7 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
         });
 
         // 2. Fetch Leaves
-        const leavesRes = await axios.get(`http://localhost:5000/api/leaves?employeeId=${employeeId}`);
+        const leavesRes = await api.get(`/leaves?employeeId=${employeeId}`);
         leavesRes.data.forEach(leave => {
           let curr = new Date(leave.startDate);
           const end = new Date(leave.endDate);
@@ -52,7 +52,7 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
         });
 
         // 3. Fetch Attendance
-        const attRes = await axios.get(`http://localhost:5000/api/attendance?employeeId=${employeeId}&month=${monthStr}`);
+        const attRes = await api.get(`/attendance?employeeId=${employeeId}&month=${monthStr}`);
         attRes.data.forEach(record => {
           if (!newEvents[record.date]) newEvents[record.date] = [];
           newEvents[record.date].push({

@@ -4,7 +4,7 @@ import { Button, Card, Input, Skeleton } from '../../components';
 import Modal from '../../components/Modal';
 import AddEmployeeForm from '../../features/employees/components/AddEmployeeForm';
 
-import axios from 'axios';
+import api from '../../services/api';
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
@@ -32,7 +32,7 @@ const EmployeeList = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/employees');
+      const response = await api.get('/employees');
       // Normalize _id or employeeId to 'id' for the UI component if needed, or keep as is.
       const normalizedEmployees = response.data.map(emp => ({
         ...emp,

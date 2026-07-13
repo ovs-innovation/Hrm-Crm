@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Card } from '../../components';
 import { FiPlus, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const Tasks = () => {
@@ -28,9 +28,9 @@ const Tasks = () => {
     setLoading(true);
     try {
       const [tasksRes, employeesRes, projectsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/tasks', { withCredentials: true }),
-        axios.get('http://localhost:5000/api/employees', { withCredentials: true }),
-        axios.get('http://localhost:5000/api/projects', { withCredentials: true })
+        api.get('/tasks'),
+        api.get('/employees'),
+        api.get('/projects')
       ]);
       setTasks(tasksRes.data);
       setEmployees(employeesRes.data);
@@ -46,11 +46,11 @@ const Tasks = () => {
     e.preventDefault();
     
     try {
-      await axios.post('http://localhost:5000/api/tasks', {
+      await api.post('/tasks', {
         ...formData,
         assignedBy: adminInfo.name || 'Admin',
         assignerRole: adminInfo.role || 'Admin'
-      }, { withCredentials: true });
+      });
       setIsModalOpen(false);
       setFormData({ title: '', description: '', projectName: '', assignedTo: [], dueDate: '' });
       toast.success('Task assigned successfully!');
@@ -88,7 +88,7 @@ const Tasks = () => {
 
   const executeDelete = async (taskId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/tasks/${taskId}`, { withCredentials: true });
+      await api.delete(`/tasks/${taskId}`);
       toast.success('Task deleted successfully');
       fetchData(); // refresh list
     } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import { 
@@ -98,7 +98,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5000/api/employees/logout', {}, { withCredentials: true });
+      await api.post('/employees/logout', {});
       dispatch(logout());
       navigate('/login');
     } catch (error) {

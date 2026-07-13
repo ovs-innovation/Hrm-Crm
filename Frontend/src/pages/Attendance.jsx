@@ -7,7 +7,7 @@ import {
   FiAlertCircle,
   FiActivity
 } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../services/api';
 import { useSelector } from 'react-redux';
 
 const StatCard = ({ icon: Icon, label, value, colorClass, delay }) => (
@@ -39,7 +39,7 @@ const Attendance = () => {
       try {
         if (user) {
           const userId = user._id || user.employeeId;
-          const res = await axios.get(`http://localhost:5000/api/attendance?employeeId=${userId}`);
+          const res = await api.get(`/attendance?employeeId=${userId}`);
           setRecords(res.data);
         }
       } catch (err) {

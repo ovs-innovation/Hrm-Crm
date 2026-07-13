@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button } from '../components';
 import { FiClock, FiCalendar, FiCheckCircle, FiLogOut, FiAlertCircle, FiBriefcase, FiHome, FiMapPin, FiX } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../services/api';
 import { useSelector } from 'react-redux';
 
 const Dashboard = () => {
@@ -44,7 +44,7 @@ const Dashboard = () => {
       try {
         if (user && (user._id || user.employeeId)) {
           const userId = user._id || user.employeeId;
-          const res = await axios.get(`http://localhost:5000/api/attendance?employeeId=${userId}`);
+          const res = await api.get(`/attendance?employeeId=${userId}`);
           const fetchedRecords = res.data;
 
           const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -72,7 +72,7 @@ const Dashboard = () => {
       }
 
       try {
-        const holidayRes = await axios.get('http://localhost:5000/api/holidays', { withCredentials: true });
+        const holidayRes = await api.get('/holidays');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -86,7 +86,7 @@ const Dashboard = () => {
       }
 
       try {
-        const annRes = await axios.get('http://localhost:5000/api/announcements', { withCredentials: true });
+        const annRes = await api.get('/announcements');
         setAnnouncements(annRes.data.slice(0, 3)); // show top 3 latest
       } catch (err) {
         console.error('Failed to fetch announcements', err);
@@ -237,7 +237,7 @@ const Dashboard = () => {
         finalStatus = isEarly ? 'Late & Early Leave' : 'Late (Completed)';
       }
 
-      const res = await axios.post('http://localhost:5000/api/attendance/checkin', {
+      const res = await api.post('/attendance/checkin', {
         employeeId: userId,
         date: today,
         checkIn: pendingRecord.checkIn,

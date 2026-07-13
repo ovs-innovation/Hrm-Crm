@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components';
 import { FiPlus, FiBriefcase, FiMail, FiPhone, FiEdit2, FiTrash2 } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../../services/api';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -23,7 +23,7 @@ const Clients = () => {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/clients', { withCredentials: true });
+      const res = await api.get('/clients');
       setClients(res.data);
     } catch (error) {
       console.error('Error fetching clients:', error);
@@ -35,7 +35,7 @@ const Clients = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/clients', formData, { withCredentials: true });
+      await api.post('/clients', formData);
       setIsModalOpen(false);
       setFormData({ name: '', company: '', email: '', phone: '', status: 'Lead', notes: '' });
       fetchClients();
@@ -48,7 +48,7 @@ const Clients = () => {
   const deleteClient = async (id) => {
     if (window.confirm('Are you sure you want to delete this client?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/clients/${id}`, { withCredentials: true });
+        await api.delete(`/clients/${id}`);
         fetchClients();
       } catch (error) {
         console.error('Error deleting client:', error);

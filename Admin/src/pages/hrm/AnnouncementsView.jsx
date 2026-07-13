@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { FiPlus, FiTrash2, FiMessageCircle, FiX } from 'react-icons/fi';
 import { Card, Button } from '../../components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,7 +16,7 @@ const AnnouncementsView = () => {
 
   const fetchAnnouncements = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/announcements');
+      const res = await api.get('/announcements');
       setAnnouncements(res.data);
     } catch (err) {
       console.error(err);
@@ -30,7 +30,7 @@ const AnnouncementsView = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/announcements', formData);
+      await api.post('/announcements', formData);
       fetchAnnouncements();
       setIsModalOpen(false);
       setFormData({
@@ -47,7 +47,7 @@ const AnnouncementsView = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this announcement?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/announcements/${id}`);
+        await api.delete(`/announcements/${id}`);
         fetchAnnouncements();
       } catch (err) {
         console.error(err);

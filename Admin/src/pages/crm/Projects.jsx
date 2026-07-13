@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components';
 import { FiPlus, FiTarget, FiCalendar, FiDollarSign, FiTrash2, FiUsers } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../../services/api';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -27,9 +27,9 @@ const Projects = () => {
     setLoading(true);
     try {
       const [projRes, clientRes, empRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/projects', { withCredentials: true }),
-        axios.get('http://localhost:5000/api/clients', { withCredentials: true }),
-        axios.get('http://localhost:5000/api/employees', { withCredentials: true })
+        api.get('/projects'),
+        api.get('/clients'),
+        api.get('/employees')
       ]);
       setProjects(projRes.data);
       setClients(clientRes.data);
@@ -44,7 +44,7 @@ const Projects = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/projects', formData, { withCredentials: true });
+      await api.post('/projects', formData);
       setIsModalOpen(false);
       setFormData({ title: '', description: '', client: '', status: 'Planning', deadline: '', budget: '', team: [] });
       fetchData();
@@ -57,7 +57,7 @@ const Projects = () => {
   const deleteProject = async (id) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/projects/${id}`, { withCredentials: true });
+        await api.delete(`/projects/${id}`);
         fetchData();
       } catch (error) {
         console.error('Error deleting project:', error);

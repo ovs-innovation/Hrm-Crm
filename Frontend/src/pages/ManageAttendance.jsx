@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiSearch, FiCalendar, FiClock, FiCheckCircle, FiXCircle, FiAlertCircle, FiDownload, FiList, FiGrid } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../services/api';
 import EmployeeCalendarView from './EmployeeCalendarView';
 
 const calculateWorkHours = (checkIn, checkOut) => {
@@ -54,7 +54,7 @@ const Attendance = () => {
 
   React.useEffect(() => {
     // Fetch all employees to populate dropdown
-    axios.get('http://localhost:5000/api/employees')
+    api.get('/employees')
       .then(res => {
         setEmployees(res.data);
         if (res.data.length > 0) {
@@ -67,7 +67,7 @@ const Attendance = () => {
   React.useEffect(() => {
     if (selectedEmployee && selectedMonth) {
       setLoading(true);
-      axios.get(`http://localhost:5000/api/attendance?employeeId=${selectedEmployee}&month=${selectedMonth}`)
+      api.get(`/attendance?employeeId=${selectedEmployee}&month=${selectedMonth}`)
         .then(res => setAttendanceRecords(res.data))
         .catch(err => console.error(err))
         .finally(() => setLoading(false));

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../../services/api';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../../store/slices/authSlice';
 
@@ -18,11 +18,9 @@ const LoginForm = () => {
     setError(null);
     
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/admin/login`, {
+      const response = await api.post('/auth/admin/login', {
         email,
         password
-      }, {
-        withCredentials: true // Important for sending/receiving cookies
       });
       
       // Successfully logged in

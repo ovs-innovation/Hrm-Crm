@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiMenu, FiBell, FiSearch, FiLogOut } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 
@@ -15,7 +15,7 @@ const Header = ({ toggleMobileMenu }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/admin/logout`, {}, { withCredentials: true });
+      await api.post('/auth/admin/logout', {});
       dispatch(logout());
       navigate('/login');
     } catch (error) {

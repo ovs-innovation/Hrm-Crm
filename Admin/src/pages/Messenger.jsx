@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import axios from 'axios';
+import api, { getFileUrl } from '../services/api';
 import {
   FiSearch,
   FiMoreVertical,
@@ -35,7 +35,7 @@ const Messenger = () => {
   // Initialize Socket
   useEffect(() => {
     if (loggedInUserId) {
-      const socketInstance = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
+      const socketInstance = io(getFileUrl(''), {
         query: {
           userId: loggedInUserId,
         },
@@ -55,7 +55,7 @@ const Messenger = () => {
   useEffect(() => {
     const fetchContacts = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/users`, { withCredentials: true });
+        const response = await api.get('/users');
         setContacts(response.data);
         if (response.data.length > 0) {
           setActiveContact(response.data[0]);
@@ -72,7 +72,7 @@ const Messenger = () => {
     const fetchMessages = async () => {
       if (!activeContact) return;
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/messages/${activeContact._id}`, { withCredentials: true });
+        const response = await api.get(`/messages/${activeContact._id}`);
         setMessages(response.data);
 
         // Mark as seen when opening the chat
@@ -163,23 +163,21 @@ const Messenger = () => {
       if (selectedFile) {
         const formData = new FormData();
         formData.append('file', selectedFile);
-        const uploadRes = await axios.post(`${import.meta.env.VITE_API_URL}/messages/upload`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          withCredentials: true
+        const uploadRes = await api.post('/messages/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
         fileUrl = uploadRes.data.fileUrl;
         fileType = uploadRes.data.fileType;
       }
 
       // Send the message (with or without file)
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/messages/send/${activeContact._id}`,
+      const response = await api.post(
+        `/messages/send/${activeContact._id}`,
         {
           text: newMessage || (selectedFile ? selectedFile.name : ''),
           fileUrl,
           fileType
-        },
-        { withCredentials: true }
+        }
       );
 
       setMessages((prev) => [...prev, response.data]);
@@ -308,9 +306,9 @@ const Messenger = () => {
                           {msg.fileUrl && (
                             <div className="mb-2">
                               {msg.fileType === 'image' ? (
-                                <img src={msg.fileUrl} alt="Attachment" className="max-w-[200px] sm:max-w-[300px] rounded-lg border border-white/20" />
+                                <img src={getFileUrl(msg.fileUrl)} alt="Attachment" className="max-w-[200px] sm:max-w-[300px] rounded-lg border border-white/20" />
                               ) : (
-                                <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-900/40 rounded-xl border border-white/10 hover:bg-slate-900/60 transition-colors">
+                                <a href={getFileUrl(msg.fileUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-900/40 rounded-xl border border-white/10 hover:bg-slate-900/60 transition-colors">
                                   <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
                                     <FiFileText className="w-6 h-6" />
                                   </div>
