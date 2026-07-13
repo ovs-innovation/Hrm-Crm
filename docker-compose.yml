@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./Frontend
+    container_name: hrm_frontend
+    restart: always
+    ports:
+      - "3071:80" # Maps VPS port 3071 to Nginx port 80 in container
+    env_file:
+      - ./Frontend/.env
+
+  backend:
+    build: ./Backend
+    container_name: hrm_backend
+    restart: always
+    ports:
+      - "3072:3072" # Maps VPS port 3072 to backend port 3072
+    env_file:
+      - ./Backend/.env
+
+  admin:
+    build: ./Admin
+    container_name: hrm_admin
+    restart: always
+    ports:
+      - "3070:80" # Maps VPS port 3070 to Nginx port 80 in container
+    env_file:
+      - ./Admin/.env
