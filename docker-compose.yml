@@ -15,7 +15,7 @@ services:
     container_name: hrm_backend
     restart: always
     ports:
-      - "3072:3072" # Maps VPS port 3072 to backend port 3072
+      - "3072:5000" # Maps VPS port 3072 to backend port 3072
     env_file:
       - ./Backend/.env
 
