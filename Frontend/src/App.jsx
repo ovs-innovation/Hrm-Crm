@@ -10,6 +10,7 @@ import Messenger from './pages/Messenger';
 import SetPassword from './pages/auth/SetPassword';
 import Login from './pages/auth/Login';
 import Payslips from './pages/Payslips';
+import DailyReports from './pages/DailyReports';
 
 // Management Pages
 import ManageEmployees from './pages/ManageEmployees';
@@ -21,6 +22,7 @@ import ManageAnnouncements from './pages/ManageAnnouncements';
 import ManageAppreciation from './pages/ManageAppreciation';
 import ManageShiftRoster from './pages/ManageShiftRoster';
 import ManageProjects from './pages/ManageProjects';
+import ManageReports from './pages/ManageReports';
 
 const ProtectedRoute = ({ children }) => {
   const user = useSelector((state) => state.auth.user);
@@ -80,6 +82,7 @@ function App() {
           <Route path="tasks" element={<Tasks />} />
           <Route path="leaves" element={<LeaveCalendar />} />
           <Route path="payslips" element={<Payslips />} />
+          <Route path="daily-reports" element={<DailyReports />} />
           <Route path="policies" element={<div className="p-8">Company Policies (Coming Soon)</div>} />
           <Route path="profile" element={<div className="p-8">My Profile (Coming Soon)</div>} />
 
@@ -93,6 +96,7 @@ function App() {
           <Route path="manage/appreciation" element={<ManageAppreciation />} />
           <Route path="manage/roster" element={<ManageShiftRoster />} />
           <Route path="manage/projects" element={<ManageProjects />} />
+          <Route path="manage/reports" element={<ManageReports />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

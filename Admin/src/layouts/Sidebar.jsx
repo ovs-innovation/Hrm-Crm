@@ -126,6 +126,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <SubNavItem title="Designation" to="/hrm/designation" onClick={() => setIsOpen(false)} />
           <SubNavItem title="Department" to="/hrm/department" onClick={() => setIsOpen(false)} />
           <SubNavItem title="Appreciation" to="/hrm/appreciation" onClick={() => setIsOpen(false)} />
+          <SubNavItem title="Daily Work Reports" to="/hrm/daily-reports" onClick={() => setIsOpen(false)} />
           <SubNavItem title="Announcements" to="/hrm/announcements" onClick={() => setIsOpen(false)} />
           <SubNavItem title="Payroll" to="/hrm/payroll" onClick={() => setIsOpen(false)} />
         </NavItem>

@@ -1,4 +1,5 @@
 import Attendance from '../models/Attendance.js';
+import DailyReport from '../models/DailyReport.js';
 
 export const getAttendance = async (req, res) => {
   try {
@@ -36,6 +37,13 @@ export const checkIn = async (req, res) => {
   try {
     const { employeeId, date, checkIn, checkOut, status, workMode } = req.body;
     
+    if (checkOut) {
+      const report = await DailyReport.findOne({ employeeId, date });
+      if (!report) {
+        return res.status(400).json({ message: 'MISSING_REPORT' });
+      }
+    }
+
     // Check if already checked in today
     let existing = await Attendance.findOne({ employeeId, date });
     if (existing) {
@@ -66,6 +74,12 @@ export const checkOut = async (req, res) => {
   try {
     const { employeeId, date, checkOut, status } = req.body;
     
+    // STRICT CHECKOUT FLOW: Verify daily report exists
+    const report = await DailyReport.findOne({ employeeId, date });
+    if (!report) {
+      return res.status(400).json({ message: 'MISSING_REPORT' });
+    }
+
     const record = await Attendance.findOne({ employeeId, date });
     if (!record) {
       return res.status(404).json({ message: 'No check-in found for today' });

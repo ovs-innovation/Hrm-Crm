@@ -15,6 +15,7 @@ import taskRoutes from './routes/taskRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import announcementRoutes from './routes/announcementRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import { app, server } from './socket/socket.js';
 
 dotenv.config();
@@ -42,6 +43,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 

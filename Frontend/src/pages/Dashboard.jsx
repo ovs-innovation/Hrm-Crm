@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../components';
 import { FiClock, FiCalendar, FiCheckCircle, FiLogOut, FiAlertCircle, FiBriefcase, FiHome, FiMapPin, FiX } from 'react-icons/fi';
 import api from '../services/api';
@@ -15,7 +16,9 @@ const Dashboard = () => {
   const [isModeModalOpen, setIsModeModalOpen] = useState(false);
   const [selectedMode, setSelectedMode] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+  const [hasCompletedShift, setHasCompletedShift] = useState(false);
   const user = useSelector((state) => state.auth.user || { name: 'Employee' });
+  const navigate = useNavigate();
 
   const showToast = (message, type = 'info') => {
     setToast({ show: true, message, type });
@@ -25,7 +28,7 @@ const Dashboard = () => {
   // --- GEOFENCING CONFIGURATION ---
   const OFFICE_LAT = 28.582078;
   const OFFICE_LON = 77.365970;
-  const ALLOWED_RADIUS_METERS = 50;
+  const ALLOWED_RADIUS_METERS = 100;
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3;
@@ -63,8 +66,12 @@ const Dashboard = () => {
 
           setRecords(fetchedRecords);
           const latestRecord = fetchedRecords[0];
-          if (latestRecord && latestRecord.date === today && !latestRecord.checkOut) {
-            setIsCheckedIn(true);
+          if (latestRecord && latestRecord.date === today) {
+            if (!latestRecord.checkOut) {
+              setIsCheckedIn(true);
+            } else {
+              setHasCompletedShift(true);
+            }
           }
         }
       } catch (err) {
@@ -76,7 +83,11 @@ const Dashboard = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const futureHolidays = holidayRes.data.filter(h => new Date(h.date) >= today)
+        const futureHolidays = holidayRes.data.filter(h => {
+          const hDate = new Date(h.date);
+          hDate.setHours(0, 0, 0, 0);
+          return hDate >= today;
+        })
           .sort((a, b) => new Date(a.date) - new Date(b.date))
           .slice(0, 3);
 
@@ -108,8 +119,10 @@ const Dashboard = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const holidayDate = new Date(dateString);
-    const diffTime = Math.abs(holidayDate - today);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    holidayDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = holidayDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Tomorrow';
@@ -260,9 +273,15 @@ const Dashboard = () => {
 
       setRecords(updatedRecords);
       setIsCheckedIn(false);
+      setHasCompletedShift(true);
     } catch (error) {
       console.error('Check-out error', error);
-      showToast('Failed to save attendance record', 'error');
+      if (error.response && error.response.data && error.response.data.message === 'MISSING_REPORT') {
+        showToast('Please submit your daily report before checking out!', 'warning');
+        setTimeout(() => navigate('/daily-reports'), 1500);
+      } else {
+        showToast('Failed to save attendance record', 'error');
+      }
     }
   };
 
@@ -301,7 +320,12 @@ const Dashboard = () => {
               <p className="text-2xl font-bold font-mono tracking-tight text-white">{formatTime(currentTime)}</p>
             </div>
             <div className="flex flex-col items-center sm:items-start relative w-full sm:w-auto">
-              {!isCheckedIn ? (
+              {hasCompletedShift ? (
+                <div className="flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <FiCheckCircle className="mr-2" />
+                  Shift Completed
+                </div>
+              ) : !isCheckedIn ? (
                 <button
                   disabled={isLocating}
                   className={`flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 ${isLocating

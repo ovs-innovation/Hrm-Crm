@@ -24,6 +24,7 @@ import Appreciation from './pages/hrm/Appreciation';
 import ShiftRoster from './pages/hrm/ShiftRoster';
 import Tasks from './pages/hrm/Tasks';
 import AnnouncementsView from './pages/hrm/AnnouncementsView';
+import EmployeeReports from './pages/hrm/EmployeeReports';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 
@@ -78,6 +79,7 @@ function App() {
             <Route path="recruitment" element={<div className="p-8 text-white"><h2 className="text-xl font-bold">Recruitment</h2><p className="text-slate-400 mt-2">Module coming soon.</p></div>} />
             <Route path="designation" element={<Designation />} />
             <Route path="department" element={<Department />} />
+            <Route path="daily-reports" element={<EmployeeReports />} />
             <Route path="appreciation" element={<Appreciation />} />
             <Route path="announcements" element={<AnnouncementsView />} />
             <Route path="projects" element={<Projects />} />

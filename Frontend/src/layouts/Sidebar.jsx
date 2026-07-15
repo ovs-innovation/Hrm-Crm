@@ -80,9 +80,9 @@ const SubNavItem = ({ title, to, onClick }) => (
     `}
   >
     {({ isActive }) => (
-      <span className="flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-600 dark:bg-blue-400' : 'bg-transparent'}`}></span>
-        {title}
+      <span className="flex items-center gap-2 truncate">
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-blue-600 dark:bg-blue-400' : 'bg-transparent'}`}></span>
+        <span className="truncate">{title}</span>
       </span>
     )}
   </NavLink>
@@ -138,31 +138,32 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <NavItem icon={FiCalendar} title="My Calendar" to="/attendance" onClick={() => setIsOpen(false)} />
         <NavItem icon={FiUsers} title="Leads" to="/leads" onClick={() => setIsOpen(false)} />
         
-        <NavItem icon={FiUsers} title="HR">
-          {isHR || isManager ? (
-            <>
-              <SubNavItem title="Employees" to="/manage/employees" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Leaves" to="/manage/leaves" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Shift Roster" to="/manage/roster" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Attendance" to="/manage/attendance" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Holiday" to="/manage/holidays" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Tasks" to="/manage/tasks" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Designation" to="/designations" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Department" to="/departments" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Appreciation" to="/manage/appreciation" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Announcements" to="/manage/announcements" onClick={() => setIsOpen(false)} />
-            </>
-          ) : (
-            <>
-              <SubNavItem title="My Leave Requests" to="/leaves" onClick={() => setIsOpen(false)} />
-              <SubNavItem title="Company Policies" to="/policies" onClick={() => setIsOpen(false)} />
-            </>
-          )}
-        </NavItem>
+        {isHR || isManager ? (
+          <NavItem icon={FiUsers} title="HR">
+            <SubNavItem title="Employees" to="/manage/employees" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Leaves" to="/manage/leaves" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Shift Roster" to="/manage/roster" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Attendance" to="/manage/attendance" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Holiday" to="/manage/holidays" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Tasks" to="/manage/tasks" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Designation" to="/designations" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Department" to="/departments" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Appreciation" to="/manage/appreciation" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Employee Reports" to="/manage/reports" onClick={() => setIsOpen(false)} />
+            <SubNavItem title="Announcements" to="/manage/announcements" onClick={() => setIsOpen(false)} />
+          </NavItem>
+        ) : (
+          <>
+            <NavItem icon={FiFileText} title="Daily Reports" to="/daily-reports" onClick={() => setIsOpen(false)} />
+            <NavItem icon={FiFileText} title="My Leave Requests" to="/leaves" onClick={() => setIsOpen(false)} />
+            <NavItem icon={FiFileText} title="Company Policies" to="/policies" onClick={() => setIsOpen(false)} />
+          </>
+        )}
 
         <NavItem icon={FiBriefcase} title="Work">
           <SubNavItem title="My Tasks" to="/tasks" onClick={() => setIsOpen(false)} />
           <SubNavItem title="Projects" to="/manage/projects" onClick={() => setIsOpen(false)} />
+          <SubNavItem title="Daily Reports" to="/daily-reports" onClick={() => setIsOpen(false)} />
         </NavItem>
 
         <NavItem icon={FiDollarSign} title="Finance">
