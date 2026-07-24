@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import api from '../../services/api';
 
 const SetPassword = () => {
@@ -9,6 +10,8 @@ const SetPassword = () => {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTokenValid, setIsTokenValid] = useState(null);
@@ -94,26 +97,44 @@ const SetPassword = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1">
             <label className="text-sm font-semibold text-ink">New Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-navy/12 rounded-xl text-navy focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
-              placeholder="Min. 8 characters"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 pr-10 py-3 bg-white border border-navy/12 rounded-xl text-navy focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
+                placeholder="Min. 8 characters"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-ink"
+              >
+                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1">
             <label className="text-sm font-semibold text-ink">Confirm Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-navy/12 rounded-xl text-navy focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
-              placeholder="Confirm your password"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 pr-10 py-3 bg-white border border-navy/12 rounded-xl text-navy focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
+                placeholder="Confirm your password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-ink"
+              >
+                {showConfirmPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            </div>
           </div>
 
           <button

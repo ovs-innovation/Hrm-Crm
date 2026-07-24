@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import VastoraLogo from '../../components/VastoraLogo';
 import api from '../../services/api';
 import { useDispatch } from 'react-redux';
@@ -10,6 +11,7 @@ const LoginForm = () => {
   const setupSuccess = searchParams.get('setup') === 'success';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -56,7 +58,23 @@ const LoginForm = () => {
         </div>
         <div>
           <label className="app-label mb-1 block text-[13px]">Password</label>
-          <input type="password" required className="app-input h-9 text-[13px]" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              required
+              className="app-input h-9 pr-10 text-[13px]"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-ink"
+            >
+              {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+            </button>
+          </div>
         </div>
         <button type="submit" disabled={loading} className="btn-primary h-9 w-full text-[13px]">
           {loading ? 'Signing in…' : 'Continue'}
