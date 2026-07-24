@@ -2,7 +2,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import Admin from '../models/Admin.js';
 
-const DEMO_PASSWORD = 'Vastora@123';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Password123';
 
 const ROLE_ACCOUNTS = [
   { name: 'Vastora Founder', email: 'founder@vastora.tech', role: 'Founder' },

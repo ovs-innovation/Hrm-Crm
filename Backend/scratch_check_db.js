@@ -1,8 +1,9 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 
 const checkEmployee = async () => {
   try {
-    await mongoose.connect('mongodb+srv://Hrm-CRM:rudra2610@hrm.grtlcgo.mongodb.net/hrm?appName=Hrm');
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
     
     const db = mongoose.connection.db;

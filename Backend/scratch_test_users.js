@@ -7,10 +7,12 @@ const client = wrapper(axios.create({ jar, withCredentials: true }));
 
 const test = async () => {
   try {
-    console.log('Logging in as rudrapratap7488@gmail.com...');
+    const email = process.env.DEMO_EMAIL || 'admin@example.com';
+    const password = process.env.DEMO_PASSWORD || 'Password123';
+    console.log(`Logging in as ${email}...`);
     const loginRes = await client.post('http://localhost:5000/api/employees/login', {
-      email: 'rudrapratap7488@gmail.com',
-      password: 'Password123'
+      email,
+      password
     });
     console.log('Login successful! Role:', loginRes.data.role);
 
