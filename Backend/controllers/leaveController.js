@@ -1,5 +1,9 @@
 import LeaveRequest from '../models/LeaveRequest.js';
 import Employee from '../models/Employee.js';
+import Admin from '../models/Admin.js';
+import { createNotification } from '../utils/notify.js';
+import { sendEmail, leaveStatusEmailHtml } from '../utils/emailService.js';
+import { logActivity } from '../utils/activityLogger.js';
 
 // @desc    Create a new leave request
 // @route   POST /api/leaves
@@ -17,6 +21,16 @@ export const createLeave = async (req, res) => {
       reason,
       status: 'Pending'
     });
+
+    const admins = await Admin.find({}).select('_id');
+    await Promise.all(admins.map((a) => createNotification({
+      userId: a._id,
+      userType: 'Admin',
+      title: 'New leave request',
+      message: `${employeeName} requested ${type} leave`,
+      link: '/leaves',
+      module: 'hrm',
+    })));
 
     res.status(201).json(leave);
   } catch (error) {
@@ -83,6 +97,33 @@ export const updateLeaveStatus = async (req, res) => {
 
     leave.status = status;
     const updatedLeave = await leave.save();
+
+    if (requester) {
+      await createNotification({
+        userId: requester._id,
+        userType: 'Employee',
+        title: `Leave ${status}`,
+        message: `Your ${leave.type} leave (${leave.startDate} – ${leave.endDate}) was ${status.toLowerCase()}.`,
+        link: '/leave-calendar',
+        module: 'hrm',
+      });
+      if (requester.email) {
+        await sendEmail({
+          to: requester.email,
+          subject: `Leave request ${status}`,
+          html: leaveStatusEmailHtml(requester.name, status, `${leave.startDate} – ${leave.endDate}`),
+        });
+      }
+      await logActivity({
+        entityType: 'Leave',
+        entityId: leave._id,
+        entityLabel: leave.employeeName,
+        type: 'updated',
+        title: `Leave ${status}`,
+        req,
+      });
+    }
+
     res.json(updatedLeave);
   } catch (error) {
     res.status(500).json({ message: error.message });

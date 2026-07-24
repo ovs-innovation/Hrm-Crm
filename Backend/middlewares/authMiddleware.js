@@ -12,8 +12,11 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       let user = await Admin.findById(decoded.userId).select('-password');
-      if (!user) {
+      if (user) {
+        req.userType = 'Admin';
+      } else {
         user = await Employee.findById(decoded.userId).select('-password');
+        if (user) req.userType = 'Employee';
       }
 
       if (!user) {
@@ -21,7 +24,7 @@ const protect = async (req, res, next) => {
       }
 
       req.user = user;
-      req.admin = user; // Keep this for backwards compatibility for existing Admin routes
+      req.admin = user;
 
       next();
     } catch (error) {

@@ -34,10 +34,10 @@ const LeaveApprovalsTable = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-white/5 pb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-line pb-6">
         <div>
-          <h2 className="text-3xl font-extrabold text-white tracking-tight mb-1">Leave Management</h2>
-          <p className="text-slate-400 font-medium">Review and manage employee leave requests.</p>
+          <h2 className="text-[15px] font-semibold text-ink tracking-tight mb-1">Leave Management</h2>
+          <p className="text-muted font-medium">Review and manage employee leave requests.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -50,10 +50,10 @@ const LeaveApprovalsTable = () => {
         </button>
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-hidden border border-white/5">
+      <div className="app-panel rounded-2xl overflow-hidden border border-line">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-800/50 border-b border-white/5 text-slate-400 font-semibold">
+          <table className="w-full text-left text-sm text-muted">
+            <thead className="bg-surface border-b border-line text-muted font-semibold">
               <tr>
                 <th className="px-6 py-4">Employee</th>
                 <th className="px-6 py-4">Leave Type</th>
@@ -63,10 +63,10 @@ const LeaveApprovalsTable = () => {
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 bg-slate-900/20">
+            <tbody className="divide-y divide-line bg-soft">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="6" className="px-6 py-12 text-center text-muted">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                       <p>Loading leave requests...</p>
@@ -75,36 +75,36 @@ const LeaveApprovalsTable = () => {
                 </tr>
               ) : leaves.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="6" className="px-6 py-12 text-center text-muted">
                     No leave requests found.
                   </td>
                 </tr>
               ) : (
                 leaves.map((leave) => (
-                  <tr key={leave.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={leave.id} className="hover:bg-soft transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 font-medium text-white">
-                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-xs font-bold text-emerald-400">
+                      <div className="flex items-center gap-2 font-medium text-ink">
+                        <div className="w-8 h-8 rounded-full bg-surface border border-line flex items-center justify-center text-xs font-bold text-brand">
                           {leave.employee.split(' ').map(n => n[0]).join('')}
                         </div>
                         {leave.employee}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-300">{leave.type}</td>
+                    <td className="px-6 py-4 text-muted">{leave.type}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-slate-800 text-slate-300 py-1 px-3 rounded-md text-xs border border-white/5">
+                      <span className="bg-surface text-muted py-1 px-3 rounded-md text-xs border border-line">
                         {leave.startDate} to {leave.endDate}
                       </span>
                     </td>
                     <td className="px-6 py-4 truncate max-w-xs">{leave.reason}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-medium 
-                        ${leave.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
-                          leave.status === 'Rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 
-                          'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                        ${leave.status === 'Approved' ? 'bg-brand/10 text-brand border border-emerald-500/20' : 
+                          leave.status === 'Rejected' ? 'bg-brand/10 text-brand border border-brand/20' : 
+                          'bg-brand/10 text-brand border border-amber-500/20'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full 
-                          ${leave.status === 'Approved' ? 'bg-emerald-500' : 
-                            leave.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-500'}`}>
+                          ${leave.status === 'Approved' ? 'bg-brand' : 
+                            leave.status === 'Rejected' ? 'bg-brand' : 'bg-brand'}`}>
                         </span>
                         {leave.status}
                       </span>
@@ -114,18 +114,18 @@ const LeaveApprovalsTable = () => {
                         <>
                           <button 
                             onClick={() => handleUpdateStatus(leave.id, 'Approved')}
-                            className="text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors border border-emerald-500/30">
+                            className="text-brand hover:bg-brand/10 p-2 rounded-lg transition-colors border border-brand/25">
                             Approve
                           </button>
                           <button 
                             onClick={() => handleUpdateStatus(leave.id, 'Rejected')}
-                            className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors border border-red-500/30">
+                            className="text-brand hover:bg-brand/100/10 p-2 rounded-lg transition-colors border border-brand/30">
                             Reject
                           </button>
                         </>
                       )}
                       {leave.status !== 'Pending' && (
-                        <button className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
+                        <button className="text-muted hover:text-white transition-colors p-2 rounded-lg hover:bg-surface">
                           View
                         </button>
                       )}

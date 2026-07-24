@@ -88,38 +88,38 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
   // Helper to determine cell styling based on events
   const getEventStyles = (type) => {
     switch (type) {
-      case 'holiday': return 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30';
-      case 'approved': return 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30';
-      case 'pending': return 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30';
-      case 'rejected': return 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/30 line-through opacity-70';
-      case 'attendance': return 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30';
-      default: return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+      case 'holiday': return 'bg-brand/10 text-purple-700 border-purple-200';
+      case 'approved': return 'bg-brand/10 text-brand border-brand/25';
+      case 'pending': return 'bg-brand/10 text-brand border-brand/25';
+      case 'rejected': return 'bg-brand/10 text-brand border-rose-200 line-through opacity-70';
+      case 'attendance': return 'bg-brand/10 bg-brand/15 text-brand border-brand/25';
+      default: return 'bg-surface text-ink text-muted';
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64 text-slate-400">
+      <div className="flex justify-center items-center h-64 text-muted">
         <div className="animate-pulse">Loading calendar data...</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-xl mt-6">
+    <div className="bg-surface rounded-3xl p-6 md:p-8 border border-line shadow-xl mt-6">
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 mb-6 text-sm font-medium">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Approved Leave</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500"></span> Pending Leave</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-500"></span> Rejected Leave</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500"></span> Company Holiday</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Attendance Present</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand"></span> Approved Leave</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand"></span> Pending Leave</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand"></span> Rejected Leave</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand"></span> Company Holiday</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand"></span> Attendance Present</div>
       </div>
 
       <div className="grid grid-cols-7 gap-2 sm:gap-4 mb-4">
         {daysOfWeek.map(day => (
-          <div key={day} className="text-center font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider py-2">
+          <div key={day} className="text-center font-bold text-muted text-muted text-xs uppercase tracking-wider py-2">
             {day}
           </div>
         ))}
@@ -127,7 +127,7 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
 
       <div className="grid grid-cols-7 gap-2 sm:gap-4">
         {blanks.map(blank => (
-          <div key={`blank-${blank}`} className="aspect-square rounded-2xl bg-slate-50 dark:bg-slate-900/30 opacity-50"></div>
+          <div key={`blank-${blank}`} className="aspect-square rounded-2xl bg-surface/30 opacity-50"></div>
         ))}
 
         {days.map(day => {
@@ -143,12 +143,12 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
               key={day}
               className={`aspect-square p-1 sm:p-2 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-start relative overflow-hidden group
                 ${isToday
-                  ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md'
+                  ? 'border-brand border-brand bg-brand/10'
+                  : 'border-line border-line bg-surface hover:border-line hover:shadow-md'
                 }
               `}
             >
-              <span className={`text-sm sm:text-base font-semibold z-10 mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
+              <span className={`text-sm sm:text-base font-semibold z-10 mb-1 ${isToday ? 'text-brand text-brand' : 'text-ink text-muted'}`}>
                 {day}
               </span>
 

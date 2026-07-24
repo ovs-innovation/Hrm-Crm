@@ -67,11 +67,11 @@ const Projects = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
-      case 'Active': return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400';
-      case 'Planning': return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400';
-      case 'On Hold': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400';
-      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
+      case 'Completed': return 'bg-brand/10 text-brand';
+      case 'Active': return 'bg-brand/10 text-brand bg-brand/15 text-brand';
+      case 'Planning': return 'bg-brand/10 text-purple-700';
+      case 'On Hold': return 'bg-brand/10 text-brand';
+      default: return 'bg-white text-ink bg-surface text-muted';
     }
   };
 
@@ -86,11 +86,11 @@ const Projects = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <FiTarget className="w-6 h-6 text-purple-500" />
+          <h2 className="text-[15px] font-semibold text-ink flex items-center gap-2">
+            <FiTarget className="w-6 h-6 text-brand" />
             Project Hub
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Track and manage client projects</p>
+          <p className="text-muted text-muted text-sm mt-1">Track and manage client projects</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -103,12 +103,12 @@ const Projects = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {loading ? (
-          <div className="col-span-full text-center py-12 text-slate-500">Loading projects...</div>
+          <div className="col-span-full text-center py-12 text-muted">Loading projects...</div>
         ) : projects.length === 0 ? (
-          <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <FiTarget className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No projects found.</p>
-            <p className="text-sm text-slate-400">Click "Create Project" to get started.</p>
+          <div className="col-span-full text-center py-12 bg-surface rounded-2xl border border-line">
+            <FiTarget className="w-12 h-12 text-muted mx-auto mb-3" />
+            <p className="text-muted font-medium">No projects found.</p>
+            <p className="text-sm text-muted">Click "Create Project" to get started.</p>
           </div>
         ) : (
           projects.map(project => (
@@ -116,9 +116,9 @@ const Projects = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">{project.title}</h3>
-                    <div className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                      Client: <span className="text-purple-600 dark:text-purple-400">{project.client?.company || 'Unknown Client'}</span>
+                    <h3 className="text-[15px] font-semibold text-ink mb-1">{project.title}</h3>
+                    <div className="text-sm font-medium text-muted text-muted flex items-center gap-1.5">
+                      Client: <span className="text-brand">{project.client?.company || 'Unknown Client'}</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -127,39 +127,39 @@ const Projects = () => {
                     </span>
                     <button
                       onClick={() => deleteProject(project._id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <FiTrash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mb-6">
+                <p className="text-sm text-muted text-muted line-clamp-2 mb-6">
                   {project.description}
                 </p>
 
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-line border-line">
                   <div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <p className="text-xs text-muted text-muted font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
                       <FiCalendar className="w-3 h-3" /> Deadline
                     </p>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <p className="text-sm font-semibold text-ink text-ink">
                       {formatDate(project.deadline)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <p className="text-xs text-muted text-muted font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
                       <FiDollarSign className="w-3 h-3" /> Budget
                     </p>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <p className="text-sm font-semibold text-ink text-ink">
                       ${project.budget?.toLocaleString() || '0'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <p className="text-xs text-muted text-muted font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
                       <FiUsers className="w-3 h-3" /> Team Size
                     </p>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <p className="text-sm font-semibold text-ink text-ink">
                       {project.team?.length || 0} Members
                     </p>
                   </div>
@@ -172,37 +172,37 @@ const Projects = () => {
 
       {/* Create Project Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Create New Project</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30 backdrop-blur-sm">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-line">
+            <div className="p-6 border-b border-line flex justify-between items-center bg-surface/50">
+              <h3 className="text-[15px] font-semibold text-ink">Create New Project</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-muted hover:text-muted hover:text-white">✕</button>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Project Title</label>
+                    <label className="block text-sm font-medium text-ink text-muted mb-1">Project Title</label>
                     <input
                       required type="text" value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                    <label className="block text-sm font-medium text-ink text-muted mb-1">Description</label>
                     <textarea
                       required value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 h-24 resize-none"
+                      className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-purple-500 h-24 resize-none"
                     ></textarea>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Client</label>
+                    <label className="block text-sm font-medium text-ink text-muted mb-1">Client</label>
                     <select
                       required value={formData.client}
                       onChange={e => setFormData({ ...formData, client: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="">Select a Client</option>
                       {clients.map(c => (
@@ -211,11 +211,11 @@ const Projects = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                    <label className="block text-sm font-medium text-ink text-muted mb-1">Status</label>
                     <select
                       value={formData.status}
                       onChange={e => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="Planning">Planning</option>
                       <option value="Active">Active</option>
@@ -224,24 +224,24 @@ const Projects = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Deadline</label>
+                    <label className="block text-sm font-medium text-ink text-muted mb-1">Deadline</label>
                     <input
                       required type="date" value={formData.deadline}
                       onChange={e => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Budget ($)</label>
+                    <label className="block text-sm font-medium text-ink text-muted mb-1">Budget ($)</label>
                     <input
                       type="number" value={formData.budget}
                       onChange={e => setFormData({ ...formData, budget: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Assign Team Members</label>
-                    <div className="w-full max-h-40 overflow-y-auto p-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg space-y-2">
+                    <label className="block text-sm font-medium text-ink text-muted mb-2">Assign Team Members</label>
+                    <div className="w-full max-h-40 overflow-y-auto p-3 bg-surface border border-line border-line rounded-lg space-y-2">
                       {employees.map(emp => {
                         const empId = emp.employeeId || emp._id;
                         const isChecked = formData.team.includes(empId);
@@ -260,10 +260,10 @@ const Projects = () => {
                                   }
                                 });
                               }}
-                              className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                              className="w-4 h-4 text-brand border-line rounded focus:ring-purple-500"
                             />
-                            <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-purple-600 transition-colors">
-                              {emp.name} <span className="text-xs text-slate-500">({emp.designation || 'Employee'})</span>
+                            <span className="text-sm text-ink text-muted group-hover:text-brand transition-colors">
+                              {emp.name} <span className="text-xs text-muted">({emp.designation || 'Employee'})</span>
                             </span>
                           </label>
                         );
@@ -271,8 +271,8 @@ const Projects = () => {
                     </div>
                   </div>
                 </div>
-                <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
+                <div className="pt-4 flex justify-end gap-3 border-t border-line border-line">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-muted hover:bg-white rounded-lg transition-colors">Cancel</button>
                   <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-lg shadow-purple-500/30 transition-all font-medium">Save Project</button>
                 </div>
               </form>

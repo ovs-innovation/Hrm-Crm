@@ -23,12 +23,12 @@ const LeaveRequestForm = ({ onCancel, onSubmit }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Select Employee</label>
+        <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Select Employee</label>
         <select 
           name="employeeId"
           value={formData.employeeId}
           onChange={handleChange}
-          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all appearance-none"
+          className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all appearance-none"
           required
         >
           <option value="" disabled>Select an employee...</option>
@@ -40,12 +40,12 @@ const LeaveRequestForm = ({ onCancel, onSubmit }) => {
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Leave Type</label>
+        <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Leave Type</label>
         <select 
           name="leaveType"
           value={formData.leaveType}
           onChange={handleChange}
-          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all appearance-none"
+          className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all appearance-none"
         >
           <option value="Annual Leave">Annual Leave</option>
           <option value="Sick Leave">Sick Leave</option>
@@ -56,53 +56,53 @@ const LeaveRequestForm = ({ onCancel, onSubmit }) => {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Start Date</label>
+          <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Start Date</label>
           <input 
             type="date"
             name="startDate"
             value={formData.startDate}
             onChange={handleChange}
-            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+            className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
             required
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">End Date</label>
+          <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">End Date</label>
           <input 
             type="date"
             name="endDate"
             value={formData.endDate}
             onChange={handleChange}
-            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+            className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
             required
           />
         </div>
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Reason</label>
+        <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Reason</label>
         <textarea 
           name="reason"
           value={formData.reason}
           onChange={handleChange}
           rows="3"
-          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+          className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
           placeholder="Briefly explain the reason for your leave..."
           required
         ></textarea>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+      <div className="flex justify-end gap-3 pt-4 border-t border-line">
         <button 
           type="button" 
           onClick={onCancel}
-          className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg font-medium transition-colors"
+          className="px-4 py-2 text-ink text-muted hover:bg-white hover:bg-surface rounded-lg font-medium transition-colors"
         >
           Cancel
         </button>
         <button 
           type="submit" 
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium shadow-lg shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5"
+          className="bg-brand hover:bg-brand text-white px-6 py-2 rounded-lg font-medium shadow-lg shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5"
         >
           Submit Request
         </button>

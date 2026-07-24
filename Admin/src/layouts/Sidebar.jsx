@@ -1,152 +1,180 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  FiHome, 
-  FiMessageSquare, 
-  FiUsers, 
-  FiBriefcase, 
-  FiClock, 
-  FiDollarSign,
-  FiFileText,
-  FiTarget,
+import { useSelector } from 'react-redux';
+import VastoraLogo from '../components/VastoraLogo';
+import { getNavAccess } from '../utils/roleAccess';
+import {
+  FiHome,
   FiBarChart2,
+  FiPieChart,
   FiChevronDown,
   FiChevronRight,
-  FiX
+  FiX,
+  FiTarget,
+  FiUser,
+  FiBriefcase,
+  FiDollarSign,
+  FiFolder,
+  FiRadio,
+  FiCheckSquare,
+  FiCalendar,
+  FiPhone,
+  FiUsers,
+  FiMessageSquare,
+  FiAward,
+  FiClock,
+  FiLifeBuoy,
+  FiSettings,
+  FiFileText,
 } from 'react-icons/fi';
 
-const NavItem = ({ icon: Icon, title, to, children, onClick }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const hasChildren = Boolean(children);
+const SALES = [
+  { title: 'Leads', to: '/crm/leads', icon: FiTarget },
+  { title: 'Contacts', to: '/crm/contacts', icon: FiUser },
+  { title: 'Accounts', to: '/crm/accounts', icon: FiBriefcase },
+  { title: 'Deals', to: '/crm/deals', icon: FiDollarSign },
+  { title: 'Quotes & Invoices', to: '/crm/invoices', icon: FiFileText },
+  { title: 'Documents', to: '/crm/documents', icon: FiFolder },
+  { title: 'Campaigns', to: '/crm/campaigns', icon: FiRadio },
+];
 
-  if (hasChildren) {
-    return (
-      <div className="mb-2">
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200
-            ${isOpen ? 'bg-blue-600/10 text-white font-semibold' : 'text-white hover:bg-slate-900'}
-          `}
-        >
-          <div className="flex items-center gap-3">
-            <Icon className={`w-5 h-5 transition-colors ${isOpen ? 'text-blue-400' : 'text-slate-400'}`} />
-            <span>{title}</span>
-          </div>
-          {isOpen ? <FiChevronDown className="w-4 h-4 text-blue-450" /> : <FiChevronRight className="w-4 h-4 text-slate-500" />}
-        </button>
-        <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-          <div className="ml-6 pl-4 border-l border-slate-800 space-y-1">
-            {children}
-          </div>
-        </div>
-      </div>
-    );
-  }
+const ACTIVITIES = [
+  { title: 'Tasks', to: '/crm/tasks', icon: FiCheckSquare },
+  { title: 'Meetings', to: '/crm/meetings', icon: FiCalendar },
+  { title: 'Calls', to: '/crm/calls', icon: FiPhone },
+];
 
-  return (
-    <NavLink 
-      to={to}
-      onClick={onClick}
-      className={({ isActive }) => `
-        flex items-center gap-3 px-3 py-3 mb-2 text-sm font-medium rounded-lg transition-all duration-200
-        ${isActive 
-          ? 'bg-blue-600/20 text-white font-bold border-l-4 border-blue-500 shadow-md shadow-blue-500/5' 
-          : 'text-white hover:bg-slate-900'
-        }
-      `}
-    >
-      {({ isActive }) => (
-        <>
-          <Icon className={`w-5 h-5 ${isActive ? 'text-blue-450' : 'text-slate-400'}`} />
-          <span>{title}</span>
-        </>
-      )}
-    </NavLink>
-  );
-};
+const PEOPLE = [
+  { title: 'Employees', to: '/hrm/employees', icon: FiUsers },
+  { title: 'Departments', to: '/hrm/department', icon: FiBriefcase },
+  { title: 'Designations', to: '/hrm/designation', icon: FiAward },
+  { title: 'Leaves', to: '/hrm/leaves', icon: FiCalendar },
+  { title: 'Attendance', to: '/hrm/attendance', icon: FiCalendar },
+  { title: 'Shift roster', to: '/hrm/shift-roster', icon: FiClock },
+  { title: 'Holidays', to: '/hrm/holiday', icon: FiCalendar },
+  { title: 'Payroll', to: '/hrm/payroll', icon: FiDollarSign },
+  { title: 'Appreciation', to: '/hrm/appreciation', icon: FiAward },
+  { title: 'Support tickets', to: '/hrm/tickets', icon: FiLifeBuoy },
+  { title: 'Recruitment', to: '/hrm/recruitment', icon: FiTarget },
+  { title: 'Announcements', to: '/hrm/announcements', icon: FiRadio },
+  { title: 'Daily reports', to: '/hrm/daily-reports', icon: FiFolder },
+  { title: 'Projects', to: '/hrm/projects', icon: FiBriefcase },
+];
 
-const SubNavItem = ({ title, to, onClick }) => (
+const NavItem = ({ to, icon: Icon, title, end, onClick }) => (
   <NavLink
     to={to}
+    end={end}
     onClick={onClick}
-    className={({ isActive }) => `
-      block px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200
-      ${isActive 
-        ? 'text-white bg-blue-600/20 font-bold' 
-        : 'text-slate-200 hover:text-white hover:bg-slate-900/50'
-      }
-    `}
+    className={({ isActive }) =>
+      `flex h-8 items-center gap-2.5 rounded px-2.5 text-[13px] transition-colors ${
+        isActive
+          ? 'bg-brand-xlight font-medium text-brand'
+          : 'text-ink/70 hover:bg-soft hover:text-ink'
+      }`
+    }
   >
-    {({ isActive }) => (
-      <span className="flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-400' : 'bg-transparent'}`}></span>
-        {title}
-      </span>
-    )}
+    <Icon className="h-[15px] w-[15px] shrink-0 opacity-80" strokeWidth={1.75} />
+    <span className="truncate">{title}</span>
   </NavLink>
 );
 
+const Section = ({ title, children, defaultOpen = true }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  if (!children || React.Children.count(children) === 0) return null;
+  return (
+    <div className="pt-4">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="mb-1 flex w-full items-center justify-between px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
+      >
+        {title}
+        {open ? <FiChevronDown className="h-3 w-3" /> : <FiChevronRight className="h-3 w-3" />}
+      </button>
+      {open && <div className="space-y-0.5">{children}</div>}
+    </div>
+  );
+};
+
 const Sidebar = ({ isOpen, setIsOpen }) => {
+  const adminInfo = useSelector((state) => state.auth.adminInfo || {});
+  const access = getNavAccess(adminInfo.role);
+  const close = () => setIsOpen(false);
+
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setIsOpen(false)}
-        ></div>
+        <div
+          className="fixed inset-0 z-40 bg-ink/20 md:hidden"
+          onClick={close}
+          aria-hidden
+        />
       )}
 
-      {/* Sidebar */}
-      <aside className={`w-64 bg-slate-900 h-screen fixed top-0 left-0 overflow-y-auto border-r border-slate-800 shadow-2xl z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
-        <div className="p-6 border-b border-slate-850 flex justify-between items-center bg-slate-900 sticky top-0 z-10">
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-450 to-indigo-400 flex items-center gap-2 tracking-tight">
-            HRM Pro
-          </h1>
-          <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white transition-colors">
-            <FiX className="w-6 h-6" />
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-col border-r border-line bg-surface transition-transform duration-200 md:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex h-12 items-center justify-between border-b border-line px-3">
+          <VastoraLogo className="h-8 w-auto max-w-[150px] object-contain" />
+          <button
+            type="button"
+            onClick={close}
+            className="rounded p-1 text-muted hover:bg-soft hover:text-ink md:hidden"
+            aria-label="Close menu"
+          >
+            <FiX className="h-4 w-4" />
           </button>
         </div>
 
-      <nav className="p-4 flex-1 mt-2">
-        <NavItem icon={FiHome} title="Dashboard" to="/" onClick={() => setIsOpen(false)} />
-        <NavItem icon={FiMessageSquare} title="Messenger" to="/messenger" onClick={() => setIsOpen(false)} />
-        
-        <div className="mt-8 mb-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
-          Management
-        </div>
+        {adminInfo.role && (
+          <div className="border-b border-line px-3 py-2">
+            <p className="truncate text-[11px] text-muted">Signed in as</p>
+            <p className="truncate text-[12px] font-medium text-ink">{adminInfo.name}</p>
+            <span className="mt-1 inline-block rounded bg-brand-xlight px-1.5 py-0.5 text-[10px] font-semibold uppercase text-brand">
+              {adminInfo.role}
+            </span>
+          </div>
+        )}
 
-        <NavItem icon={FiUsers} title="HR">
-          <SubNavItem title="Employees" to="/hrm/employees" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Leaves" to="/hrm/leaves" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Shift Roster" to="/hrm/shift-roster" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Attendance" to="/hrm/attendance" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Holiday" to="/hrm/holiday" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Tasks" to="/hrm/tasks" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Designation" to="/hrm/designation" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Department" to="/hrm/department" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Appreciation" to="/hrm/appreciation" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Daily Work Reports" to="/hrm/daily-reports" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Announcements" to="/hrm/announcements" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Payroll" to="/hrm/payroll" onClick={() => setIsOpen(false)} />
-        </NavItem>
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="space-y-0.5">
+            {access.home && <NavItem to="/" icon={FiHome} title="Home" end onClick={close} />}
+            {access.reports && <NavItem to="/reports" icon={FiBarChart2} title="Reports" end onClick={close} />}
+            {access.analytics && <NavItem to="/analytics" icon={FiPieChart} title="Analytics" end onClick={close} />}
+            {access.settings && <NavItem to="/settings" icon={FiSettings} title="Settings" end onClick={close} />}
+          </div>
 
-        <NavItem icon={FiBriefcase} title="CRM System" to="/crm" onClick={() => setIsOpen(false)} />
-        <NavItem icon={FiTarget} title="Project System" to="/hrm/projects" onClick={() => setIsOpen(false)} />
-        
-        <div className="mt-8 mb-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
-          Analysis
-        </div>
+          {access.sales && (
+            <Section title="Sales">
+              {SALES.map((item) => (
+                <NavItem key={item.to} {...item} onClick={close} />
+              ))}
+            </Section>
+          )}
 
-        <NavItem icon={FiBarChart2} title="Reports">
-          <SubNavItem title="Task Report" to="/reports/tasks" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Time Log Report" to="/reports/time-log" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Leave Report" to="/reports/leave" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Attendance Report" to="/reports/attendance" onClick={() => setIsOpen(false)} />
-          <SubNavItem title="Finance Report" to="/reports/finance" onClick={() => setIsOpen(false)} />
-        </NavItem>
-      </nav>
-    </aside>
+          {access.activities && (
+            <Section title="Activities">
+              {ACTIVITIES.map((item) => (
+                <NavItem key={item.to} {...item} onClick={close} />
+              ))}
+            </Section>
+          )}
+
+          {access.people && (
+            <Section title="People">
+              {PEOPLE.map((item) => (
+                <NavItem key={item.to} {...item} onClick={close} />
+              ))}
+              {access.messenger && (
+                <NavItem to="/messenger" icon={FiMessageSquare} title="Messenger" onClick={close} />
+              )}
+            </Section>
+          )}
+        </nav>
+      </aside>
     </>
   );
 };

@@ -2,29 +2,37 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './layouts/DashboardLayout';
-import Dashboard from './pages/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import CrmHome from './pages/crm/CrmHome';
+import Leads from './pages/crm/Leads';
+import Contacts from './pages/crm/Contacts';
+import Deals from './pages/crm/Deals';
+import Documents from './pages/crm/Documents';
+import Campaigns from './pages/crm/Campaigns';
+import Meetings from './pages/crm/Meetings';
+import Calls from './pages/crm/Calls';
 import EmployeeList from './pages/employees/EmployeeList';
-import CoreHR from './pages/hrm/CoreHR';
-import Performance from './pages/hrm/Performance';
-import Timesheet from './pages/hrm/Timesheet';
-import Finance from './pages/hrm/Finance';
-import Payroll from './pages/hrm/Payroll';
-import PayslipInvoice from './pages/hrm/PayslipInvoice';
-import Recruitment from './pages/hrm/Recruitment';
+import DepartmentList from './features/organization/components/DepartmentList';
+import DesignationList from './features/organization/components/DesignationList';
 import Reports from './pages/hrm/Reports';
+import Analytics from './pages/analytics/Analytics';
 import Messenger from './pages/Messenger';
 import Attendance from './pages/hrm/Attendance';
-import Department from './pages/hrm/Department';
-import Designation from './pages/hrm/Designation';
 import Clients from './pages/crm/Clients';
 import Projects from './pages/crm/Projects';
 import Leaves from './pages/hrm/Leaves';
 import Holiday from './pages/hrm/Holiday';
-import Appreciation from './pages/hrm/Appreciation';
-import ShiftRoster from './pages/hrm/ShiftRoster';
 import Tasks from './pages/hrm/Tasks';
 import AnnouncementsView from './pages/hrm/AnnouncementsView';
 import EmployeeReports from './pages/hrm/EmployeeReports';
+import ShiftRoster from './pages/hrm/ShiftRoster';
+import Appreciation from './pages/hrm/Appreciation';
+import Payroll from './pages/hrm/Payroll';
+import PayslipDetail from './pages/hrm/PayslipDetail';
+import Tickets from './pages/hrm/Tickets';
+import Recruitment from './pages/hrm/Recruitment';
+import Settings from './pages/settings/Settings';
+import Invoices from './pages/crm/Invoices';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 
@@ -36,62 +44,76 @@ function App() {
         toastOptions={{ 
           duration: 3000,
           style: {
-            background: '#1e293b', // slate-800
-            color: '#fff',
-            borderRadius: '12px',
-            padding: '16px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            fontSize: '14px',
+            background: '#FFFFFF',
+            color: '#1E293B',
+            border: '1px solid #E2E8F0',
+            borderRadius: '6px',
+            padding: '12px 14px',
+            fontSize: '13px',
             fontWeight: '500',
           },
           success: {
             iconTheme: {
-              primary: '#10b981', // emerald-500
-              secondary: '#fff',
+              primary: '#22C55E',
+              secondary: '#FFFFFF',
             },
           },
           error: {
             iconTheme: {
-              primary: '#f43f5e', // rose-500
-              secondary: '#fff',
+              primary: '#EF4444',
+              secondary: '#FFFFFF',
             },
           },
         }} 
       />
       <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Private Dashboard Routes */}
-        <Route path="/" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
+        <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          {/* CRM Home — Zoho-style onboarding */}
+          <Route index element={<CrmHome />} />
 
-          {/* HRM System Routes */}
-          <Route path="hrm">
-            <Route path="employees" element={<EmployeeList />} />
-            <Route path="leaves" element={<Leaves />} />
-            <Route path="shift-roster" element={<ShiftRoster />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="holiday" element={<Holiday />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="recruitment" element={<div className="p-8 text-white"><h2 className="text-xl font-bold">Recruitment</h2><p className="text-slate-400 mt-2">Module coming soon.</p></div>} />
-            <Route path="designation" element={<Designation />} />
-            <Route path="department" element={<Department />} />
-            <Route path="daily-reports" element={<EmployeeReports />} />
-            <Route path="appreciation" element={<Appreciation />} />
-            <Route path="announcements" element={<AnnouncementsView />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="payroll" element={<Payroll />} />
-            <Route path="payroll/invoice/:id" element={<PayslipInvoice />} />
-          </Route>
+          {/* CRM — Sales */}
+          <Route path="crm/leads" element={<Leads />} />
+          <Route path="crm/contacts" element={<Contacts />} />
+          <Route path="crm/accounts" element={<Clients />} />
+          <Route path="crm/deals" element={<Deals />} />
+          <Route path="crm/invoices" element={<Invoices />} />
+          <Route path="crm/documents" element={<Documents />} />
+          <Route path="crm/campaigns" element={<Campaigns />} />
 
-          {/* Other Systems */}
-          <Route path="messenger" element={<Messenger />} />
-          <Route path="crm" element={<Clients />} />
-          <Route path="projects" element={<Projects />} />
+          {/* CRM — Activities */}
+          <Route path="crm/tasks" element={<Tasks />} />
+          <Route path="crm/meetings" element={<Meetings />} />
+          <Route path="crm/calls" element={<Calls />} />
+
           <Route path="reports/*" element={<Reports />} />
+          <Route path="analytics" element={<Analytics />} />
+
+          {/* HRM */}
+          <Route path="hrm/employees" element={<EmployeeList />} />
+          <Route path="hrm/leaves" element={<Leaves />} />
+          <Route path="hrm/shift-roster" element={<ShiftRoster />} />
+          <Route path="hrm/attendance" element={<Attendance />} />
+          <Route path="hrm/holiday" element={<Holiday />} />
+          <Route path="hrm/tasks" element={<Tasks />} />
+          <Route path="hrm/designation" element={<DesignationList />} />
+          <Route path="hrm/department" element={<DepartmentList />} />
+          <Route path="hrm/daily-reports" element={<EmployeeReports />} />
+          <Route path="hrm/appreciation" element={<Appreciation />} />
+          <Route path="hrm/announcements" element={<AnnouncementsView />} />
+          <Route path="hrm/projects" element={<Projects />} />
+          <Route path="hrm/payroll" element={<Payroll />} />
+          <Route path="hrm/payroll/invoice/:id" element={<PayslipDetail />} />
+          <Route path="hrm/tickets" element={<Tickets />} />
+          <Route path="hrm/recruitment" element={<Recruitment />} />
+
+          <Route path="messenger" element={<Messenger />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="crm" element={<Navigate to="/crm/accounts" replace />} />
+          <Route path="projects" element={<Projects />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

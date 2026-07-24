@@ -1,14 +1,166 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
+/* Vastora Tech — logo blue & white theme */
+@theme {
+  --color-brand: #2E6DB4;
+  --color-brand-hover: #2563A8;
+  --color-brand-light: #4A8FD4;
+  --color-brand-xlight: #EBF4FC;
+  --color-navy: #1E293B;
+  --color-navy-hover: #334155;
+  --color-white: #FFFFFF;
+  --color-canvas: #F4F6F8;
+  --color-surface: #FFFFFF;
+  --color-soft: #F8FAFC;
+  --color-ink: #1E293B;
+  --color-muted: #64748B;
+  --color-line: #E2E8F0;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
   body {
-    font-family: 'Outfit', sans-serif;
-    background: radial-gradient(circle at top left, #312e81 0%, #1e293b 50%, #0f172a 100%);
-    background-attachment: fixed;
-    color: #f8fafc;
+    font-family: var(--font-sans);
+    background-color: #F4F6F8;
+    color: #1E293B;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input,
+  textarea,
+  select {
+    color: #1E293B;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #6B7280;
+  }
+}
+
+@layer utilities {
+  .app-shell {
+    @apply min-h-screen bg-canvas text-ink;
+  }
+
+  .app-sidebar {
+    @apply border-r border-line bg-white text-ink;
+  }
+
+  .app-header {
+    @apply border-b border-line bg-surface;
+  }
+
+  .app-panel {
+    @apply rounded-lg border border-line bg-surface;
+  }
+
+  .app-card {
+    @apply rounded-lg border border-line bg-surface shadow-sm;
+  }
+
+  .app-card-icon {
+    @apply flex h-10 w-10 items-center justify-center rounded-full bg-brand-xlight text-brand;
+  }
+
+  .app-input {
+    @apply w-full rounded border border-line bg-surface px-3 py-2 text-ink outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand/20;
+  }
+
+  .app-label {
+    @apply text-sm font-medium text-ink;
+  }
+
+  .app-muted {
+    @apply text-muted;
+  }
+
+  .app-nav-active {
+    @apply bg-brand-xlight font-medium text-brand;
+  }
+
+  .app-nav-item {
+    @apply text-muted transition-colors hover:bg-brand-xlight hover:text-brand;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand/30 hover:bg-soft disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .brand-gradient {
+    background: linear-gradient(135deg, #2E6DB4 0%, #4A8FD4 100%);
+  }
+
+  .badge-success {
+    @apply inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2E6DB4;
+}
+
+aside ::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+aside ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+}
+
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  body {
+    background: white !important;
+    color: #273850 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  aside {
+    display: none !important;
+  }
+
+  .md\:ml-64 {
+    margin-left: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
   }
 }

@@ -32,6 +32,26 @@ export const createHoliday = async (req, res) => {
   }
 };
 
+export const updateHoliday = async (req, res) => {
+  try {
+    const holiday = await Holiday.findById(req.params.id);
+    if (!holiday) {
+      return res.status(404).json({ message: 'Holiday not found' });
+    }
+    Object.assign(holiday, req.body);
+    const updated = await holiday.save();
+    res.json({
+      id: updated._id.toString(),
+      name: updated.name,
+      date: updated.date,
+      day: updated.day,
+      type: updated.type,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const deleteHoliday = async (req, res) => {
   try {
     const holiday = await Holiday.findById(req.params.id);

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiPlus, FiCalendar, FiTrash2 } from 'react-icons/fi';
-import { Card, Button } from '../../components';
 import Modal from '../../components/Modal';
+import PageShell from '../../components/PageShell';
 import AddHolidayForm from '../../features/holiday/components/AddHolidayForm';
-
 import api from '../../services/api';
 
 const Holiday = () => {
@@ -11,136 +10,79 @@ const Holiday = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    const fetchHolidays = async () => {
-      try {
-        const res = await api.get('/holidays');
-        setHolidays(res.data);
-      } catch (err) {
-        console.error('Failed to fetch holidays', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHolidays();
-  }, []);
+  const fetchHolidays = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/holidays');
+      setHolidays(res.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchHolidays(); }, []);
 
   const handleAddHoliday = async (newHoliday) => {
-    try {
-      const res = await api.post('/holidays', newHoliday);
-      const updated = [...holidays, res.data].sort((a, b) => new Date(a.date) - new Date(b.date));
-      setHolidays(updated);
-      setIsAddModalOpen(false);
-    } catch (error) {
-      console.error('Error adding holiday', error);
-      alert('Failed to add holiday');
-    }
+    await api.post('/holidays', newHoliday);
+    setIsAddModalOpen(false);
+    fetchHolidays();
   };
 
   const handleDelete = async (id) => {
-    try {
-      await api.delete(`/holidays/${id}`);
-      setHolidays(holidays.filter(h => h.id !== id));
-    } catch (error) {
-      console.error('Error deleting holiday', error);
-      alert('Failed to delete holiday');
-    }
-  };
-
-  // Format date to be more readable
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    if (!window.confirm('Remove this holiday?')) return;
+    await api.delete(`/holidays/${id}`);
+    fetchHolidays();
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Holiday Management</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Manage company-wide public and optional holidays.</p>
+    <PageShell
+      title="Holidays"
+      description="Company-wide public and optional holidays"
+      count={holidays.length}
+      actions={
+        <button type="button" onClick={() => setIsAddModalOpen(true)} className="btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-[13px]">
+          <FiPlus className="h-3.5 w-3.5" /> Add holiday
+        </button>
+      }
+    >
+      <div className="overflow-hidden rounded border border-line bg-surface">
+        <div className="flex items-center gap-2 border-b border-line px-4 py-2.5 text-[13px] text-muted">
+          <FiCalendar className="h-4 w-4" /> Holiday calendar
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30">
-          <FiPlus className="mr-2" /> Add Holiday
-        </Button>
+        <table className="w-full text-left text-[13px]">
+          <thead>
+            <tr className="border-b border-line bg-soft text-muted">
+              <th className="px-4 py-2.5 font-medium">Name</th>
+              <th className="px-4 py-2.5 font-medium">Date</th>
+              <th className="px-4 py-2.5 font-medium">Day</th>
+              <th className="px-4 py-2.5 font-medium">Type</th>
+              <th className="px-4 py-2.5 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted">Loading…</td></tr>
+            ) : holidays.length === 0 ? (
+              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted">No holidays configured.</td></tr>
+            ) : holidays.map((h) => (
+              <tr key={h.id} className="border-b border-line last:border-0 hover:bg-soft/60">
+                <td className="px-4 py-3 font-medium text-ink">{h.name}</td>
+                <td className="px-4 py-3 text-ink">{new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                <td className="px-4 py-3 text-muted">{h.day}</td>
+                <td className="px-4 py-3"><span className="rounded bg-soft px-2 py-0.5 text-xs">{h.type}</span></td>
+                <td className="px-4 py-3 text-right">
+                  <button type="button" onClick={() => handleDelete(h.id)} className="rounded p-1.5 text-muted hover:text-danger"><FiTrash2 className="h-3.5 w-3.5" /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <Card className="overflow-hidden">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <div className="flex items-center text-slate-600 dark:text-slate-300 font-medium">
-            <FiCalendar className="mr-2" /> 2026 Holiday Calendar
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-sm uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-                <th className="p-4 font-semibold whitespace-nowrap">Holiday Name</th>
-                <th className="p-4 font-semibold whitespace-nowrap">Date</th>
-                <th className="p-4 font-semibold whitespace-nowrap">Day</th>
-                <th className="p-4 font-semibold whitespace-nowrap">Type</th>
-                <th className="p-4 font-semibold whitespace-nowrap text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {holidays.map((holiday) => (
-                <tr key={holiday.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="p-4 font-medium text-slate-900 dark:text-white">{holiday.name}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-300">{formatDate(holiday.date)}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-300">{holiday.day}</td>
-                  <td className="p-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                      ${holiday.type === 'Public' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50' :
-                        holiday.type === 'Company' ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50' :
-                          'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50'
-                      }`}
-                    >
-                      {holiday.type}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() => handleDelete(holiday.id)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors focus:outline-none"
-                      title="Remove Holiday"
-                    >
-                      <FiTrash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {loading ? (
-                <tr>
-                  <td colSpan="5" className="p-8 text-center text-slate-500">
-                    Loading holidays...
-                  </td>
-                </tr>
-              ) : holidays.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="p-8 text-center text-slate-500">
-                    No holidays configured yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Add New Holiday"
-        size="sm"
-      >
-        <AddHolidayForm
-          onCancel={() => setIsAddModalOpen(false)}
-          onSuccess={handleAddHoliday}
-        />
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add holiday">
+        <AddHolidayForm onSubmit={handleAddHoliday} onCancel={() => setIsAddModalOpen(false)} />
       </Modal>
-    </div>
+    </PageShell>
   );
 };
 

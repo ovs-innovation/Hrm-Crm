@@ -30,34 +30,34 @@ const AddHolidayForm = ({ onCancel, onSuccess }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Holiday Name</label>
+        <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Holiday Name</label>
         <input 
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({...formData, name: e.target.value})}
-          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+          className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
           placeholder="e.g. Diwali, Christmas, Independence Day"
           required
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Date</label>
+        <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Date</label>
         <input 
           type="date"
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
-          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+          className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
           required
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Holiday Type</label>
+        <label className="text-xs font-semibold text-ink text-muted uppercase tracking-wider">Holiday Type</label>
         <select 
           value={formData.type}
           onChange={(e) => setFormData({...formData, type: e.target.value})}
-          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all appearance-none"
+          className="w-full px-4 py-2.5 bg-surface/50 border border-line rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all appearance-none"
         >
           <option value="Public">Public Holiday</option>
           <option value="Company">Company Holiday</option>
@@ -65,11 +65,11 @@ const AddHolidayForm = ({ onCancel, onSuccess }) => {
         </select>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+      <div className="flex justify-end gap-3 pt-4 border-t border-line">
         <button 
           type="button" 
           onClick={onCancel}
-          className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg font-medium transition-colors"
+          className="px-4 py-2 text-ink text-muted hover:bg-white hover:bg-surface rounded-lg font-medium transition-colors"
         >
           Cancel
         </button>

@@ -1,14 +1,16 @@
 import Admin from '../models/Admin.js';
 import generateToken from '../utils/generateToken.js';
+import { emailFilter, normalizeEmail } from '../utils/normalizeEmail.js';
 
 // @desc    Register a new admin
 // @route   POST /api/auth/admin/signup
 // @access  Public
 export const adminSignup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, password, role } = req.body;
+    const email = normalizeEmail(req.body.email);
 
-    const adminExists = await Admin.findOne({ email });
+    const adminExists = await Admin.findOne(emailFilter(email));
 
     if (adminExists) {
       return res.status(400).json({ message: 'Admin already exists' });
@@ -43,9 +45,10 @@ export const adminSignup = async (req, res) => {
 // @access  Public
 export const adminLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
-    const admin = await Admin.findOne({ email });
+    const admin = await Admin.findOne(emailFilter(email));
 
     if (admin && (await admin.matchPassword(password))) {
       generateToken(res, admin._id);

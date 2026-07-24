@@ -1,26 +1,39 @@
-export const mockDepartments = [
-  { id: '1', name: 'Engineering', head: 'Sarah Smith', employeeCount: 45, status: 'Active' },
-  { id: '2', name: 'Human Resources', head: 'Mike Johnson', employeeCount: 12, status: 'Active' },
-  { id: '3', name: 'Marketing', head: 'Emily Davis', employeeCount: 28, status: 'Active' },
-  { id: '4', name: 'Finance', head: 'Robert Wilson', employeeCount: 15, status: 'Active' },
-];
+import api from '../../../services/api';
 
-export const mockDesignations = [
-  { id: '1', title: 'Software Engineer', department: 'Engineering', level: 'Mid', status: 'Active' },
-  { id: '2', title: 'Senior Software Engineer', department: 'Engineering', level: 'Senior', status: 'Active' },
-  { id: '3', title: 'HR Manager', department: 'Human Resources', level: 'Manager', status: 'Active' },
-  { id: '4', title: 'Marketing Specialist', department: 'Marketing', level: 'Junior', status: 'Active' },
-];
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const mapId = (item) => ({
+  ...item,
+  id: item.id || item._id,
+});
 
 export const orgService = {
   getDepartments: async () => {
-    await delay(800); // Simulate network latency
-    return [...mockDepartments];
+    const { data } = await api.get('/departments');
+    return data.map(mapId);
+  },
+  createDepartment: async (payload) => {
+    const { data } = await api.post('/departments', payload);
+    return mapId(data);
+  },
+  updateDepartment: async (id, payload) => {
+    const { data } = await api.put(`/departments/${id}`, payload);
+    return mapId(data);
+  },
+  deleteDepartment: async (id) => {
+    await api.delete(`/departments/${id}`);
   },
   getDesignations: async () => {
-    await delay(800);
-    return [...mockDesignations];
-  }
+    const { data } = await api.get('/designations');
+    return data.map(mapId);
+  },
+  createDesignation: async (payload) => {
+    const { data } = await api.post('/designations', payload);
+    return mapId(data);
+  },
+  updateDesignation: async (id, payload) => {
+    const { data } = await api.put(`/designations/${id}`, payload);
+    return mapId(data);
+  },
+  deleteDesignation: async (id) => {
+    await api.delete(`/designations/${id}`);
+  },
 };

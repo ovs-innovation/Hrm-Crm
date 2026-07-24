@@ -3,13 +3,12 @@ import { useSelector } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
-import LeaveCalendar from './pages/LeaveCalendar';
+import Leaves from './pages/Leaves';
 import Attendance from './pages/Attendance';
 import Tasks from './pages/Tasks';
 import Messenger from './pages/Messenger';
 import SetPassword from './pages/auth/SetPassword';
 import Login from './pages/auth/Login';
-import Payslips from './pages/Payslips';
 import DailyReports from './pages/DailyReports';
 
 // Management Pages
@@ -19,10 +18,17 @@ import ManageLeaves from './pages/ManageLeaves';
 import ManageTasks from './pages/ManageTasks';
 import ManageHolidays from './pages/ManageHolidays';
 import ManageAnnouncements from './pages/ManageAnnouncements';
-import ManageAppreciation from './pages/ManageAppreciation';
-import ManageShiftRoster from './pages/ManageShiftRoster';
 import ManageProjects from './pages/ManageProjects';
 import ManageReports from './pages/ManageReports';
+import Profile from './pages/Profile';
+import Policies from './pages/Policies';
+import Payslips from './pages/Payslips';
+import Tickets from './pages/Tickets';
+import Careers from './pages/Careers';
+import Appreciation from './pages/Appreciation';
+import ShiftRoster from './pages/ShiftRoster';
+import ManageAppreciation from './pages/ManageAppreciation';
+import ManageShiftRoster from './pages/ManageShiftRoster';
 
 const ProtectedRoute = ({ children }) => {
   const user = useSelector((state) => state.auth.user);
@@ -40,24 +46,24 @@ function App() {
         toastOptions={{ 
           duration: 3000,
           style: {
-            background: '#1e293b', // slate-800
-            color: '#fff',
-            borderRadius: '12px',
-            padding: '16px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            fontSize: '14px',
+            background: '#FFFFFF',
+            color: '#1E293B',
+            border: '1px solid #E2E8F0',
+            borderRadius: '6px',
+            padding: '12px 14px',
+            fontSize: '13px',
             fontWeight: '500',
           },
           success: {
             iconTheme: {
-              primary: '#10b981', // emerald-500
-              secondary: '#fff',
+              primary: '#22C55E',
+              secondary: '#FFFFFF',
             },
           },
           error: {
             iconTheme: {
-              primary: '#f43f5e', // rose-500
-              secondary: '#fff',
+              primary: '#EF4444',
+              secondary: '#FFFFFF',
             },
           },
         }} 
@@ -75,18 +81,19 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<Dashboard />} />
-          
-          {/* Employee Routes */}
           <Route path="attendance" element={<Attendance />} />
-          <Route path="messenger" element={<Messenger />} />
+          <Route path="leaves" element={<Leaves />} />
           <Route path="tasks" element={<Tasks />} />
-          <Route path="leaves" element={<LeaveCalendar />} />
-          <Route path="payslips" element={<Payslips />} />
           <Route path="daily-reports" element={<DailyReports />} />
-          <Route path="policies" element={<div className="p-8">Company Policies (Coming Soon)</div>} />
-          <Route path="profile" element={<div className="p-8">My Profile (Coming Soon)</div>} />
+          <Route path="messenger" element={<Messenger />} />
+          <Route path="policies" element={<Policies />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="payslips" element={<Payslips />} />
+          <Route path="tickets" element={<Tickets />} />
+          <Route path="careers" element={<Careers />} />
+          <Route path="appreciation" element={<Appreciation />} />
+          <Route path="roster" element={<ShiftRoster />} />
 
-          {/* Management Routes */}
           <Route path="manage/employees" element={<ManageEmployees />} />
           <Route path="manage/attendance" element={<ManageAttendance />} />
           <Route path="manage/leaves" element={<ManageLeaves />} />

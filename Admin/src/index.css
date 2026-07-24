@@ -1,93 +1,169 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
+/* Vastora Tech — logo blue & white theme */
+@theme {
+  --color-brand: #2E6DB4;
+  --color-brand-hover: #2563A8;
+  --color-brand-light: #4A8FD4;
+  --color-brand-xlight: #EBF4FC;
+  --color-navy: #1E293B;
+  --color-navy-hover: #334155;
+  --color-white: #FFFFFF;
+  --color-canvas: #F4F6F8;
+  --color-surface: #FFFFFF;
+  --color-soft: #F8FAFC;
+  --color-ink: #1E293B;
+  --color-muted: #64748B;
+  --color-line: #E2E8F0;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
-  :root {
-    --brand-primary: #3b82f6;
-    --brand-glow: rgba(59, 130, 246, 0.6);
-    --glass-bg: rgba(15, 23, 42, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.08);
+  body {
+    font-family: var(--font-sans);
+    background-color: #F4F6F8;
+    color: #1E293B;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  body {
-    font-family: 'Outfit', sans-serif;
-    background: radial-gradient(circle at top left, #312e81 0%, #1e293b 50%, #0f172a 100%);
-    background-attachment: fixed;
-    color: #f8fafc;
-    -webkit-font-smoothing: antialiased;
+  input,
+  textarea,
+  select {
+    color: #1E293B;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #6B7280;
   }
 }
 
 @layer utilities {
-  .glass-panel {
-    @apply bg-slate-900/85 backdrop-blur-xl border border-white/10 shadow-2xl;
-  }
-  
-  .glass-card {
-    @apply bg-slate-800/50 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300;
-  }
-  
-  .glass-card:hover {
-    @apply border-blue-500/50 shadow-blue-500/20 shadow-2xl transform -translate-y-1;
+  .app-shell {
+    @apply min-h-screen bg-canvas text-ink;
   }
 
-  .text-glow {
-    text-shadow: 0 0 10px var(--brand-glow);
+  .app-sidebar {
+    @apply border-r border-line bg-white text-ink;
   }
-  
-  .box-glow {
-    box-shadow: 0 0 15px var(--brand-glow);
+
+  .app-header {
+    @apply border-b border-line bg-surface;
   }
-  
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
+
+  .app-panel {
+    @apply rounded-lg border border-line bg-surface;
   }
-  
-  .animate-pulse-slow {
-    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  .app-card {
+    @apply rounded border border-line bg-surface;
+  }
+
+  .app-card-icon {
+    @apply flex h-10 w-10 items-center justify-center rounded-full bg-brand-xlight text-brand;
+  }
+
+  .app-input {
+    @apply w-full rounded border border-line bg-surface px-3 py-2 text-ink outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand/20;
+  }
+
+  .app-label {
+    @apply text-sm font-medium text-ink;
+  }
+
+  .app-muted {
+    @apply text-muted;
+  }
+
+  .app-nav-active {
+    @apply bg-brand-xlight font-medium text-brand;
+  }
+
+  .app-nav-item {
+    @apply text-muted transition-colors hover:bg-brand-xlight hover:text-brand;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded bg-brand px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/25 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand/30 hover:bg-soft focus:outline-none focus:ring-2 focus:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .brand-gradient {
+    background: linear-gradient(135deg, #2E6DB4 0%, #4A8FD4 100%);
+  }
+
+  .badge-success {
+    @apply inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger;
+  }
+
+  .crm-nav-link-active {
+    @apply bg-brand-xlight font-medium text-brand;
   }
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-/* Custom Scrollbar for a premium feel */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.8);
+  background: #FFFFFF;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
-  border-radius: 4px;
+  background: #CBD5E1;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.9);
+  background: #2E6DB4;
+}
+
+aside ::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+aside ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
 }
 
 @media print {
-  @page { margin: 0; }
+  @page {
+    margin: 0;
+  }
+
   body {
     background: white !important;
-    color: black !important;
+    color: #273850 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
   aside {
     display: none !important;
   }
+
   .md\:ml-64 {
     margin-left: 0 !important;
   }
+
   .no-print {
     display: none !important;
   }

@@ -1,69 +1,104 @@
 import React from 'react';
-import { FiMenu, FiBell, FiSearch, FiLogOut } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { FiMenu, FiPlus, FiChevronDown } from 'react-icons/fi';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
+import NotificationBell from '../components/NotificationBell';
+import GlobalSearch from '../components/GlobalSearch';
+
+const ROUTE_TITLES = {
+  '/': 'Home',
+  '/crm/leads': 'Leads',
+  '/crm/contacts': 'Contacts',
+  '/crm/accounts': 'Accounts',
+  '/crm/deals': 'Deals',
+  '/crm/invoices': 'Quotes & Invoices',
+  '/crm/forecasts': 'Forecasts',
+  '/crm/documents': 'Documents',
+  '/crm/campaigns': 'Campaigns',
+  '/crm/tasks': 'Tasks',
+  '/crm/meetings': 'Meetings',
+  '/crm/calls': 'Calls',
+  '/reports': 'Reports',
+  '/analytics': 'Analytics',
+  '/messenger': 'Messenger',
+  '/hrm/employees': 'Employees',
+  '/settings': 'Settings',
+};
 
 const Header = ({ toggleMobileMenu }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const adminInfo = useSelector((state) => state.auth.adminInfo || {});
-  const adminName = adminInfo.name || 'Admin User';
-  const adminRole = adminInfo.role || 'Super Admin';
-  const initials = adminName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const adminName = adminInfo.name || 'User';
+  const initials = adminName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  const pageTitle =
+    ROUTE_TITLES[location.pathname] ||
+    (location.pathname.startsWith('/hrm') ? 'HRM' : 'Vastora CRM');
 
   const handleLogout = async () => {
     try {
       await api.post('/auth/admin/logout', {});
-      dispatch(logout());
-      navigate('/login');
     } catch (error) {
       console.error('Logout failed', error);
-      // Even if API fails, clear local storage and redirect
+    } finally {
       dispatch(logout());
       navigate('/login');
     }
   };
 
   return (
-    <header className="glass-panel border-b border-white/5 h-20 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
-      <div className="flex items-center gap-4 w-1/2">
-        <button onClick={toggleMobileMenu} className="md:hidden text-slate-300 hover:text-white transition-colors">
-          <FiMenu className="w-6 h-6" />
+    <header className="sticky top-0 z-40 flex h-11 items-center gap-3 border-b border-line bg-surface px-4">
+      <button
+        type="button"
+        onClick={toggleMobileMenu}
+        className="rounded p-1.5 text-muted hover:bg-soft hover:text-ink md:hidden"
+        aria-label="Open menu"
+      >
+        <FiMenu className="h-[18px] w-[18px]" />
+      </button>
+
+      <h1 className="min-w-0 truncate text-[13px] font-semibold text-ink">{pageTitle}</h1>
+
+      <GlobalSearch />
+
+      <div className="ml-auto flex items-center gap-1">
+        <button
+          type="button"
+          className="hidden h-8 items-center gap-1.5 rounded border border-brand bg-brand px-2.5 text-[13px] font-medium text-ink hover:bg-brand-hover sm:inline-flex"
+        >
+          <FiPlus className="h-3.5 w-3.5" />
+          Create
         </button>
-        <div className="relative w-full max-w-lg hidden sm:block">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-          <input 
-            type="text" 
-            placeholder="Search employees, projects..." 
-            className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-slate-200 placeholder-slate-500 transition-all outline-none backdrop-blur-sm shadow-inner"
-          />
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-5">
-        <button className="relative p-2.5 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/60 transition-all border border-transparent hover:border-slate-700/50 group">
-          <FiBell className="w-5 h-5 group-hover:animate-pulse-slow" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full border border-slate-900 box-glow"></span>
+        <button
+          type="button"
+          className="rounded p-1.5 text-muted hover:bg-soft hover:text-ink sm:hidden"
+          aria-label="Create"
+        >
+          <FiPlus className="h-[18px] w-[18px]" />
         </button>
-        
-        <div className="flex items-center gap-3 pl-5 border-l border-white/10">
-          <div className="flex flex-col items-end hidden sm:flex">
-            <span className="text-sm font-semibold text-slate-100">{adminName}</span>
-            <span className="text-xs text-blue-400 tracking-wider uppercase font-medium">{adminRole}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 text-white font-bold flex items-center justify-center border border-white/10 shadow-lg cursor-pointer hover:scale-105 transition-transform">
+        <NotificationBell />
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="ml-1 flex h-8 items-center gap-2 rounded border border-line pl-1 pr-2 hover:bg-soft"
+          title="Sign out"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded bg-brand text-[10px] font-semibold text-white">
             {initials}
-          </div>
-          <button 
-            onClick={handleLogout}
-            className="ml-2 p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-            title="Logout"
-          >
-            <FiLogOut className="w-5 h-5" />
-          </button>
-        </div>
+          </span>
+          <span className="hidden max-w-[120px] truncate text-[13px] text-ink lg:block">{adminName}</span>
+          <FiChevronDown className="hidden h-3 w-3 text-muted lg:block" />
+        </button>
       </div>
     </header>
   );

@@ -33,6 +33,20 @@ export const createAnnouncement = async (req, res) => {
 // @desc    Delete an announcement
 // @route   DELETE /api/announcements/:id
 // @access  Public (Admin only later)
+export const updateAnnouncement = async (req, res) => {
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+    Object.assign(announcement, req.body);
+    const updated = await announcement.save();
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export const deleteAnnouncement = async (req, res) => {
   try {
     const announcement = await Announcement.findById(req.params.id);

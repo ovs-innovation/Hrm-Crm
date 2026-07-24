@@ -159,13 +159,13 @@ const LeaveCalendar = () => {
 
   const getEventStyles = (type) => {
     switch (type) {
-      case 'holiday': return 'bg-purple-100/80 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-l-2 border-purple-500';
-      case 'approved': return 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-l-2 border-emerald-500';
-      case 'pending': return 'bg-amber-100/80 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-l-2 border-amber-500';
-      case 'rejected': return 'bg-red-100/80 text-red-700 dark:bg-red-500/20 dark:text-red-300 border-l-2 border-red-500 line-through decoration-red-400';
-      case 'present': return 'bg-blue-50/80 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300 border-l-2 border-blue-400';
-      case 'pre-joining': return 'bg-slate-100/50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500';
-      case 'weekend': return 'bg-transparent text-slate-400 dark:text-slate-500';
+      case 'holiday': return 'bg-brand/10/80 text-purple-700 border-l-2 border-purple-500';
+      case 'approved': return 'bg-brand/10/80 text-brand border-l-2 border-emerald-500';
+      case 'pending': return 'bg-brand/10/80 text-brand border-l-2 border-amber-500';
+      case 'rejected': return 'bg-brand/10/80 text-red-700 border-l-2 border-brand line-through decoration-red-400';
+      case 'present': return 'bg-brand/10/80 text-brand border-l-2 border-blue-400';
+      case 'pre-joining': return 'bg-surface0 text-muted bg-surface/50 text-muted';
+      case 'weekend': return 'bg-transparent text-muted text-muted';
       default: return 'bg-transparent';
     }
   };
@@ -180,10 +180,10 @@ const LeaveCalendar = () => {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+          <h1 className="text-3xl font-black text-white tracking-tight mb-2">
             Leave & Attendance
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
+          <p className="text-muted text-muted font-medium">
             Manage your schedule, track leaves, and view holidays
           </p>
         </motion.div>
@@ -193,7 +193,7 @@ const LeaveCalendar = () => {
           animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 px-5 py-2.5 rounded-xl font-bold transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-navy hover:bg-surface text-white px-5 py-2.5 rounded-xl font-bold transition-colors shadow-sm"
         >
           <FiPlus className="w-5 h-5" />
           Request Leave
@@ -206,22 +206,22 @@ const LeaveCalendar = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-6"
+          className="bg-surface rounded-2xl p-6 border border-line shadow-sm flex items-center gap-6"
         >
-          <div className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl">
-            <FiBriefcase className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+          <div className="p-4 bg-brand/10 rounded-2xl">
+            <FiBriefcase className="w-8 h-8 text-brand text-brand" />
           </div>
           <div className="flex-1">
             <div className="flex justify-between items-end mb-2">
-              <span className="font-semibold text-slate-500 dark:text-slate-400">Annual Leave</span>
-              <span className="font-black text-2xl text-slate-900 dark:text-white">12 <span className="text-sm font-medium text-slate-400">/ 20</span></span>
+              <span className="font-semibold text-muted text-muted">Annual Leave</span>
+              <span className="font-black text-2xl text-white">12 <span className="text-sm font-medium text-muted">/ 20</span></span>
             </div>
-            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-surface rounded-full h-2.5 overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: '60%' }}
                 transition={{ duration: 1, delay: 0.2 }}
-                className="bg-blue-600 dark:bg-blue-500 h-full rounded-full"
+                className="bg-brand h-full rounded-full"
               />
             </div>
           </div>
@@ -231,22 +231,22 @@ const LeaveCalendar = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-6"
+          className="bg-surface rounded-2xl p-6 border border-line shadow-sm flex items-center gap-6"
         >
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl">
-            <FiHeart className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+          <div className="p-4 bg-brand/10 rounded-2xl">
+            <FiHeart className="w-8 h-8 text-brand" />
           </div>
           <div className="flex-1">
             <div className="flex justify-between items-end mb-2">
-              <span className="font-semibold text-slate-500 dark:text-slate-400">Sick Leave</span>
-              <span className="font-black text-2xl text-slate-900 dark:text-white">5 <span className="text-sm font-medium text-slate-400">/ 10</span></span>
+              <span className="font-semibold text-muted text-muted">Sick Leave</span>
+              <span className="font-black text-2xl text-white">5 <span className="text-sm font-medium text-muted">/ 10</span></span>
             </div>
-            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-surface rounded-full h-2.5 overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: '50%' }}
                 transition={{ duration: 1, delay: 0.3 }}
-                className="bg-emerald-500 h-full rounded-full"
+                className="bg-brand h-full rounded-full"
               />
             </div>
           </div>
@@ -259,36 +259,36 @@ const LeaveCalendar = () => {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="xl:col-span-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+          className="xl:col-span-3 bg-surface rounded-3xl border border-line shadow-sm overflow-hidden"
         >
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-              <FiCalendar className="text-indigo-500" />
+          <div className="p-6 border-b border-line flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h3 className="text-2xl font-black text-white flex items-center gap-3">
+              <FiCalendar className="text-brand" />
               {currentMonthStr}
             </h3>
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-              <button onClick={handlePrevMonth} className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors shadow-sm hover:shadow">
+            <div className="flex items-center gap-2 bg-surface/50 p-1.5 rounded-xl border border-line">
+              <button onClick={handlePrevMonth} className="p-2 rounded-lg hover:bg-white/10 text-muted text-muted transition-colors shadow-sm hover:shadow">
                 <FiChevronLeft className="w-5 h-5" />
               </button>
-              <button onClick={handleToday} className="px-4 py-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors shadow-sm hover:shadow">
+              <button onClick={handleToday} className="px-4 py-2 rounded-lg hover:bg-white/10 text-sm font-bold text-ink text-ink transition-colors shadow-sm hover:shadow">
                 Today
               </button>
-              <button onClick={handleNextMonth} className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors shadow-sm hover:shadow">
+              <button onClick={handleNextMonth} className="p-2 rounded-lg hover:bg-white/10 text-muted text-muted transition-colors shadow-sm hover:shadow">
                 <FiChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+          <div className="grid grid-cols-7 border-b border-line bg-surface0 bg-surface/20">
             {daysOfWeek.map((day) => (
-              <div key={day} className="py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">
+              <div key={day} className="py-4 text-center text-xs font-bold text-muted uppercase tracking-widest">
                 {day}
               </div>
             ))}
           </div>
 
           <motion.div 
-            className="grid grid-cols-7 bg-slate-200 dark:bg-slate-800 gap-px"
+            className="grid grid-cols-7 bg-white/90 bg-surface gap-px"
             layout
           >
             <AnimatePresence mode="popLayout">
@@ -298,14 +298,14 @@ const LeaveCalendar = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.2, delay: idx * 0.01 }}
-                  className={`min-h-[120px] bg-white dark:bg-slate-900 p-3 transition-colors group relative
-                    ${!day.isCurrentMonth ? 'bg-slate-50/50 dark:bg-slate-900/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}
+                  className={`min-h-[120px] bg-surface p-3 transition-colors group relative
+                    ${!day.isCurrentMonth ? 'bg-surface0 bg-soft' : 'hover:bg-white hover:bg-surface/50'}
                   `}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-colors
-                      ${day.isToday ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 
-                        day.isCurrentMonth ? 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-200 dark:group-hover:bg-slate-700' : 'text-slate-400 dark:text-slate-600'
+                      ${day.isToday ? 'bg-brand text-white shadow-md shadow-brand/15' : 
+                        day.isCurrentMonth ? 'text-ink text-muted group-hover:bg-white/90' : 'text-muted'
                       }
                     `}>
                       {day.isCurrentMonth ? day.date : ''}
@@ -333,22 +333,22 @@ const LeaveCalendar = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm h-fit"
+          className="bg-surface rounded-3xl p-6 border border-line shadow-sm h-fit"
         >
-          <h4 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-6">Status Legend</h4>
+          <h4 className="text-sm font-black text-muted uppercase tracking-wider mb-6">Status Legend</h4>
           <ul className="space-y-4">
             {[
-              { label: 'Present', color: 'bg-blue-500 shadow-blue-500/50' },
-              { label: 'Approved Leave', color: 'bg-emerald-500 shadow-emerald-500/50' },
-              { label: 'Pending Request', color: 'bg-amber-500 shadow-amber-500/50' },
-              { label: 'Rejected Leave', color: 'bg-red-500 shadow-red-500/50' },
-              { label: 'Company Holiday', color: 'bg-purple-500 shadow-purple-500/50' },
+              { label: 'Present', color: 'bg-brand shadow-brand/100' },
+              { label: 'Approved Leave', color: 'bg-brand shadow-emerald-500/50' },
+              { label: 'Pending Request', color: 'bg-brand shadow-amber-500/50' },
+              { label: 'Rejected Leave', color: 'bg-brand shadow-red-500/50' },
+              { label: 'Company Holiday', color: 'bg-brand shadow-purple-500/50' },
               { label: 'Pre-Joining Date', color: 'bg-slate-400 shadow-slate-400/50' },
             ].map((item, idx) => (
               <motion.li 
                 key={idx}
                 whileHover={{ x: 5 }}
-                className="flex items-center gap-4 text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                className="flex items-center gap-4 text-sm font-semibold text-ink text-muted cursor-pointer"
               >
                 <div className={`w-3.5 h-3.5 rounded-full shadow-md ${item.color}`} />
                 {item.label}
@@ -365,7 +365,7 @@ const LeaveCalendar = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface backdrop-blur-sm"
             onClick={() => setIsModalOpen(false)}
           >
             <motion.div 
@@ -373,23 +373,23 @@ const LeaveCalendar = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               onClick={e => e.stopPropagation()}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 relative"
+              className="bg-surface rounded-3xl p-8 max-w-md w-full shadow-2xl border border-line relative"
             >
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-full transition-colors"
+                className="absolute top-6 right-6 p-2 text-muted hover:text-muted bg-surface rounded-full transition-colors"
               >
                 <FiX className="w-5 h-5" />
               </button>
 
               <div className="mb-6">
-                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4">
-                  <FiPlus className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                <div className="w-14 h-14 bg-brand/10 rounded-2xl flex items-center justify-center mb-4">
+                  <FiPlus className="w-6 h-6 text-brand" />
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                <h3 className="text-2xl font-black text-white">
                   Request Leave
                 </h3>
-                <p className="text-slate-500 font-medium mt-1">
+                <p className="text-muted font-medium mt-1">
                   Fill out the form below to apply for a leave.
                 </p>
               </div>
@@ -432,11 +432,11 @@ const LeaveCalendar = () => {
                 }
               }}>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Leave Type</label>
+                  <label className="block text-sm font-bold text-ink text-muted mb-1.5">Leave Type</label>
                   <select 
                     value={leaveType}
                     onChange={(e) => setLeaveType(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none">
+                    className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand/30 appearance-none">
                     <option>Annual Leave</option>
                     <option>Sick Leave</option>
                     <option>Unpaid Leave</option>
@@ -444,40 +444,40 @@ const LeaveCalendar = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Start Date</label>
+                    <label className="block text-sm font-bold text-ink text-muted mb-1.5">Start Date</label>
                     <input 
                       type="date" 
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                      className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand/30" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">End Date</label>
+                    <label className="block text-sm font-bold text-ink text-muted mb-1.5">End Date</label>
                     <input 
                       type="date" 
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                      className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand/30" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
+                  <label className="block text-sm font-bold text-ink text-muted mb-1.5">Reason</label>
                   <textarea 
                     rows="3" 
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     required
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" placeholder="Please provide a brief reason..."></textarea>
+                    className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none" placeholder="Please provide a brief reason..."></textarea>
                 </div>
 
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70">
+                  className="w-full py-3.5 px-4 bg-navy hover:bg-surface text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70">
                   {isSubmitting ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white border-line/30 rounded-full animate-spin"></div>
                   ) : (
                     <FiSend className="w-4 h-4" />
                   )}

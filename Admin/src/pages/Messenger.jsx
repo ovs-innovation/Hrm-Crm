@@ -194,25 +194,25 @@ const Messenger = () => {
 
   return (
     <div className="h-[calc(100vh-80px)] p-0 md:p-6">
-      <div className="glass-panel h-full md:rounded-3xl overflow-hidden flex shadow-2xl md:border border-slate-700/50 relative bg-slate-900 md:bg-transparent">
+      <div className="app-panel h-full md:rounded-3xl overflow-hidden flex shadow-2xl md:border border-line relative bg-navy md:bg-transparent">
 
         {/* Background glow effects */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none hidden md:block"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none hidden md:block"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/20 rounded-full blur-[100px] pointer-events-none hidden md:block"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand/10 rounded-full blur-[100px] pointer-events-none hidden md:block"></div>
 
         {/* Sidebar */}
-        <div className={`${activeContact ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r border-slate-700/50 flex-col bg-slate-900/40 relative z-10`}>
+        <div className={`${activeContact ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r border-line flex-col bg-navy/40 relative z-10`}>
 
-          <div className="p-6 border-b border-slate-700/50">
-            <h2 className="text-2xl font-bold text-white mb-6 tracking-tight">Messages</h2>
+          <div className="p-6 border-b border-line">
+            <h2 className="text-[15px] font-semibold text-ink mb-6 tracking-tight">Messages</h2>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="text-slate-400 group-focus-within:text-blue-400 transition-colors" />
+                <FiSearch className="text-muted group-focus-within:text-brand transition-colors" />
               </div>
               <input
                 type="text"
                 placeholder="Search conversations..."
-                className="w-full bg-slate-800/60 border border-slate-700 text-white rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder-slate-500"
+                className="w-full bg-surface border border-line text-white rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all placeholder-white/35"
               />
             </div>
           </div>
@@ -223,59 +223,59 @@ const Messenger = () => {
                 key={contact._id}
                 onClick={() => setActiveContact(contact)}
                 className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all duration-300 ${activeContact?._id === contact._id
-                  ? 'bg-blue-600/20 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
-                  : 'hover:bg-slate-800/40 border border-transparent'
+                  ? 'bg-brand/20 border border-brand/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+                  : 'hover:bg-surface/40 border border-transparent'
                   }`}
               >
                 <div className="relative flex-shrink-0">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand to-brand flex items-center justify-center text-white font-bold text-xl shadow-lg">
                     {contact.name[0].toUpperCase()}
                   </div>
-                  <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-900 ${isOnline(contact._id) ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-slate-500'}`}></span>
+                  <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-line ${isOnline(contact._id) ? 'bg-brand shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-white/30'}`}></span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <h3 className={`font-semibold truncate ${activeContact?._id === contact._id ? 'text-white' : 'text-slate-200'}`}>
+                    <h3 className={`font-semibold truncate ${activeContact?._id === contact._id ? 'text-white' : 'text-ink'}`}>
                       {contact.name}
                     </h3>
                   </div>
-                  <p className="text-sm text-slate-400 truncate pr-2">{contact.role}</p>
+                  <p className="text-sm text-muted truncate pr-2">{contact.role}</p>
                 </div>
               </div>
             ))}
             {contacts.length === 0 && (
-              <div className="p-4 text-center text-slate-500 text-sm">No contacts found. Register more users.</div>
+              <div className="p-4 text-center text-muted text-sm">No contacts found. Register more users.</div>
             )}
           </div>
         </div>
 
         {/* Main Chat Area */}
         {activeContact ? (
-          <div className={`${!activeContact ? 'hidden md:flex' : 'flex'} flex-1 flex-col relative z-10 bg-slate-900/20 backdrop-blur-sm min-w-0 min-h-0 w-full`}>
+          <div className={`${!activeContact ? 'hidden md:flex' : 'flex'} flex-1 flex-col relative z-10 bg-soft backdrop-blur-sm min-w-0 min-h-0 w-full`}>
 
             {/* Chat Header */}
-            <div className="h-20 border-b border-slate-700/50 flex justify-between items-center px-4 md:px-8 bg-slate-800/30">
+            <div className="h-20 border-b border-line flex justify-between items-center px-4 md:px-8 bg-surface/30">
               <div className="flex items-center gap-3 md:gap-4">
                 <button 
                   onClick={() => setActiveContact(null)} 
-                  className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-700/50"
+                  className="md:hidden p-2 -ml-2 text-muted hover:text-white transition-colors rounded-lg hover:bg-surface"
                 >
                   <FiArrowLeft className="w-6 h-6" />
                 </button>
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand to-brand flex items-center justify-center text-white font-bold text-xl shadow-lg">
                     {activeContact.name[0].toUpperCase()}
                   </div>
-                  <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-800 ${isOnline(activeContact._id) ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-slate-500'}`}></span>
+                  <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-line ${isOnline(activeContact._id) ? 'bg-brand shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-white/30'}`}></span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white tracking-tight">{activeContact.name}</h3>
-                  <p className="text-sm text-slate-400">{activeContact.role}</p>
+                  <h3 className="text-[15px] font-semibold text-ink tracking-tight">{activeContact.name}</h3>
+                  <p className="text-sm text-muted">{activeContact.role}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <button className="w-10 h-10 rounded-xl bg-slate-800/50 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-all border border-slate-700">
+                <button className="w-10 h-10 rounded-xl bg-surface hover:bg-white/10 flex items-center justify-center text-muted hover:text-white transition-all border border-line">
                   <FiMoreVertical className="w-5 h-5" />
                 </button>
               </div>
@@ -290,7 +290,7 @@ const Messenger = () => {
                     <div className={`flex gap-3 max-w-[70%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
 
                       {!isMine && (
-                        <div className="w-8 h-8 rounded-lg mt-auto flex-shrink-0 bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                        <div className="w-8 h-8 rounded-lg mt-auto flex-shrink-0 bg-gradient-to-tr from-brand to-brand flex items-center justify-center text-white text-xs font-bold">
                           {activeContact.name[0].toUpperCase()}
                         </div>
                       )}
@@ -298,8 +298,8 @@ const Messenger = () => {
                       <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                         <div
                           className={`px-5 py-3.5 rounded-2xl shadow-lg relative group ${isMine
-                            ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-sm'
-                            : 'glass-card text-slate-200 rounded-bl-sm border border-slate-700/50'
+                            ? 'bg-gradient-to-br from-brand to-brand text-white rounded-br-sm'
+                            : 'app-card text-ink rounded-bl-sm border border-line'
                             }`}
                         >
                           {/* File / Image Attachment */}
@@ -308,15 +308,15 @@ const Messenger = () => {
                               {msg.fileType === 'image' ? (
                                 <img src={getFileUrl(msg.fileUrl)} alt="Attachment" className="max-w-[200px] sm:max-w-[300px] rounded-lg border border-white/20" />
                               ) : (
-                                <a href={getFileUrl(msg.fileUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-900/40 rounded-xl border border-white/10 hover:bg-slate-900/60 transition-colors">
-                                  <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+                                <a href={getFileUrl(msg.fileUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-navy/40 rounded-xl border border-line hover:bg-surface transition-colors">
+                                  <div className="p-2 bg-brand/15 text-brand rounded-lg">
                                     <FiFileText className="w-6 h-6" />
                                   </div>
                                   <div className="flex-1 overflow-hidden">
                                     <p className="text-sm font-semibold truncate max-w-[150px]">{msg.text || 'Document.pdf'}</p>
-                                    <p className="text-xs text-slate-400">PDF File</p>
+                                    <p className="text-xs text-muted">PDF File</p>
                                   </div>
-                                  <FiDownload className="w-5 h-5 text-slate-400 hover:text-white" />
+                                  <FiDownload className="w-5 h-5 text-muted hover:text-white" />
                                 </a>
                               )}
                             </div>
@@ -329,7 +329,7 @@ const Messenger = () => {
                         </div>
 
                         {/* Status Ticks and Time */}
-                        <div className="flex items-center gap-1 mt-1.5 px-1 text-slate-500">
+                        <div className="flex items-center gap-1 mt-1.5 px-1 text-muted">
                           <span className="text-[11px] font-medium">
                             {format(new Date(msg.createdAt), "hh:mm a")}
                           </span>
@@ -338,18 +338,18 @@ const Messenger = () => {
                           {isMine && (
                             <span className="flex items-center ml-1">
                               {msg.status === 'sent' && (
-                                <FiCheck className="w-3.5 h-3.5 text-slate-400" />
+                                <FiCheck className="w-3.5 h-3.5 text-muted" />
                               )}
                               {msg.status === 'delivered' && (
                                 <div className="flex">
-                                  <FiCheck className="w-3.5 h-3.5 text-slate-400 -mr-1.5" />
-                                  <FiCheck className="w-3.5 h-3.5 text-slate-400" />
+                                  <FiCheck className="w-3.5 h-3.5 text-muted -mr-1.5" />
+                                  <FiCheck className="w-3.5 h-3.5 text-muted" />
                                 </div>
                               )}
                               {msg.status === 'seen' && (
                                 <div className="flex">
-                                  <FiCheck className="w-3.5 h-3.5 text-blue-400 drop-shadow-[0_0_2px_rgba(96,165,250,0.5)] -mr-1.5" />
-                                  <FiCheck className="w-3.5 h-3.5 text-blue-400 drop-shadow-[0_0_2px_rgba(96,165,250,0.5)]" />
+                                  <FiCheck className="w-3.5 h-3.5 text-brand drop-shadow-[0_0_2px_rgba(96,165,250,0.5)] -mr-1.5" />
+                                  <FiCheck className="w-3.5 h-3.5 text-brand drop-shadow-[0_0_2px_rgba(96,165,250,0.5)]" />
                                 </div>
                               )}
                             </span>
@@ -366,9 +366,9 @@ const Messenger = () => {
 
             {/* Selected File Preview Area */}
             {selectedFile && (
-              <div className="px-6 py-3 bg-slate-800/80 border-t border-slate-700 flex items-center justify-between backdrop-blur-md">
+              <div className="px-6 py-3 bg-surface/80 border-t border-line flex items-center justify-between backdrop-blur-md">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
+                  <div className="p-2 bg-brand/20 text-brand rounded-lg">
                     {selectedFile.type.startsWith('image/') ? (
                       <img src={URL.createObjectURL(selectedFile)} alt="preview" className="w-6 h-6 object-cover rounded" />
                     ) : (
@@ -376,13 +376,13 @@ const Messenger = () => {
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-200 truncate max-w-[200px]">{selectedFile.name}</p>
-                    <p className="text-xs text-slate-400">Ready to send</p>
+                    <p className="text-sm font-semibold text-ink truncate max-w-[200px]">{selectedFile.name}</p>
+                    <p className="text-xs text-muted">Ready to send</p>
                   </div>
                 </div>
                 <button
                   onClick={removeSelectedFile}
-                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors"
+                  className="p-1.5 text-muted hover:text-brand hover:bg-brand/100/20 rounded-lg transition-colors"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
@@ -390,9 +390,9 @@ const Messenger = () => {
             )}
 
             {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-4 md:p-6 bg-slate-800/30 border-t border-slate-700/50 backdrop-blur-md">
-              <div className="flex items-center gap-2 md:gap-4 p-2 bg-slate-900/60 border border-slate-700/80 rounded-2xl focus-within:border-indigo-500/50 transition-colors">
-                <button type="button" className="p-2 md:p-2.5 flex-shrink-0 text-slate-400 hover:text-blue-400 transition-colors ml-1">
+            <form onSubmit={handleSendMessage} className="p-4 md:p-6 bg-surface/30 border-t border-line backdrop-blur-md">
+              <div className="flex items-center gap-2 md:gap-4 p-2 bg-surface border border-line rounded-2xl focus-within:border-brand/40 transition-colors">
+                <button type="button" className="p-2 md:p-2.5 flex-shrink-0 text-muted hover:text-brand transition-colors ml-1">
                   <FiSmile className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
 
@@ -408,7 +408,7 @@ const Messenger = () => {
                 <button 
                   type="button" 
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 md:p-2.5 flex-shrink-0 text-slate-400 hover:text-blue-400 transition-colors"
+                  className="p-2 md:p-2.5 flex-shrink-0 text-muted hover:text-brand transition-colors"
                   disabled={uploading}
                 >
                   <FiPaperclip className="w-5 h-5 md:w-6 md:h-6" />
@@ -420,7 +420,7 @@ const Messenger = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder={uploading ? "Sending..." : "Type your message..."}
                   disabled={uploading}
-                  className="flex-1 bg-transparent border-none text-white focus:outline-none focus:ring-0 text-sm md:text-base placeholder-slate-500 min-w-0"
+                  className="flex-1 bg-transparent border-none text-white focus:outline-none focus:ring-0 text-sm md:text-base placeholder-white/35 min-w-0"
                 />
                 
                 <button 
@@ -428,8 +428,8 @@ const Messenger = () => {
                   disabled={uploading || (!newMessage.trim() && !selectedFile)}
                   className={`p-2.5 md:p-3 rounded-xl flex-shrink-0 flex items-center justify-center transition-all mr-1 ${
                     (newMessage.trim() || selectedFile) && !uploading
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]' 
-                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      ? 'bg-brand hover:bg-brand text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]' 
+                      : 'bg-surface text-muted cursor-not-allowed'
                   }`}
                 >
                   <FiSend className="w-4 h-4 md:w-5 md:h-5 -ml-0.5 md:-ml-1 mt-0.5" />
@@ -439,7 +439,7 @@ const Messenger = () => {
 
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center relative z-10 bg-slate-900/20 backdrop-blur-sm">
+          <div className="flex-1 flex items-center justify-center relative z-10 bg-soft backdrop-blur-sm">
             
           </div>
         )}

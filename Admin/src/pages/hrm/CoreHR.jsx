@@ -22,12 +22,12 @@ const CoreHR = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Core HR Management</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Manage awards, promotions, and disciplinary actions</p>
+        <h2 className="text-[15px] font-semibold text-ink">Core HR Management</h2>
+        <p className="text-muted text-muted text-sm">Manage awards, promotions, and disciplinary actions</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-700">
+      <div className="flex border-b border-line">
         {[
           { id: 'awards', label: 'Awards', icon: FiAward },
           { id: 'promotions', label: 'Promotions', icon: FiTrendingUp },
@@ -40,8 +40,8 @@ const CoreHR = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-all -mb-px
                 ${activeTab === tab.id 
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'}`}
+                  ? 'border-brand text-brand border-brand text-brand' 
+                  : 'border-transparent text-muted hover:text-ink'}`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
@@ -55,7 +55,7 @@ const CoreHR = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                <tr className="text-muted border-b border-line">
                   <th className="pb-3 font-semibold">Employee</th>
                   <th className="pb-3 font-semibold">Award Type</th>
                   <th className="pb-3 font-semibold">Date</th>
@@ -63,14 +63,14 @@ const CoreHR = () => {
                   <th className="pb-3 font-semibold">Description</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line">
                 {awards.map((award) => (
-                  <tr key={award.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="py-4 font-medium text-slate-850 dark:text-slate-200">{award.employee}</td>
-                    <td className="py-4 text-slate-600 dark:text-slate-400">{award.awardType}</td>
-                    <td className="py-4 text-slate-600 dark:text-slate-400">{award.date}</td>
-                    <td className="py-4"><span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">{award.gift}</span></td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">{award.description}</td>
+                  <tr key={award.id} className="hover:bg-white hover:bg-surface/30">
+                    <td className="py-4 font-medium text-ink">{award.employee}</td>
+                    <td className="py-4 text-muted text-muted">{award.awardType}</td>
+                    <td className="py-4 text-muted text-muted">{award.date}</td>
+                    <td className="py-4"><span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand/10 text-brand">{award.gift}</span></td>
+                    <td className="py-4 text-muted text-muted max-w-xs truncate">{award.description}</td>
                   </tr>
                 ))}
               </tbody>
@@ -84,23 +84,23 @@ const CoreHR = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                <tr className="text-muted border-b border-line">
                   <th className="pb-3 font-semibold">Employee</th>
                   <th className="pb-3 font-semibold">Previous Designation</th>
                   <th className="pb-3 font-semibold">New Designation</th>
                   <th className="pb-3 font-semibold">Promotion Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line">
                 {promotions.map((promo) => (
-                  <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="py-4 font-medium text-slate-850 dark:text-slate-200">{promo.employee}</td>
-                    <td className="py-4 text-slate-500">{promo.designation}</td>
-                    <td className="py-4 text-slate-900 dark:text-white font-semibold flex items-center gap-2">
+                  <tr key={promo.id} className="hover:bg-white hover:bg-surface/30">
+                    <td className="py-4 font-medium text-ink">{promo.employee}</td>
+                    <td className="py-4 text-muted">{promo.designation}</td>
+                    <td className="py-4 text-white font-semibold flex items-center gap-2">
                       {promo.promotedTo}
-                      <span className="text-xs font-normal text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Active</span>
+                      <span className="text-xs font-normal text-brand bg-brand/10 px-2 py-0.5 rounded-full">Active</span>
                     </td>
-                    <td className="py-4 text-slate-600 dark:text-slate-400">{promo.date}</td>
+                    <td className="py-4 text-muted text-muted">{promo.date}</td>
                   </tr>
                 ))}
               </tbody>
@@ -114,7 +114,7 @@ const CoreHR = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                <tr className="text-muted border-b border-line">
                   <th className="pb-3 font-semibold">Employee</th>
                   <th className="pb-3 font-semibold">Warning By</th>
                   <th className="pb-3 font-semibold">Date</th>
@@ -122,14 +122,14 @@ const CoreHR = () => {
                   <th className="pb-3 font-semibold">Description</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line">
                 {warnings.map((warning) => (
-                  <tr key={warning.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="py-4 font-medium text-slate-850 dark:text-slate-200">{warning.employee}</td>
-                    <td className="py-4 text-slate-600 dark:text-slate-400">{warning.warningBy}</td>
-                    <td className="py-4 text-slate-600 dark:text-slate-400">{warning.date}</td>
-                    <td className="py-4 text-amber-600 dark:text-amber-400 font-semibold">{warning.subject}</td>
-                    <td className="py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">{warning.description}</td>
+                  <tr key={warning.id} className="hover:bg-white hover:bg-surface/30">
+                    <td className="py-4 font-medium text-ink">{warning.employee}</td>
+                    <td className="py-4 text-muted text-muted">{warning.warningBy}</td>
+                    <td className="py-4 text-muted text-muted">{warning.date}</td>
+                    <td className="py-4 text-brand font-semibold">{warning.subject}</td>
+                    <td className="py-4 text-muted text-muted max-w-xs truncate">{warning.description}</td>
                   </tr>
                 ))}
               </tbody>
