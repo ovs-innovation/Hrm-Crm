@@ -12,6 +12,6 @@ RUN npm ci --only=production
 COPY . .
 
 # Expose port (default port is overridden by env file / compose mapping)
-EXPOSE 3072
+EXPOSE 5000
 
 CMD ["npm", "start"]
