@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import CommandPalette from '../components/CommandPalette';
+import Receptionist from '../components/Receptionist';
 
 const DashboardLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -15,6 +17,8 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+      <CommandPalette />
+      <Receptionist />
     </div>
   );
 };

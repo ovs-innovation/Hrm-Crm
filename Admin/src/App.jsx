@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import CrmHome from './pages/crm/CrmHome';
+import AIHub from './pages/crm/AIHub';
 import Leads from './pages/crm/Leads';
 import Contacts from './pages/crm/Contacts';
 import Deals from './pages/crm/Deals';
@@ -35,6 +36,11 @@ import Settings from './pages/settings/Settings';
 import Invoices from './pages/crm/Invoices';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import AutomationBuilder from './pages/crm/AutomationBuilder';
+import ReportBuilder from './pages/crm/ReportBuilder';
+import Marketplace from './pages/crm/Marketplace';
+import OrgChart from './pages/employees/OrgChart';
+import AiCostDashboard from './pages/crm/AiCostDashboard';
 
 function App() {
   return (
@@ -74,6 +80,7 @@ function App() {
         <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           {/* CRM Home — Zoho-style onboarding */}
           <Route index element={<CrmHome />} />
+          <Route path="ai-hub" element={<AIHub />} />
 
           {/* CRM — Sales */}
           <Route path="crm/leads" element={<Leads />} />
@@ -83,6 +90,10 @@ function App() {
           <Route path="crm/invoices" element={<Invoices />} />
           <Route path="crm/documents" element={<Documents />} />
           <Route path="crm/campaigns" element={<Campaigns />} />
+          <Route path="crm/automation" element={<AutomationBuilder />} />
+          <Route path="crm/reports" element={<ReportBuilder />} />
+          <Route path="crm/marketplace" element={<Marketplace />} />
+          <Route path="crm/ai-costs" element={<AiCostDashboard />} />
 
           {/* CRM — Activities */}
           <Route path="crm/tasks" element={<Tasks />} />

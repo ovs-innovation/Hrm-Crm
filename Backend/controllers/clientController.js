@@ -1,8 +1,9 @@
 import Client from '../models/Client.js';
+import { triggerWorkflow } from '../services/automation.service.js';
 
 export const createClient = async (req, res) => {
   try {
-    const { name, company, email, phone, status, notes } = req.body;
+    const { name, company, email, phone, status, notes, address } = req.body;
     
     const clientExists = await Client.findOne({ email });
     if (clientExists) {
@@ -15,8 +16,14 @@ export const createClient = async (req, res) => {
       email,
       phone,
       status,
-      notes
+      notes,
+      address
     });
+
+    // Trigger workflows for LeadCreated trigger type
+    if (client.status === 'Lead') {
+      triggerWorkflow('LeadCreated', client).catch(err => console.error('Workflow trigger failure:', err));
+    }
 
     res.status(201).json(client);
   } catch (error) {

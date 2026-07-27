@@ -26,6 +26,8 @@ import {
   FiLifeBuoy,
   FiSettings,
   FiFileText,
+  FiCpu,
+  FiShoppingBag,
 } from 'react-icons/fi';
 
 const SALES = [
@@ -36,6 +38,10 @@ const SALES = [
   { title: 'Quotes & Invoices', to: '/crm/invoices', icon: FiFileText },
   { title: 'Documents', to: '/crm/documents', icon: FiFolder },
   { title: 'Campaigns', to: '/crm/campaigns', icon: FiRadio },
+  { title: 'Automation Builder', to: '/crm/automation', icon: FiCpu },
+  { title: 'Report Builder', to: '/crm/reports', icon: FiFileText },
+  { title: 'SaaS Marketplace', to: '/crm/marketplace', icon: FiShoppingBag },
+  { title: 'AI Cost Audit', to: '/crm/ai-costs', icon: FiPieChart },
 ];
 
 const ACTIVITIES = [
@@ -46,6 +52,7 @@ const ACTIVITIES = [
 
 const PEOPLE = [
   { title: 'Employees', to: '/hrm/employees', icon: FiUsers },
+  { title: 'Org Chart', to: '/hrm/org-chart', icon: FiUsers },
   { title: 'Departments', to: '/hrm/department', icon: FiBriefcase },
   { title: 'Designations', to: '/hrm/designation', icon: FiAward },
   { title: 'Leaves', to: '/hrm/leaves', icon: FiCalendar },
@@ -142,6 +149,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <nav className="flex-1 overflow-y-auto px-2 py-3">
           <div className="space-y-0.5">
             {access.home && <NavItem to="/" icon={FiHome} title="Home" end onClick={close} />}
+            <NavItem to="/ai-hub" icon={FiCpu} title="AI Hub (Co-Pilot)" onClick={close} />
             {access.reports && <NavItem to="/reports" icon={FiBarChart2} title="Reports" end onClick={close} />}
             {access.analytics && <NavItem to="/analytics" icon={FiPieChart} title="Analytics" end onClick={close} />}
             {access.settings && <NavItem to="/settings" icon={FiSettings} title="Settings" end onClick={close} />}

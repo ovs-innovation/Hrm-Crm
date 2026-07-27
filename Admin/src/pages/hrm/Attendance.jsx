@@ -51,6 +51,16 @@ const Attendance = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'calendar'
+  const [fraudAlerts, setFraudAlerts] = useState([]);
+  const [loadingFraud, setLoadingFraud] = useState(false);
+
+  React.useEffect(() => {
+    setLoadingFraud(true);
+    api.get('/ai/attendance/fraud')
+      .then(res => setFraudAlerts(res.data.alerts || []))
+      .catch(err => console.error(err))
+      .finally(() => setLoadingFraud(false));
+  }, []);
 
   React.useEffect(() => {
     // Fetch all employees to populate dropdown
@@ -110,6 +120,32 @@ const Attendance = () => {
         <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => r.status.includes('Late')).length.toString()} subtitle="Arrived after 10:00 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
         <StatCard title="Absent" value={attendanceRecords.filter(r => r.status === 'Absent').length.toString()} subtitle="On leave or unnotified" icon={FiXCircle} colorClass="text-brand" bgGlow="bg-brand" />
       </div>
+
+      {/* AI Attendance Fraud Detection alerts */}
+      {fraudAlerts.length > 0 && (
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 space-y-3">
+          <h4 className="text-sm font-bold text-rose-400 uppercase flex items-center gap-1.5">
+            <FiAlertCircle className="w-5 h-5 text-rose-500" /> Geofence Fraud & Impossible Location Alerts
+          </h4>
+          <p className="text-xs text-muted">The AI geofencing engine has detected check-in coordinates violating location validation thresholds:</p>
+          <div className="grid gap-3">
+            {fraudAlerts.map((alert, i) => (
+              <div key={i} className="flex justify-between items-start bg-surface border border-line p-4 rounded-xl text-xs animate-fade-in">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">{alert.employee} ({alert.employeeId})</span>
+                    <span className="bg-rose-500/20 text-rose-400 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                      Risk: {alert.risk}
+                    </span>
+                  </div>
+                  <p className="text-muted mt-1 font-medium">{alert.details}</p>
+                </div>
+                <span className="text-[10px] text-muted font-mono">{alert.type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Content / Table */}
       <div className="app-panel rounded-3xl overflow-hidden border border-line">

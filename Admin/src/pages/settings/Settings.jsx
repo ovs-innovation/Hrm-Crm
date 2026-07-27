@@ -9,10 +9,17 @@ const Settings = () => {
     currency: 'INR', timezone: 'Asia/Kolkata', fiscalYearStart: '04-01', taxId: '',
     leavePolicy: { annualQuota: 18, carryForward: true },
     attendancePolicy: { workStart: '09:00', workEnd: '18:00', graceMinutes: 15 },
+    brandColor: '#2563EB', logoUrl: ''
   });
   const [audit, setAudit] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (form.brandColor) {
+      document.documentElement.style.setProperty('--color-brand', form.brandColor);
+    }
+  }, [form.brandColor]);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +96,14 @@ const Settings = () => {
               <Field label="Work start" value={form.attendancePolicy?.workStart} onChange={(v) => setNested('attendancePolicy', 'workStart', v)} />
               <Field label="Work end" value={form.attendancePolicy?.workEnd} onChange={(v) => setNested('attendancePolicy', 'workEnd', v)} />
               <Field label="Grace minutes" type="number" value={form.attendancePolicy?.graceMinutes} onChange={(v) => setNested('attendancePolicy', 'graceMinutes', Number(v))} />
+            </div>
+          </section>
+
+          <section className="rounded border border-line bg-surface p-4">
+            <h2 className="mb-3 text-[14px] font-semibold text-ink">White-Label & Custom Branding</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Brand Theme Color (HEX)" value={form.brandColor} onChange={(v) => set('brandColor', v)} />
+              <Field label="Company Logo URL" value={form.logoUrl} onChange={(v) => set('logoUrl', v)} />
             </div>
           </section>
 

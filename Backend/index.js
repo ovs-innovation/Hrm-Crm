@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import connectDB from './config/db.js';
@@ -36,57 +38,124 @@ import auditRoutes from './routes/auditRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import importRoutes from './routes/importRoutes.js';
+import aiRoutes from './routes/ai.routes.js';
+import billingRoutes from './routes/billingRoutes.js';
 import { app, server } from './socket/socket.js';
 
 connectDB();
 
 const __dirname = path.resolve();
 
+import { resolveTenant } from './middlewares/tenantMiddleware.js';
+import { contextMiddleware } from './middlewares/contextMiddleware.js';
+
+// ─── Security Headers (Helmet) ───────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow /uploads static files
+  contentSecurityPolicy: false, // disabled — frontend is SPA served separately
+}));
+
+// ─── CORS ────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5174')
+  .split(',')
+  .map(o => o.trim());
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: Origin "${origin}" not allowed.`));
+    }
+  },
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// ─── Rate Limiting ────────────────────────────────────────────────────────────
+const standardLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests. Please try again later.' },
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40, // stricter limit for AI endpoints — they are expensive
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'AI rate limit exceeded. Please wait before sending more AI requests.' },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // brute-force protection on login/signup
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts. Please try again in 15 minutes.' },
+});
+
+// ─── Body Parsers ─────────────────────────────────────────────────────────────
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/leaves', leaveRoutes);
-app.use('/api/holidays', holidayRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/deals', dealRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/designations', designationRoutes);
-app.use('/api/payslips', payslipRoutes);
-app.use('/api/shifts', shiftRoutes);
-app.use('/api/appreciations', appreciationRoutes);
-app.use('/api/tickets', ticketRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/meetings', meetingRoutes);
-app.use('/api/calls', callRoutes);
-app.use('/api/campaigns', campaignRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/activities', activityRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/import', importRoutes);
+// ─── Tenant & Context Middleware ──────────────────────────────────────────────
+app.use(resolveTenant);
+app.use(contextMiddleware);
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/messages', standardLimiter, messageRoutes);
+app.use('/api/users', standardLimiter, userRoutes);
+app.use('/api/employees', standardLimiter, employeeRoutes);
+app.use('/api/leaves', standardLimiter, leaveRoutes);
+app.use('/api/holidays', standardLimiter, holidayRoutes);
+app.use('/api/attendance', standardLimiter, attendanceRoutes);
+app.use('/api/tasks', standardLimiter, taskRoutes);
+app.use('/api/clients', standardLimiter, clientRoutes);
+app.use('/api/projects', standardLimiter, projectRoutes);
+app.use('/api/announcements', standardLimiter, announcementRoutes);
+app.use('/api/reports', standardLimiter, reportRoutes);
+app.use('/api/deals', standardLimiter, dealRoutes);
+app.use('/api/dashboard', standardLimiter, dashboardRoutes);
+app.use('/api/departments', standardLimiter, departmentRoutes);
+app.use('/api/designations', standardLimiter, designationRoutes);
+app.use('/api/payslips', standardLimiter, payslipRoutes);
+app.use('/api/shifts', standardLimiter, shiftRoutes);
+app.use('/api/appreciations', standardLimiter, appreciationRoutes);
+app.use('/api/tickets', standardLimiter, ticketRoutes);
+app.use('/api/jobs', standardLimiter, jobRoutes);
+app.use('/api/meetings', standardLimiter, meetingRoutes);
+app.use('/api/calls', standardLimiter, callRoutes);
+app.use('/api/campaigns', standardLimiter, campaignRoutes);
+app.use('/api/documents', standardLimiter, documentRoutes);
+app.use('/api/settings', standardLimiter, settingsRoutes);
+app.use('/api/activities', standardLimiter, activityRoutes);
+app.use('/api/notifications', standardLimiter, notificationRoutes);
+app.use('/api/audit', standardLimiter, auditRoutes);
+app.use('/api/invoices', standardLimiter, invoiceRoutes);
+app.use('/api/search', standardLimiter, searchRoutes);
+app.use('/api/import', standardLimiter, importRoutes);
+app.use('/api/ai', aiLimiter, aiRoutes);
+app.use('/api/billing', standardLimiter, billingRoutes);
+
+// ─── Static Files ─────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
-app.get('/', (req, res) => res.send('Server is ready'));
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get('/', (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '3.0' }));
+
+// ─── Global Error Handler ─────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  if (err.message?.startsWith('CORS:')) {
+    return res.status(403).json({ message: err.message });
+  }
+  console.error('[Unhandled Error]', err);
+  res.status(500).json({ message: 'Internal server error.' });
+});
 
 const port = process.env.PORT || 5000;
-
-server.listen(port, () => console.log(`Server started on port ${port}`));
+server.listen(port, () => console.log(`✅ Vastora Server started on port ${port}`));
