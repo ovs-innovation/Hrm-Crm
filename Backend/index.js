@@ -63,7 +63,24 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5174')
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    let originHost = '';
+    try {
+      originHost = new URL(origin).hostname;
+    } catch (e) {
+      originHost = origin;
+    }
+
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      allowedOrigins.some(o => o.includes(originHost)) ||
+                      originHost === 'localhost' || 
+                      originHost.endsWith('vastoratech.com') ||
+                      originHost.endsWith('127.0.0.1');
+
+    if (isAllowed) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: Origin "${origin}" not allowed.`));

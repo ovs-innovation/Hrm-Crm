@@ -46,7 +46,7 @@ export const resolveTenant = async (req, res, next) => {
     }
 
     // Guard: Block if suspended or unpaid
-    if (!tenant.isActive) {
+    if (tenant && tenant.isActive === false) {
       return res.status(403).json({ message: 'Tenant subscription has been suspended. Please contact operations.' });
     }
 
