@@ -11,6 +11,7 @@ const LoginForm = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -31,6 +32,20 @@ const LoginForm = () => {
     }
   };
 
+  const handleExploreDemo = async () => {
+    setDemoLoading(true);
+    setError(null);
+    try {
+      const response = await api.post('/demo/workspace/explore');
+      dispatch(setCredentials(response.data));
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not open demo workspace. Try again.');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-[360px]">
       <div className="mb-8 lg:hidden">
@@ -38,7 +53,7 @@ const LoginForm = () => {
       </div>
 
       <h1 className="text-xl font-semibold tracking-tight text-ink">Sign in</h1>
-      <p className="mt-1 text-[13px] text-muted">Use your Vastora CRM admin credentials.</p>
+      <p className="mt-1 text-[13px] text-muted">Use your Vastora Business OS admin credentials.</p>
 
       {error && (
         <div className="mt-5 rounded border border-danger/25 bg-danger/5 px-3 py-2.5 text-[13px] text-danger">
@@ -85,10 +100,31 @@ const LoginForm = () => {
           </div>
         </div>
 
-        <button type="submit" disabled={loading} className="btn-primary h-9 w-full text-[13px]">
+        <button type="submit" disabled={loading || demoLoading} className="btn-primary h-9 w-full text-[13px]">
           {loading ? 'Signing in…' : 'Continue'}
         </button>
       </form>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-line" />
+        </div>
+        <div className="relative flex justify-center text-[11px] uppercase tracking-wide">
+          <span className="bg-surface px-2 text-muted">or</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleExploreDemo}
+        disabled={loading || demoLoading}
+        className="btn-outline h-9 w-full text-[13px]"
+      >
+        {demoLoading ? 'Preparing NovaTech workspace…' : 'Explore Demo Company'}
+      </button>
+      <p className="mt-2 text-center text-[12px] text-muted">
+        NovaTech Solutions — 52 employees, live pipeline, AI-ready.
+      </p>
 
       <p className="mt-6 text-[13px] text-muted">
         New organization?{' '}

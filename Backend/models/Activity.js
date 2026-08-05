@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const activitySchema = new mongoose.Schema(
   {
@@ -16,6 +17,8 @@ const activitySchema = new mongoose.Schema(
 );
 
 activitySchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
+
+tenantScoped(activitySchema);
 
 const Activity = mongoose.model('Activity', activitySchema);
 export default Activity;

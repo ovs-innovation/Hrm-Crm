@@ -3,18 +3,18 @@ import DailyReport from '../models/DailyReport.js';
 
 export const getAttendance = async (req, res) => {
   try {
-    const { employeeId, month } = req.query;
+    const employeeId = typeof req.query.employeeId === 'string' ? req.query.employeeId : undefined;
+    const month = typeof req.query.month === 'string' ? req.query.month : undefined;
     
     let query = {};
     if (employeeId) {
       query.employeeId = employeeId;
     }
-    if (month) {
-      // month is expected to be 'YYYY-MM' format. We can match date strings starting with this.
+    if (month && /^\d{4}-\d{2}$/.test(month)) {
       query.date = { $regex: `^${month}` };
     }
 
-    const records = await Attendance.find(query).sort({ date: -1 });
+    const records = await Attendance.find(query).sort({ date: -1 }).limit(1000);
     
     // Transform to frontend format if necessary
     const formatted = records.map(r => ({

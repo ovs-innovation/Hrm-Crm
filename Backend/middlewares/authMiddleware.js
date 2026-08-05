@@ -1,21 +1,20 @@
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
 import Employee from '../models/Employee.js';
+import { bindRequestTenant } from './contextMiddleware.js';
+import { withoutTenantScope } from '../plugins/tenantScope.plugin.js';
 
 /**
  * Auth middleware — supports both cookie JWT and Bearer token.
- * Cookie takes precedence (browser sessions).
- * Bearer token supports API clients and mobile apps.
+ * Binds tenant from token/user into request ALS (overrides hostname default).
  */
 const protect = async (req, res, next) => {
   let token;
 
-  // 1. Cookie-based (browser SPA)
   if (req.cookies?.jwt) {
     token = req.cookies.jwt;
   }
 
-  // 2. Authorization header — Bearer token (API clients / mobile)
   if (!token && req.headers.authorization?.startsWith('Bearer ')) {
     token = req.headers.authorization.split(' ')[1];
   }
@@ -26,21 +25,54 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    let user = await Admin.findById(decoded.userId).select('-password');
-    if (user) {
-      req.userType = 'Admin';
-    } else {
-      user = await Employee.findById(decoded.userId).select('-password');
-      if (user) req.userType = 'Employee';
+    if (decoded.typ && decoded.typ !== 'access') {
+      return res.status(401).json({ message: 'Not authorized, access token required' });
     }
+
+    if (decoded.tenantId) {
+      bindRequestTenant(req, decoded.tenantId);
+    }
+
+    let user = null;
+    let userType = decoded.userType;
+
+    await withoutTenantScope(async () => {
+      if (userType === 'Employee') {
+        user = await Employee.findById(decoded.userId).select('-password');
+        if (user) userType = 'Employee';
+      } else {
+        user = await Admin.findById(decoded.userId).select('-password');
+        if (user) {
+          userType = 'Admin';
+        } else {
+          user = await Employee.findById(decoded.userId).select('-password');
+          if (user) userType = 'Employee';
+        }
+      }
+    });
 
     if (!user) {
       return res.status(401).json({ message: 'Not authorized, user not found' });
     }
 
+    if (typeof decoded.tokenVersion === 'number' && typeof user.tokenVersion === 'number') {
+      if (decoded.tokenVersion !== user.tokenVersion) {
+        return res.status(401).json({ message: 'Session revoked. Please sign in again.' });
+      }
+    }
+
+    const userTenantId = user.tenantId?.toString?.() || user.tenantId;
+    if (userTenantId) {
+      bindRequestTenant(req, userTenantId);
+    }
+
+    if (decoded.tenantId && userTenantId && String(decoded.tenantId) !== String(userTenantId)) {
+      return res.status(401).json({ message: 'Tenant mismatch' });
+    }
+
     req.user = user;
     req.admin = user;
+    req.userType = userType;
     next();
   } catch (error) {
     console.error('[Auth]', error.message);

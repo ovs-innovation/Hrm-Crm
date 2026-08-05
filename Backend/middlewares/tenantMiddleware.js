@@ -3,18 +3,23 @@ import crypto from 'crypto';
 
 /**
  * Tenant resolution middleware
+ * Client-supplied x-tenant-id is ignored unless ALLOW_TENANT_HEADER=true (dev only).
+ * Prevents cross-tenant AI memory/KB spoofing via header injection.
  */
 export const resolveTenant = async (req, res, next) => {
   try {
-    let tenantId = req.headers['x-tenant-id'] || req.query.tenantId;
+    let tenantId = null;
     let tenant = null;
 
-    // Fallback: If no header, resolve by subdomain or domain (mock for localhost)
+    // Opt-in header resolution only (never trust by default in production)
+    if (process.env.ALLOW_TENANT_HEADER === 'true') {
+      tenantId = req.headers['x-tenant-id'] || req.query.tenantId || null;
+    }
+
+    // Resolve by subdomain when present (e.g. acme.vastora.com)
     if (!tenantId) {
       const hostname = req.hostname || 'localhost';
       const parts = hostname.split('.');
-      
-      // If subdomain is present (e.g. acme.vastora.com)
       if (parts.length > 2 && parts[0] !== 'www') {
         const subdomain = parts[0].toLowerCase();
         tenant = await Tenant.findOne({ subdomain });
@@ -22,15 +27,20 @@ export const resolveTenant = async (req, res, next) => {
       }
     }
 
-    // Direct fetch if ID was resolved
-    if (tenantId) {
+    if (tenantId && !tenant) {
       tenant = await Tenant.findById(tenantId);
+      if (!tenant) {
+        return res.status(400).json({ message: 'Unknown tenant.' });
+      }
     }
 
-    // Auto-onboarding: If no tenant is registered in DB yet, create a default mock trial tenant
+    // Single-tenant fallback: use existing default tenant (create only outside production)
     if (!tenant) {
       tenant = await Tenant.findOne({ subdomain: 'default' });
       if (!tenant) {
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(503).json({ message: 'Tenant not provisioned. Contact operations.' });
+        }
         tenant = new Tenant({
           companyName: 'Default Trial Tenant',
           subdomain: 'default',
@@ -45,12 +55,10 @@ export const resolveTenant = async (req, res, next) => {
       tenantId = tenant._id;
     }
 
-    // Guard: Block if suspended or unpaid
     if (tenant && tenant.isActive === false) {
       return res.status(403).json({ message: 'Tenant subscription has been suspended. Please contact operations.' });
     }
 
-    // Inject parameters into request context
     req.tenantId = tenantId;
     req.tenant = tenant;
     next();
@@ -60,8 +68,7 @@ export const resolveTenant = async (req, res, next) => {
 };
 
 /**
- * Middleware to enforce subscription limits (e.g. check-in triggers or workspace counts)
- * @param {string} resourceType - 'employees' or 'leads' or 'workflows'
+ * Middleware to enforce subscription limits (tenant-scoped counts).
  */
 export const enforceLimit = (resourceType) => {
   return async (req, res, next) => {

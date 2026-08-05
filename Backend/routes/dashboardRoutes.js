@@ -3,7 +3,8 @@ import { getDashboardStats, getHrmStats, getEmployeeStats, getReportsAnalytics, 
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
-router.get('/stats', protect, getDashboardStats);
+router.use(protect);
+router.get('/stats', getDashboardStats);
 router.get('/reports', getReportsAnalytics);
 router.get('/sales-detail', getSalesReportDetail);
 router.get('/hrm-stats', getHrmStats);

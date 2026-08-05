@@ -1,29 +1,61 @@
 version: '3.8'
 
 services:
+  mongo:
+    image: mongo:7
+    container_name: hrm_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   frontend:
     build: ./Frontend
     container_name: hrm_frontend
     restart: always
     ports:
-      - "3071:80" # Maps VPS port 3071 to Nginx port 80 in container
+      - "3071:80"
     env_file:
       - ./Frontend/.env
+    depends_on:
+      - backend
 
   backend:
     build: ./Backend
     container_name: hrm_backend
     restart: always
     ports:
-      - "3072:5000" # Maps VPS port 3072 to backend port 3072
+      - "3072:5000"
     env_file:
       - ./Backend/.env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/vastora-crm
+      NODE_ENV: production
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   admin:
     build: ./Admin
     container_name: hrm_admin
     restart: always
     ports:
-      - "3070:80" # Maps VPS port 3070 to Nginx port 80 in container
+      - "3070:80"
     env_file:
       - ./Admin/.env
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

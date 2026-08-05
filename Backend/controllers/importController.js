@@ -74,15 +74,19 @@ export const importEmployees = async (req, res) => {
           errors.push({ row, error: 'Duplicate email or ID' });
           continue;
         }
+        const crypto = await import('crypto');
+        const tempPassword = crypto.randomBytes(16).toString('hex');
+        const ALLOWED_ROLES = new Set(['Employee', 'Manager', 'HR', 'Sales', 'Founder']);
+        const role = ALLOWED_ROLES.has(row.role) ? row.role : 'Employee';
         const doc = await Employee.create({
           employeeId,
           name: row.name,
           email,
-          password: row.password || 'Password123',
+          password: tempPassword,
           department: row.department || '',
           designation: row.designation || '',
           branch: row.branch || '',
-          role: row.role || 'Employee',
+          role,
           joinDate: row.joindate || row.join_date || new Date(),
         });
         created.push({ _id: doc._id, name: doc.name, email: doc.email, employeeId: doc.employeeId });

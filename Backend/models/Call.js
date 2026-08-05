@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const callSchema = new mongoose.Schema(
   {
@@ -14,6 +15,8 @@ const callSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(callSchema);
 
 const Call = mongoose.model('Call', callSchema);
 export default Call;

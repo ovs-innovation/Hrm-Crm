@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const dealSchema = new mongoose.Schema(
   {
@@ -17,6 +18,10 @@ const dealSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(dealSchema);
+dealSchema.index({ tenantId: 1, stage: 1 });
+dealSchema.index({ tenantId: 1, createdAt: -1 });
 
 const Deal = mongoose.model('Deal', dealSchema);
 export default Deal;

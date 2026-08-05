@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const promptConfigSchema = new mongoose.Schema(
   {
@@ -9,6 +10,8 @@ const promptConfigSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(promptConfigSchema);
 
 const PromptConfig = mongoose.model('PromptConfig', promptConfigSchema);
 export default PromptConfig;

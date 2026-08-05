@@ -1,15 +1,59 @@
 import { callLLM } from './llm.service.js';
 import PromptConfig from '../models/PromptConfig.js';
 import Memory from '../models/Memory.js';
+import Learning from '../models/Learning.js';
 import { TOOLS_SCHEMA } from './mcp.service.js';
+import { contextStorage } from '../middlewares/contextMiddleware.js';
 
-// ─── Provider Routing Strategy ────────────────────────────────────────────────
-// Groq   → fast, real-time: chat, commands, lead scoring, email, search
-// OpenRouter → deep context: resume parsing, RAG, candidate ranking, reports
+// Provider Strategy
 const FAST = { provider: 'groq' };
 const DEEP = { provider: 'openrouter' };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+/**
+ * Dynamic Prompt Compiler incorporating Tenant data, permissions, rules, and learning
+ */
+async function compileBusinessPrompt(moduleKey, baseSystemPrompt) {
+  const store = contextStorage.getStore();
+  const tenantId = store?.tenantId;
+  const userId = store?.user || 'System';
+
+  let memoryText = "";
+  try {
+    const memories = await Memory.find({ tenantId, scope: { $in: ['Global', moduleKey] } });
+    if (memories.length > 0) {
+      memoryText = `\n=== BUSINESS SYSTEM MEMORY & RULES ===\n${memories.map((m, i) => `${i + 1}. [Scope: ${m.scope}] ${m.content}`).join('\n')}\n`;
+    }
+  } catch (err) {
+    console.error('[Memory retrieve error]', err.message);
+  }
+
+  let learningText = "";
+  try {
+    const learnings = await Learning.find({ tenantId, userId }).sort({ createdAt: -1 }).limit(3);
+    if (learnings.length > 0) {
+      learningText = `\n=== DYNAMIC STYLE LEARNINGS ===\n${learnings.map(l => `- Correction feedback: ${l.feedback || 'None'}`).join('\n')}\n`;
+    }
+  } catch (err) {
+    console.error('[Learning retrieve error]', err.message);
+  }
+
+  return `
+${baseSystemPrompt}
+
+=== BUSINESS REASONING PILLARS ===
+Analyze and explain findings structured using these metrics where relevant:
+- **Problem**: Outline anomalies or issues.
+- **Cause**: Explain the underlying cause.
+- **Risk**: Operational or financial exposure.
+- **Recommendation**: Propose direct steps to take.
+- **Priority**: High | Medium | Low.
+- **Expected Impact**: Metric improvements expected.
+
+${memoryText}
+${learningText}
+`;
+}
+
 async function getSystemPrompt(key, defaultPrompt) {
   try {
     const config = await PromptConfig.findOne({ key, isActive: true });
@@ -19,21 +63,11 @@ async function getSystemPrompt(key, defaultPrompt) {
   }
 }
 
-async function getMemoryGuidelines() {
-  try {
-    const memories = await Memory.find();
-    if (!memories.length) return '';
-    return `\nUSER CUSTOM SYSTEM MEMORY & RULES:\n${memories.map((m, i) => `${i + 1}. [Scope: ${m.scope}] ${m.content}`).join('\n')}\n`;
-  } catch {
-    return '';
-  }
-}
-
 // ─── Module 1: Dashboard Insights ────────────────────────────────────────────
 export async function generateDashboardInsights(stats) {
   const defaultPrompt = `
 You are an expert business analyst and HR/CRM dashboard co-pilot.
-Analyze the following raw statistics from our database:
+Analyze the raw statistics from our database:
 - Attendance Today: {{attendanceToday}}
 - Recent Sales/Deals Closed: {{salesStats}}
 - Open/Pending Leads: {{leadsStats}}
@@ -41,22 +75,22 @@ Analyze the following raw statistics from our database:
 - Employees Absent Today: {{employeesAbsent}}
 - Upcoming Meetings & Birthdays: {{upcomingEvents}}
 
-Generate exactly 3 dynamic business insights and recommendations (each 1-2 sentences) in JSON format.
+Provide 3 business insights and actions in JSON format.
 Output:
 {
   "businessSummary": "string",
-  "insights": ["string", "string", "string"]
+  "insights": ["string"]
 }
 `;
-  const memory = await getMemoryGuidelines();
   const dbPrompt = await getSystemPrompt('dashboard_insights', defaultPrompt);
-  const finalPrompt = dbPrompt
+  const compiled = await compileBusinessPrompt('HRM', dbPrompt);
+  const finalPrompt = compiled
     .replace('{{attendanceToday}}', JSON.stringify(stats.attendanceToday))
     .replace('{{salesStats}}', JSON.stringify(stats.salesStats))
     .replace('{{leadsStats}}', JSON.stringify(stats.leadsStats))
     .replace('{{topPerformers}}', JSON.stringify(stats.topPerformers))
     .replace('{{employeesAbsent}}', JSON.stringify(stats.employeesAbsent))
-    .replace('{{upcomingEvents}}', JSON.stringify(stats.upcomingEvents)) + memory;
+    .replace('{{upcomingEvents}}', JSON.stringify(stats.upcomingEvents));
 
   return callLLM(finalPrompt, { jsonMode: true, ...FAST, module: 'Dashboard' });
 }
@@ -82,12 +116,13 @@ Return JSON:
   "collection": "string",
   "query": {},
   "sort": {} or null,
-  "limit": number (max 15),
+  "limit": number,
   "explanation": "string"
 }
 `;
   const dbPrompt = await getSystemPrompt('nl_search', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'NL-Search' });
+  const compiled = await compileBusinessPrompt('General', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'NL-Search' });
 }
 
 // ─── Module 3: Employee Insights Card ────────────────────────────────────────
@@ -102,7 +137,8 @@ Tasks: ${JSON.stringify(tasks)}
 Return JSON with: attendanceScore, performance, lateLoginPattern, leavePattern, taskCompletion, promotionSuggestion, riskLevel, strengths, weaknesses, trainingRecommendation.
 `;
   const dbPrompt = await getSystemPrompt('employee_insights', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'HRM' });
+  const compiled = await compileBusinessPrompt('HRM', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'HRM' });
 }
 
 // ─── Module 4: Resume Parser & Scoring ───────────────────────────────────────
@@ -132,7 +168,8 @@ Return JSON:
 }
 `;
   const dbPrompt = await getSystemPrompt('resume_parser', defaultPrompt);
-  const finalPrompt = dbPrompt
+  const compiled = await compileBusinessPrompt('Recruitment', dbPrompt);
+  const finalPrompt = compiled
     .replace('{{resumeText}}', resumeText)
     .replace('{{jobDescription}}', jobDescription || 'Full Stack Software Engineer');
   return callLLM(finalPrompt, { jsonMode: true, ...DEEP, module: 'Recruitment' });
@@ -146,16 +183,25 @@ Lead Profile: ${JSON.stringify(lead)}
 Deals: ${JSON.stringify(deals)}
 Interactions: ${JSON.stringify(interactions)}
 
+Analyze and return explainable deal health indicators:
+- Probability of winning the deal (0-100)
+- Explainable score category (Cold, Warm, Hot)
+- Step-by-step reasoning list explaining *why* the probability is selected (e.g. "Overdue close date", "No interactions in 10 days", "Last email was highly positive").
+- "nextBestAction" text string proposing the immediate next step.
+
 Return JSON:
 {
   "score": "Cold" | "Warm" | "Hot",
   "probability": number,
   "confidence": number,
-  "reason": "string"
+  "reason": "string",
+  "reasoningList": ["string"],
+  "nextBestAction": "string"
 }
 `;
   const dbPrompt = await getSystemPrompt('lead_scoring', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'CRM' });
+  const compiled = await compileBusinessPrompt('CRM', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'CRM' });
 }
 
 // ─── Module 6: Email Writer ───────────────────────────────────────────────────
@@ -167,7 +213,8 @@ Additional context: ${customInstructions}.
 Write subject line and body. Keep it concise and action-oriented.
 `;
   const dbPrompt = await getSystemPrompt('email_writer', defaultPrompt);
-  return callLLM(dbPrompt, { ...FAST, module: 'CRM' });
+  const compiled = await compileBusinessPrompt('CRM', dbPrompt);
+  return callLLM(compiled, { ...FAST, module: 'CRM' });
 }
 
 // ─── Module 7: WhatsApp Reply ─────────────────────────────────────────────────
@@ -179,7 +226,8 @@ CRM History: ${JSON.stringify(history)}
 Tone: ${tone}
 `;
   const dbPrompt = await getSystemPrompt('whatsapp_writer', defaultPrompt);
-  return callLLM(dbPrompt, { ...FAST, module: 'CRM' });
+  const compiled = await compileBusinessPrompt('CRM', dbPrompt);
+  return callLLM(compiled, { ...FAST, module: 'CRM' });
 }
 
 // ─── Module 8: Document Placeholder Extractor ────────────────────────────────
@@ -192,7 +240,8 @@ ${templateText}
 Return JSON: { "placeholders": ["field1", "field2"] }
 `;
   const dbPrompt = await getSystemPrompt('doc_placeholders', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'Documents' });
+  const compiled = await compileBusinessPrompt('Documents', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Documents' });
 }
 
 // ─── Module 9: Meeting Summary ────────────────────────────────────────────────
@@ -211,7 +260,8 @@ Return JSON:
 }
 `;
   const dbPrompt = await getSystemPrompt('meeting_summary', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'Meetings' });
+  const compiled = await compileBusinessPrompt('Meetings', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Meetings' });
 }
 
 // ─── Module 10: Report Summary ────────────────────────────────────────────────
@@ -222,7 +272,8 @@ Metrics: ${JSON.stringify(metrics)}
 Include: key findings, trends, anomalies, and 3 actionable recommendations.
 `;
   const dbPrompt = await getSystemPrompt('report_summary', defaultPrompt);
-  return callLLM(dbPrompt, { ...FAST, module: 'Reports' });
+  const compiled = await compileBusinessPrompt('Reports', dbPrompt);
+  return callLLM(compiled, { ...FAST, module: 'Reports' });
 }
 
 // ─── Module 11: RAG Knowledge Base ───────────────────────────────────────────
@@ -247,10 +298,11 @@ Respond in this JSON format:
 }
 `;
   const dbPrompt = await getSystemPrompt('kb_rag', defaultPrompt);
+  const compiled = await compileBusinessPrompt('RAG', dbPrompt);
   const contextText = contextChunks
     .map(c => `[Document: ${c.title}${c.pageNumber ? `, Page: ${c.pageNumber}` : ''}]\n${c.text}`)
     .join('\n\n');
-  const finalPrompt = dbPrompt
+  const finalPrompt = compiled
     .replace('{{question}}', question)
     .replace('{{context}}', contextText);
   return callLLM(finalPrompt, { jsonMode: true, ...DEEP, module: 'RAG' });
@@ -264,12 +316,12 @@ Data: ${JSON.stringify(historicalData)}
 Return JSON: { "prediction": "string", "confidenceScore": number, "trend": "up|down|stable", "explanation": "string" }
 `;
   const dbPrompt = await getSystemPrompt('predict_forecast', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'Analytics' });
+  const compiled = await compileBusinessPrompt('Analytics', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Analytics' });
 }
 
 // ─── Module 13: Agent Command Parser (MCP) ────────────────────────────────────
 export async function processAgentCommand(userInput, userRole) {
-  const memory = await getMemoryGuidelines();
   const prompt = `
 You are the intelligent operating layer of an Enterprise HRM+CRM SaaS platform.
 Parse this user command: "${userInput}" and map it to a tool call if applicable.
@@ -278,7 +330,6 @@ User Role: ${userRole}
 
 AVAILABLE TOOLS:
 ${JSON.stringify(TOOLS_SCHEMA)}
-${memory}
 
 Rules:
 1. If the command matches a tool, resolve it with correct arguments.
@@ -296,7 +347,8 @@ Return JSON:
   "chatReply": "string"
 }
 `;
-  return callLLM(prompt, { jsonMode: true, ...FAST, module: 'Agent' });
+  const compiled = await compileBusinessPrompt('Agent', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Agent' });
 }
 
 // ─── Module 14: Voice Command Router ─────────────────────────────────────────
@@ -307,7 +359,8 @@ Parse this spoken command: "${transcript}"
 Return JSON: { "intent": "string", "entity": "string", "action": "string", "parameters": {} }
 `;
   const dbPrompt = await getSystemPrompt('voice_command', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'Voice' });
+  const compiled = await compileBusinessPrompt('Voice', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Voice' });
 }
 
 // ─── Module 15: OCR / Form AutoFill ──────────────────────────────────────────
@@ -321,7 +374,8 @@ ${documentText}
 Return a JSON object with all relevant fields extracted.
 `;
   const dbPrompt = await getSystemPrompt('ocr_extractor', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'OCR' });
+  const compiled = await compileBusinessPrompt('OCR', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'OCR' });
 }
 
 // ─── Module 16: Candidate Ranking ────────────────────────────────────────────
@@ -333,7 +387,8 @@ Candidates: ${JSON.stringify(candidatesList)}
 Return JSON: { "ranked": [{ "name": "string", "rank": number, "score": number, "reason": "string" }] }
 `;
   const dbPrompt = await getSystemPrompt('recruitment_ranking', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...DEEP, module: 'Recruitment' });
+  const compiled = await compileBusinessPrompt('Recruitment', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...DEEP, module: 'Recruitment' });
 }
 
 // ─── Module 17: Sales Coach Insights ─────────────────────────────────────────
@@ -345,7 +400,8 @@ Recent Interactions: ${JSON.stringify(interactionsData)}
 Return JSON: { "coachingSuggestions": ["string"], "riskDeals": ["string"], "winProbabilityInsight": "string", "nextBestAction": "string" }
 `;
   const dbPrompt = await getSystemPrompt('sales_coach', defaultPrompt);
-  return callLLM(dbPrompt, { jsonMode: true, ...FAST, module: 'CRM' });
+  const compiled = await compileBusinessPrompt('CRM', dbPrompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'CRM' });
 }
 
 // ─── Module 18: AI Offer / HR Letter Generator ───────────────────────────────
@@ -358,7 +414,8 @@ ${additionalContext ? `Additional Context: ${additionalContext}` : ''}
 
 Write a professional letter with proper formatting. Include date, salutation, body, and signature block.
 `;
-  return callLLM(prompt, { ...FAST, module: 'HRM' });
+  const compiled = await compileBusinessPrompt('HRM', prompt);
+  return callLLM(compiled, { ...FAST, module: 'HRM' });
 }
 
 // ─── Module 19: Employee Performance Summary ──────────────────────────────────
@@ -370,7 +427,8 @@ KPI Data for ${reviewPeriod}: ${JSON.stringify(kpiData)}
 Generate a structured performance review summary with ratings, highlights, improvement areas, and a recommended action plan.
 Return JSON: { "overallRating": "string", "highlights": ["string"], "improvementAreas": ["string"], "actionPlan": ["string"], "summary": "string" }
 `;
-  return callLLM(prompt, { jsonMode: true, ...FAST, module: 'HRM' });
+  const compiled = await compileBusinessPrompt('HRM', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'HRM' });
 }
 
 // ─── Module 20: Attendance & Leave Analysis ───────────────────────────────────
@@ -382,7 +440,8 @@ Attendance records: ${JSON.stringify(attendanceData)}
 Leave history: ${JSON.stringify(leaveData)}
 Return JSON: { "attendanceScore": number, "lateArrivals": number, "absentDays": number, "leaveBalance": number, "pattern": "string", "recommendations": ["string"] }
 `;
-  return callLLM(prompt, { jsonMode: true, ...FAST, module: 'HRM' });
+  const compiled = await compileBusinessPrompt('HRM', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'HRM' });
 }
 
 // ─── Module 21: AI Notes Summarizer ──────────────────────────────────────────
@@ -394,7 +453,8 @@ ${notes}
 ---
 Return JSON: { "summary": "string", "keyPoints": ["string"], "followUpActions": ["string"] }
 `;
-  return callLLM(prompt, { jsonMode: true, ...FAST, module: 'Notes' });
+  const compiled = await compileBusinessPrompt('Notes', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Notes' });
 }
 
 // ─── Module 22: Follow-up Reminder Suggestions ───────────────────────────────
@@ -407,7 +467,8 @@ Deal Stage: ${dealStage}
 Suggest the best follow-up actions and timing.
 Return JSON: { "suggestedAction": "string", "channel": "email|whatsapp|call", "timing": "string", "messageTemplate": "string" }
 `;
-  return callLLM(prompt, { jsonMode: true, ...FAST, module: 'CRM' });
+  const compiled = await compileBusinessPrompt('CRM', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'CRM' });
 }
 
 // ─── Module 23: AI Proposal Generator ────────────────────────────────────────
@@ -419,7 +480,8 @@ Deal: ${JSON.stringify(dealData)}
 Product/Service Details: ${JSON.stringify(productDetails)}
 Generate a complete business proposal with executive summary, scope, pricing, timeline, and call to action.
 `;
-  return callLLM(prompt, { ...DEEP, module: 'CRM' });
+  const compiled = await compileBusinessPrompt('CRM', prompt);
+  return callLLM(compiled, { ...DEEP, module: 'CRM' });
 }
 
 // ─── Module 24: Workflow Suggestions ─────────────────────────────────────────
@@ -431,5 +493,6 @@ Current Process: ${currentProcessDescription}
 Suggest 3 automation workflows that would save time and reduce errors.
 Return JSON: { "workflows": [{ "name": "string", "trigger": "string", "actions": ["string"], "estimatedTimeSaved": "string" }] }
 `;
-  return callLLM(prompt, { jsonMode: true, ...FAST, module: 'Automation' });
+  const compiled = await compileBusinessPrompt('Automation', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Automation' });
 }

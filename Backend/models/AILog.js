@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const aiLogSchema = new mongoose.Schema(
   {
@@ -22,6 +23,8 @@ const aiLogSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(aiLogSchema);
 
 const AILog = mongoose.model('AILog', aiLogSchema);
 export default AILog;

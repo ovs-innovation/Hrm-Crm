@@ -36,9 +36,7 @@ const Messenger = () => {
   useEffect(() => {
     if (loggedInUserId) {
       const socketInstance = io(getFileUrl(''), {
-        query: {
-          userId: loggedInUserId,
-        },
+        withCredentials: true,
       });
 
       setSocket(socketInstance);

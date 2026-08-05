@@ -1,16 +1,28 @@
 import express from 'express';
+import { protect } from '../middlewares/authMiddleware.js';
+
+/** Coerce query values to primitives — rejects Mongo operator objects. */
+export function sanitizeQueryValue(value) {
+  if (value == null) return value;
+  if (typeof value === 'object') return undefined;
+  return String(value);
+}
 
 export function createCrudHandlers(Model, options = {}) {
   const {
     defaultSort = { createdAt: -1 },
     buildFilter = () => ({}),
     transform = (doc) => (doc.toObject ? doc.toObject() : doc),
+    listLimit = 500,
   } = options;
 
   const list = async (req, res) => {
     try {
       const filter = buildFilter(req);
-      const docs = await Model.find(filter).sort(defaultSort);
+      const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
+      const limit = Math.min(listLimit, Math.max(1, parseInt(String(req.query.limit || String(listLimit)), 10) || listLimit));
+      const skip = (page - 1) * limit;
+      const docs = await Model.find(filter).sort(defaultSort).skip(skip).limit(limit);
       res.json(docs.map((doc) => transform(doc)));
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -64,6 +76,7 @@ export function createCrudHandlers(Model, options = {}) {
 
 export function createCrudRouter(handlers) {
   const router = express.Router();
+  router.use(protect);
   router.route('/').get(handlers.list).post(handlers.create);
   router.route('/:id').get(handlers.getOne).put(handlers.update).delete(handlers.remove);
   return router;

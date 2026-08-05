@@ -1,14 +1,23 @@
 import express from 'express';
 import Payslip from '../models/Payslip.js';
-import { createCrudHandlers } from '../utils/crudFactory.js';
+import { createCrudHandlers, sanitizeQueryValue } from '../utils/crudFactory.js';
+import { protect } from '../middlewares/authMiddleware.js';
+import { requireAdmin } from '../middlewares/roleMiddleware.js';
 
 const handlers = createCrudHandlers(Payslip, {
   defaultSort: { month: -1 },
   buildFilter: (req) => {
     const filter = {};
-    if (req.query.employeeId) filter.employeeId = req.query.employeeId;
-    if (req.query.month) filter.month = req.query.month;
-    if (req.query.status) filter.status = req.query.status;
+    const employeeId = sanitizeQueryValue(req.query.employeeId);
+    const month = sanitizeQueryValue(req.query.month);
+    const status = sanitizeQueryValue(req.query.status);
+    if (employeeId) filter.employeeId = employeeId;
+    if (month) filter.month = month;
+    if (status) filter.status = status;
+    // Employees may only list their own payslips
+    if (req.userType === 'Employee' && req.user?.employeeId) {
+      filter.employeeId = req.user.employeeId;
+    }
     return filter;
   },
 });
@@ -62,11 +71,12 @@ export const generateBulkPayslips = async (req, res) => {
 };
 
 const router = express.Router();
+router.use(protect);
 router.get('/', handlers.list);
-router.post('/generate', generateBulkPayslips);
-router.post('/', createPayslip);
+router.post('/generate', requireAdmin, generateBulkPayslips);
+router.post('/', requireAdmin, createPayslip);
 router.get('/:id', handlers.getOne);
-router.put('/:id', handlers.update);
-router.delete('/:id', handlers.remove);
+router.put('/:id', requireAdmin, handlers.update);
+router.delete('/:id', requireAdmin, handlers.remove);
 
 export default router;

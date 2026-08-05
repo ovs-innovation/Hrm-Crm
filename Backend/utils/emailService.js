@@ -2,6 +2,14 @@ import nodemailer from 'nodemailer';
 
 let transporter = null;
 
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const getTransporter = () => {
   if (transporter) return transporter;
   const host = process.env.SMTP_HOST;
@@ -32,21 +40,21 @@ export const sendEmail = async ({ to, subject, html, text }) => {
 export const inviteEmailHtml = (name, link) => `
   <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto">
     <h2 style="color:#2E6DB4">Welcome to Vastora</h2>
-    <p>Hi ${name || 'there'},</p>
+    <p>Hi ${escapeHtml(name) || 'there'},</p>
     <p>Your employee account is ready. Set your password to access the portal:</p>
-    <p><a href="${link}" style="background:#2E6DB4;color:#fff;padding:12px 20px;text-decoration:none;border-radius:8px;display:inline-block">Set Password</a></p>
+    <p><a href="${escapeHtml(link)}" style="background:#2E6DB4;color:#fff;padding:12px 20px;text-decoration:none;border-radius:8px;display:inline-block">Set Password</a></p>
     <p style="color:#666;font-size:13px">Link expires in 72 hours.</p>
   </div>`;
 
 export const leaveStatusEmailHtml = (name, status, dates) => `
   <div style="font-family:Inter,sans-serif">
-    <h2 style="color:#2E6DB4">Leave ${status}</h2>
-    <p>Hi ${name}, your leave request (${dates}) has been <strong>${status.toLowerCase()}</strong>.</p>
+    <h2 style="color:#2E6DB4">Leave ${escapeHtml(status)}</h2>
+    <p>Hi ${escapeHtml(name)}, your leave request (${escapeHtml(dates)}) has been <strong>${escapeHtml(String(status).toLowerCase())}</strong>.</p>
   </div>`;
 
 export const dealStageEmailHtml = (title, stage, owner) => `
   <div style="font-family:Inter,sans-serif">
     <h2 style="color:#2E6DB4">Deal updated</h2>
-    <p><strong>${title}</strong> moved to <strong>${stage}</strong>.</p>
-    ${owner ? `<p>Owner: ${owner}</p>` : ''}
+    <p><strong>${escapeHtml(title)}</strong> moved to <strong>${escapeHtml(stage)}</strong>.</p>
+    ${owner ? `<p>Owner: ${escapeHtml(owner)}</p>` : ''}
   </div>`;

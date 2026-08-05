@@ -101,6 +101,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavItem to="/profile" icon={FiUser} title="Profile" onClick={() => setIsOpen(false)} />
           </div>
 
+          <Section title="Vastora OS">
+            <NavItem to="/executive/command-center" icon={FiHome} title="Command Center" onClick={() => setIsOpen(false)} />
+            <NavItem to="/executive/health" icon={FiAward} title="Business Health" onClick={() => setIsOpen(false)} />
+            <NavItem to="/executive/workflows" icon={FiCheckSquare} title="Process Builder" onClick={() => setIsOpen(false)} />
+            <NavItem to="/executive/simulator" icon={FiDollarSign} title="Cost Simulator" onClick={() => setIsOpen(false)} />
+          </Section>
+
           {isManager && (
             <Section title="Team management">
               <NavItem to="/manage/employees" icon={FiUsers} title="Employees" onClick={() => setIsOpen(false)} />

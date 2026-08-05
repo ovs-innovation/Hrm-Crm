@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const payslipSchema = new mongoose.Schema(
   {
@@ -21,7 +22,9 @@ const payslipSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-payslipSchema.index({ employeeId: 1, month: 1 }, { unique: true });
+payslipSchema.index({ tenantId: 1, employeeId: 1, month: 1 }, { unique: true });
+
+tenantScoped(payslipSchema);
 
 const Payslip = mongoose.model('Payslip', payslipSchema);
 export default Payslip;

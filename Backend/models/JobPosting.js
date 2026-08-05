@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const jobPostingSchema = new mongoose.Schema(
   {
@@ -14,6 +15,8 @@ const jobPostingSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(jobPostingSchema);
 
 const JobPosting = mongoose.model('JobPosting', jobPostingSchema);
 export default JobPosting;

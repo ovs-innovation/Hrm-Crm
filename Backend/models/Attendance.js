@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const attendanceSchema = new mongoose.Schema({
   employeeId: {
@@ -26,10 +27,18 @@ const attendanceSchema = new mongoose.Schema({
     type: String,
     enum: ['Office', 'Home', 'Field'],
     required: true
-  }
+  },
+  // Optional GPS fields for geofence checks (when client provides them)
+  latitude: { type: Number, default: null },
+  longitude: { type: Number, default: null },
+  distanceFromOffice: { type: Number, default: null },
 }, {
   timestamps: true
 });
+
+attendanceSchema.index({ tenantId: 1, employeeId: 1, date: 1 }, { unique: true });
+
+tenantScoped(attendanceSchema);
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 export default Attendance;

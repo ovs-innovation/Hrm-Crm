@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const designationSchema = new mongoose.Schema(
   {
@@ -9,6 +10,8 @@ const designationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(designationSchema);
 
 const Designation = mongoose.model('Designation', designationSchema);
 export default Designation;

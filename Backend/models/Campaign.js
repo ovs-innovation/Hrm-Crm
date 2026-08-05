@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const campaignSchema = new mongoose.Schema(
   {
@@ -15,6 +16,8 @@ const campaignSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(campaignSchema);
 
 const Campaign = mongoose.model('Campaign', campaignSchema);
 export default Campaign;

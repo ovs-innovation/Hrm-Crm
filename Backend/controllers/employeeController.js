@@ -1,5 +1,4 @@
 import Employee from '../models/Employee.js';
-import generateToken from '../utils/generateToken.js';
 import { logAudit } from '../utils/auditLogger.js';
 import { createInviteForEmployee } from './inviteController.js';
 import crypto from 'crypto';
@@ -76,10 +75,20 @@ export const loginEmployee = async (req, res) => {
     const { password } = req.body;
     const email = req.body.email.toLowerCase().trim();
 
-    const employee = await Employee.findOne({ email });
+    const { withoutTenantScope } = await import('../plugins/tenantScope.plugin.js');
+    const employee = await withoutTenantScope(() => Employee.findOne({ email }));
 
     if (employee && (await employee.matchPassword(password))) {
-      generateToken(res, employee._id);
+      const { createRefreshSession } = await import('../utils/generateToken.js');
+      const { bindRequestTenant } = await import('../middlewares/contextMiddleware.js');
+      if (employee.tenantId) bindRequestTenant(req, employee.tenantId);
+      await createRefreshSession({
+        res,
+        req,
+        userId: employee._id,
+        tenantId: employee.tenantId || req.tenantId,
+        userType: 'Employee',
+      });
 
       res.json({
         _id: employee._id,
@@ -89,6 +98,7 @@ export const loginEmployee = async (req, res) => {
         role: employee.role,
         department: employee.department,
         designation: employee.designation,
+        tenantId: employee.tenantId,
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -115,11 +125,9 @@ export const getEmployees = async (req, res) => {
 // @access  Public
 export const logoutEmployee = async (req, res) => {
   try {
-    res.cookie('jwt', '', {
-      httpOnly: true,
-      path: '/',
-      expires: new Date(0),
-    });
+    const { revokeRefreshToken, clearAuthCookies } = await import('../utils/generateToken.js');
+    await revokeRefreshToken(req.cookies?.refreshToken);
+    clearAuthCookies(res);
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

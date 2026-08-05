@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const employeeSchema = new mongoose.Schema(
   {
     employeeId: {
       type: String,
       required: true,
-      unique: true,
     },
     name: {
       type: String,
@@ -15,7 +15,6 @@ const employeeSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
     },
     password: {
       type: String,
@@ -46,19 +45,25 @@ const employeeSchema = new mongoose.Schema(
     reportingTo: { type: String },
     language: { type: String },
     address: { type: String },
-    about: { type: String }
+    about: { type: String },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Method to compare entered password to hashed password
+tenantScoped(employeeSchema);
+employeeSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+employeeSchema.index({ tenantId: 1, employeeId: 1 }, { unique: true });
+
 employeeSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Middleware to hash password before saving
 employeeSchema.pre('save', async function () {
   if (this.email) {
     this.email = this.email.toLowerCase().trim();

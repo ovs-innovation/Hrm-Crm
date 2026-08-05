@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const companySettingsSchema = new mongoose.Schema(
   {
-    singleton: { type: String, default: 'default', unique: true },
+    singleton: { type: String, default: 'default' },
     companyName: { type: String, default: 'Vastora Tech' },
     legalName: { type: String },
     email: { type: String },
@@ -32,6 +33,9 @@ const companySettingsSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(companySettingsSchema);
+companySettingsSchema.index({ tenantId: 1, singleton: 1 }, { unique: true });
 
 const CompanySettings = mongoose.model('CompanySettings', companySettingsSchema);
 export default CompanySettings;

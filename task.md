@@ -1,0 +1,3 @@
+- [x] Create `contextEngine.service.js`
+- [x] Modify `aiAgents.service.js` to integrate Context Engine
+- [x] Verify execution

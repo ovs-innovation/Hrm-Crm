@@ -20,6 +20,7 @@ import * as aiService from '../services/ai.service.js';
 import * as vectorService from '../services/vector.service.js';
 import * as aiProvider from '../services/aiProvider.service.js';
 import * as mcpService from '../services/mcp.service.js';
+import { callLLM } from '../services/llm.service.js';
 
 // Dynamic import wrappers to prevent server boot crashes if offline installation failed
 async function getPdfParser() {
@@ -73,36 +74,90 @@ async function getPdfKit() {
   }
 }
 
+import * as aiAgentsService from '../services/aiAgents.service.js';
+import Memory from '../models/Memory.js';
+import Learning from '../models/Learning.js';
+import Ticket from '../models/Ticket.js';
+import Project from '../models/Project.js';
+import Message from '../models/Message.js';
+
 /**
  * AI Agent Command Palette / Chatbot receptionist tool executor
  */
 export const executeAgentCommand = async (req, res) => {
   try {
-    const { userInput } = req.body;
-    const userRole = req.user?.role || 'Admin'; // Fallback to Admin or role in token
+    const { userInput, context: clientContext } = req.body;
+    // Prefer Admin userType over employee role strings; never default to Admin
+    const userRole = req.userType === 'Admin'
+      ? (req.user?.role || 'Admin')
+      : (req.user?.role || 'Employee');
+    const userEmail = req.user?.email;
+    if (!userEmail) {
+      return res.status(401).json({ message: 'Authenticated user email required' });
+    }
 
     if (!userInput) {
       return res.status(400).json({ message: 'userInput is required' });
     }
 
-    // Call parser to resolve tool intent
-    const parsedCommand = await aiService.processAgentCommand(userInput, userRole);
-    const { toolName, arguments: toolArgs, explanation, redirectUrl, autofillData, chatReply } = parsedCommand;
+    // 1. Gather Database details of selected entities in the context
+    const businessContext = {
+      tenantId: req.tenantId,
+      companyName: req.tenant?.companyName || 'Vastora Tech',
+      userRole,
+      userEmail,
+      page: clientContext?.page || 'Dashboard',
+      module: clientContext?.module || 'Dashboard',
+      filters: clientContext?.filters || {}
+    };
 
-    let executionResult = null;
-
-    if (toolName && toolName !== 'unknown') {
-      // Execute the MCP tool securely
-      executionResult = await mcpService.executeTool(toolName, toolArgs, userRole);
+    if (clientContext?.selectedEmployeeId) {
+      businessContext.employee = await Employee.findOne({
+        $or: [
+          { _id: mongoose.isValidObjectId(clientContext.selectedEmployeeId) ? clientContext.selectedEmployeeId : null },
+          { employeeId: clientContext.selectedEmployeeId }
+        ]
+      });
     }
+
+    if (clientContext?.selectedLeadId && mongoose.isValidObjectId(clientContext.selectedLeadId)) {
+      businessContext.lead = await Client.findById(clientContext.selectedLeadId);
+    }
+
+    if (clientContext?.selectedDealId && mongoose.isValidObjectId(clientContext.selectedDealId)) {
+      businessContext.deal = await Deal.findById(clientContext.selectedDealId);
+    }
+
+    // 2. Fetch Relevant Memories (scopeless or matching the module)
+    const memories = await Memory.find({
+      tenantId: req.tenantId,
+      $or: [
+        { scope: 'Global' },
+        { scope: clientContext?.module },
+        { userId: userEmail }
+      ]
+    }).limit(10);
+
+    // 3. Fetch previous AILogs (previous conversation context)
+    const prevLogs = await AILog.find({
+      tenantId: req.tenantId,
+      user: userEmail,
+      status: 'Success'
+    }).sort({ createdAt: -1 }).limit(5);
+
+    // 5. Run runAgentOrchestrator (Planner -> Router -> Executor -> Reflection Loop)
+    const orchestratorResult = await aiAgentsService.runAgentOrchestrator(
+      userInput,
+      userRole,
+      req.tenantId,
+      businessContext,
+      memories,
+      prevLogs
+    );
 
     res.json({
       userInput,
-      parsedCommand,
-      executionResult,
-      chatResponse: executionResult ? executionResult.message : chatReply,
-      redirectUrl,
-      autofillData
+      ...orchestratorResult
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -205,23 +260,25 @@ export const detectAttendanceFraud = async (req, res) => {
     };
 
     for (const record of attendanceRecords) {
-      // If checked-in from office, mock check coordinates
-      if (record.workMode === 'Office') {
-        // Mocking coordinates check based on workMode or record metadata
-        const distance = record.distanceFromOffice || 0; // standard mock field if set
-        
-        // Let's create mock alerts for demonstration
-        if (record.employeeId?.name === 'Amit Sharma' || record.employeeId?.name === 'Rudra Sharma') {
-          alerts.push({
-            employee: record.employeeId?.name,
-            employeeId: record.employeeId?.employeeId,
-            date: record.date,
-            status: record.status,
-            type: 'GPS Geofence Breach',
-            details: `Employee checked in in 'Office' mode but GPS coordinates show them 3.2km away from office center. Possible GPS Spoofing detected.`,
-            risk: 'High'
-          });
-        }
+      if (record.workMode !== 'Office') continue;
+
+      let distance = typeof record.distanceFromOffice === 'number' ? record.distanceFromOffice : null;
+      if (distance == null && typeof record.latitude === 'number' && typeof record.longitude === 'number') {
+        distance = calculateDistance(OFFICE_LAT, OFFICE_LON, record.latitude, record.longitude);
+      }
+      if (distance == null) continue;
+
+      if (distance > MAX_ALLOWED_DISTANCE) {
+        alerts.push({
+          employee: record.employeeId?.name,
+          employeeId: record.employeeId?.employeeId,
+          date: record.date,
+          status: record.status,
+          type: 'GPS Geofence Breach',
+          details: `Employee checked in in 'Office' mode but GPS is ${Math.round(distance)}m from office center (max ${MAX_ALLOWED_DISTANCE}m).`,
+          risk: distance > 1000 ? 'High' : 'Medium',
+          distanceMeters: Math.round(distance),
+        });
       }
     }
 
@@ -312,7 +369,7 @@ export const getDashboardInsights = async (req, res) => {
       ]),
       Employee.find().select('name employeeId'),
       Meeting.find({
-        expectedCloseDate: { $gte: new Date() }
+        scheduledAt: { $gte: new Date() }
       }).limit(5),
       Employee.find({
         dateOfBirth: { $regex: new RegExp(`-${new Date().getMonth() + 1}-`, 'i') }
@@ -420,6 +477,8 @@ export const naturalLanguageSearch = async (req, res) => {
 /**
  * Module 3: Get AI Employee Profile Insights
  */
+const employeeInsightsCache = new Map();
+
 export const getEmployeeInsights = async (req, res) => {
   try {
     const { id } = req.params;
@@ -432,12 +491,19 @@ export const getEmployeeInsights = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
+    const cacheKey = `${employee._id}_${employee.updatedAt ? employee.updatedAt.getTime() : '0'}`;
+    if (employeeInsightsCache.has(cacheKey)) {
+      return res.json({ employeeName: employee.name, insights: employeeInsightsCache.get(cacheKey) });
+    }
+
     const [attendance, tasks] = await Promise.all([
       Attendance.find({ employeeId: employee._id }).sort({ date: -1 }).limit(15),
       Task.find({ assignedTo: employee.employeeId }).sort({ dueDate: -1 }).limit(10)
     ]);
 
     const insights = await aiService.generateEmployeeInsights(employee, attendance, tasks);
+    employeeInsightsCache.set(cacheKey, insights);
+
     res.json({ employeeName: employee.name, insights });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -593,11 +659,24 @@ export const getReportSummary = async (req, res) => {
   try {
     const { reportType } = req.params;
     
+    const [totalDealsClosed, salesAgg, attendanceAgg, tasksCompleted] = await Promise.all([
+      Deal.countDocuments({ stage: 'Closed Won' }),
+      Deal.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Attendance.aggregate([
+        { $group: { _id: null, total: { $sum: 1 }, present: { $sum: { $cond: [{ $regexMatch: { input: '$status', regex: /Present|Completed|Late/i } }, 1, 0] } } } },
+      ]),
+      Task.countDocuments({ status: 'Completed' }),
+    ]);
+    const att = attendanceAgg[0];
+    const averageAttendance = att?.total
+      ? Math.round((att.present / att.total) * 100)
+      : null;
+
     const stats = {
-      totalDealsClosed: await Deal.countDocuments({ stage: 'Closed Won' }),
-      salesSum: await Deal.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
-      averageAttendance: 91,
-      tasksCompleted: await Task.countDocuments({ status: 'Completed' }),
+      totalDealsClosed,
+      salesSum: salesAgg,
+      averageAttendance,
+      tasksCompleted,
     };
 
     const reportContent = await aiService.generateReportSummary(reportType, stats);
@@ -653,7 +732,8 @@ export const uploadKnowledgeDoc = async (req, res) => {
       title: title || req.file.originalname,
       fileName: req.file.originalname,
       category: category || 'General Policy',
-      chunks
+      chunks,
+      tenantId: req.tenantId
     });
 
     await doc.save();
@@ -673,7 +753,7 @@ export const queryKnowledgeBase = async (req, res) => {
       return res.status(400).json({ message: 'Question is required' });
     }
 
-    const docs = await KnowledgeDoc.find();
+    const docs = await KnowledgeDoc.find({ tenantId: req.tenantId });
     
     const allChunks = [];
     docs.forEach(doc => {
@@ -972,4 +1052,551 @@ export const suggestWorkflowsHandler = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * Create custom memory entry
+ */
+export const createMemory = async (req, res) => {
+  try {
+    const { key, content, scope } = req.body;
+    const memory = new Memory({
+      key,
+      content,
+      scope: scope || 'Global',
+      tenantId: req.tenantId,
+      userId: req.user?.email || 'System'
+    });
+    await memory.save();
+    res.status(201).json(memory);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Get memories for active tenant
+ */
+export const getMemories = async (req, res) => {
+  try {
+    const memories = await Memory.find({ tenantId: req.tenantId });
+    res.json(memories);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Delete memory
+ */
+export const deleteMemory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Memory.findOneAndDelete({ _id: id, tenantId: req.tenantId });
+    res.json({ message: 'Memory deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Get Proactive Automation Suggestions
+ */
+export const getAutomationSuggestions = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    // Scan overdue invoices
+    const overdueInvoices = await Invoice.find().limit(10); // Find actual entries if any
+
+    // Scan stuck deals
+    const stuckDeals = await Deal.find({ stage: { $in: ['Qualification', 'Proposal'] } }).limit(5);
+
+    // Scan attendance anomalies
+    const today = new Date().toISOString().split('T')[0];
+    const absentRecords = await Attendance.find({ status: 'Absent' }).populate('employeeId', 'name employeeId').limit(5);
+
+    const lowLeaves = await Employee.find().limit(5); 
+
+    const prompt = `Analyze current system metrics and return 3-5 smart automation recommendations:
+    - Overdue Invoices: ${JSON.stringify(overdueInvoices.map(i => ({ number: i.number, total: i.total, dueDate: i.dueDate })))}
+    - Stuck Deals: ${JSON.stringify(stuckDeals.map(d => ({ title: d.title, amount: d.amount, stage: d.stage })))}
+    - Absences: ${JSON.stringify(absentRecords.map(a => ({ name: a.employeeId?.name || 'Unknown', date: a.date })))}
+    
+    For each issue:
+    1. Detail the problem.
+    2. Give the business impact.
+    3. Propose a next action (e.g. Warning letter, follow-up, notification).
+    4. Provide recommendations on how to resolve.
+    `;
+    
+    const response = await aiAgentsService.runAgentTask('Analytics', prompt, { tenantId, companyName: req.tenant?.companyName });
+    res.json({ suggestions: response });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Get Predictive Insights
+ */
+export const getPredictiveInsights = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    const [employees, deals, invoices] = await Promise.all([
+      Employee.find().select('name joinDate department designation'),
+      Deal.find().select('title amount stage expectedCloseDate'),
+      Invoice.find().select('status total dueDate')
+    ]);
+
+    const prompt = `Analyze historical record trends and output forecasts in JSON format.
+    Employees: ${JSON.stringify(employees.slice(0, 10))}
+    Deals: ${JSON.stringify(deals.slice(0, 10))}
+    Invoices: ${JSON.stringify(invoices.slice(0, 10))}
+
+    Generate predictions for:
+    1. Employee attrition risk (which employees might resign).
+    2. Deals conversion probabilities (conversion likelihood).
+    3. Future payroll cost prediction.
+    4. Monthly revenue trend analysis.
+    
+    Return JSON only:
+    {
+      "attritionRisk": [{"employeeName": "string", "probability": number, "reason": "string"}],
+      "dealConversion": [{"dealTitle": "string", "probability": number, "riskFactors": "string"}],
+      "financialForecast": {"nextMonthPayroll": number, "expectedRevenue": number},
+      "monthlyTrend": "string"
+    }
+    `;
+
+    const response = await callLLM(prompt, { jsonMode: true, provider: 'groq', module: 'Analytics' });
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Submit User Learning Feedback
+ */
+export const submitLearningFeedback = async (req, res) => {
+  try {
+    const { prompt, feedback, correctedResponse, status } = req.body;
+    if (!prompt) return res.status(400).json({ message: 'prompt is required.' });
+
+    const learning = new Learning({
+      tenantId: req.tenantId,
+      userId: req.user?.email || 'System',
+      prompt,
+      response: correctedResponse,
+      status: status || 'Correction',
+      feedback
+    });
+    await learning.save();
+    res.status(201).json({ message: 'AI Brain successfully learned from user feedback.', learning });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Fast, non-LLM page briefing for Context Copilot.
+ * Returns live metrics + suggested prompts for the current route.
+ */
+export const getCopilotBriefing = async (req, res) => {
+  try {
+    const path = String(req.query.path || '/');
+    const today = new Date().toISOString().split('T')[0];
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const resolvePage = () => {
+      if (path.includes('/crm/leads') || path.includes('/clients')) {
+        return {
+          key: 'leads',
+          title: 'Accounts & Leads',
+          module: 'CRM',
+          prompts: [
+            'Which leads went cold this week and what should I send?',
+            'Draft a WhatsApp re-engagement for stale leads',
+            'Find likely duplicate accounts and explain why',
+          ],
+        };
+      }
+      if (path.includes('/crm/deals') || path.includes('/deals')) {
+        return {
+          key: 'deals',
+          title: 'Deals Pipeline',
+          module: 'CRM',
+          prompts: [
+            'Which deals are at risk this month and why?',
+            'Draft a negotiation email for the largest open deal',
+            'Prioritize my follow-ups for today by revenue impact',
+          ],
+        };
+      }
+      if (path.includes('/invoices')) {
+        return {
+          key: 'invoices',
+          title: 'Invoices',
+          module: 'CRM',
+          prompts: [
+            'List overdue invoices and draft payment reminders',
+            'Summarize collection risk this month',
+            'Suggest next actions for unpaid invoices over 30 days',
+          ],
+        };
+      }
+      if (path.includes('/employees') || path.includes('/org-chart')) {
+        return {
+          key: 'employees',
+          title: 'People',
+          module: 'HRM',
+          prompts: [
+            'Who needs attention based on attendance and open tasks?',
+            'Draft a performance check-in note for a manager',
+            'Summarize headcount and open risks in People',
+          ],
+        };
+      }
+      if (path.includes('/attendance')) {
+        return {
+          key: 'attendance',
+          title: 'Attendance',
+          module: 'HRM',
+          prompts: [
+            'Flag unusual late patterns from today’s attendance',
+            'Draft a polite reminder for repeated late arrivals',
+            'Summarize present vs absent right now',
+          ],
+        };
+      }
+      if (path.includes('/leaves')) {
+        return {
+          key: 'leaves',
+          title: 'Leaves',
+          module: 'HRM',
+          prompts: [
+            'Which leave requests should be approved or declined first?',
+            'Summarize coverage risk if pending leaves are approved',
+            'Draft a leave policy clarification message',
+          ],
+        };
+      }
+      if (path.includes('/projects')) {
+        return {
+          key: 'projects',
+          title: 'Projects',
+          module: 'HRM',
+          prompts: [
+            'Which projects are slipping on deadline?',
+            'Suggest team reallocations for overloaded projects',
+            'Draft a weekly project status update for leadership',
+          ],
+        };
+      }
+      if (path.includes('/tickets')) {
+        return {
+          key: 'tickets',
+          title: 'Support tickets',
+          module: 'HRM',
+          prompts: [
+            'Triage open tickets by urgency',
+            'Draft a customer reply for the oldest open ticket',
+            'What themes keep repeating in support?',
+          ],
+        };
+      }
+      if (path.includes('/messenger')) {
+        return {
+          key: 'messenger',
+          title: 'Messenger',
+          module: 'General',
+          prompts: [
+            'Draft a professional WhatsApp follow-up for a client',
+            'Summarize what I should reply to next',
+            'Suggest a short internal standup update',
+          ],
+        };
+      }
+      if (path.includes('/payroll') || path.includes('/payslip')) {
+        return {
+          key: 'payroll',
+          title: 'Payroll',
+          module: 'HRM',
+          prompts: [
+            'What payroll checks should I run before release?',
+            'Draft a payroll confirmation announcement',
+            'Flag employees likely missing attendance for payroll',
+          ],
+        };
+      }
+      if (path.includes('/ai') || path.includes('/automation')) {
+        return {
+          key: 'ai',
+          title: 'AI Hub',
+          module: 'General',
+          prompts: [
+            'What AI actions create the most value this week?',
+            'Suggest 3 automations based on our CRM + HR load',
+            'Summarize recent AI usage and cost drivers',
+          ],
+        };
+      }
+      return {
+        key: 'dashboard',
+        title: 'Dashboard',
+        module: 'General',
+        prompts: [
+          'What needs my attention in the next 2 hours?',
+          'Summarize today’s business pulse in 5 bullets',
+          'Give me the highest-ROI action right now',
+        ],
+      };
+    };
+
+    const page = resolvePage();
+
+    const [
+      employees,
+      presentToday,
+      leads,
+      activeClients,
+      deals,
+      pipelineAgg,
+      pendingLeaves,
+      openTickets,
+      activeProjects,
+      overdueInvoices,
+      recentAi,
+      waOutbound,
+    ] = await Promise.all([
+      Employee.countDocuments(),
+      Attendance.countDocuments({ date: today }),
+      Client.countDocuments({ status: 'Lead' }),
+      Client.countDocuments({ status: 'Active' }),
+      Deal.countDocuments({ stage: { $nin: ['Closed Won', 'Closed Lost'] } }),
+      Deal.aggregate([
+        { $match: { stage: { $nin: ['Closed Won', 'Closed Lost'] } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ]),
+      LeaveRequest.countDocuments({ status: 'Pending' }),
+      Ticket.countDocuments({ status: { $in: ['Open', 'In Progress'] } }),
+      Project.countDocuments({ status: { $in: ['Active', 'Planning'] } }),
+      Invoice.countDocuments({
+        status: { $in: ['Overdue', 'Sent'] },
+      }),
+      AILog.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      Message.countDocuments({ channel: 'whatsapp', createdAt: { $gte: startOfMonth } }),
+    ]);
+
+    const pipelineValue = pipelineAgg?.[0]?.total || 0;
+    const openDeals = pipelineAgg?.[0]?.count || deals;
+
+    const metricsByPage = {
+      dashboard: [
+        { label: 'Present today', value: presentToday, hint: `${employees || 0} people` },
+        { label: 'Open pipeline', value: `₹${Number(pipelineValue).toLocaleString('en-IN')}`, hint: `${openDeals} deals` },
+        { label: 'Open tickets', value: openTickets, hint: 'needs triage' },
+        { label: 'Pending leaves', value: pendingLeaves, hint: 'approvals' },
+      ],
+      leads: [
+        { label: 'Leads', value: leads, hint: 'in pipeline' },
+        { label: 'Active accounts', value: activeClients, hint: 'customers' },
+        { label: 'Open deals', value: openDeals, hint: 'linked CRM' },
+      ],
+      deals: [
+        { label: 'Open deals', value: openDeals, hint: 'active stages' },
+        { label: 'Pipeline value', value: `₹${Number(pipelineValue).toLocaleString('en-IN')}`, hint: 'weighted opportunity' },
+        { label: 'Leads waiting', value: leads, hint: 'conversion fuel' },
+      ],
+      invoices: [
+        { label: 'Collection risk', value: overdueInvoices, hint: 'aging invoices' },
+        { label: 'Open deals', value: openDeals, hint: 'billing upcoming' },
+      ],
+      employees: [
+        { label: 'Headcount', value: employees, hint: 'active roster' },
+        { label: 'Present today', value: presentToday, hint: 'checked in' },
+        { label: 'Pending leaves', value: pendingLeaves, hint: 'approvals' },
+      ],
+      attendance: [
+        { label: 'Present', value: presentToday, hint: today },
+        { label: 'Headcount', value: employees, hint: 'expected' },
+        { label: 'Gap', value: Math.max(0, employees - presentToday), hint: 'not marked yet' },
+      ],
+      leaves: [
+        { label: 'Pending approvals', value: pendingLeaves, hint: 'queue' },
+        { label: 'Present today', value: presentToday, hint: 'coverage' },
+      ],
+      projects: [
+        { label: 'Active projects', value: activeProjects, hint: 'in flight' },
+        { label: 'Open tickets', value: openTickets, hint: 'delivery friction' },
+      ],
+      tickets: [
+        { label: 'Open / in progress', value: openTickets, hint: 'queue' },
+        { label: 'Headcount', value: employees, hint: 'support capacity' },
+      ],
+      messenger: [
+        { label: 'WhatsApp msgs (mo)', value: waOutbound, hint: 'this month' },
+        { label: 'Leads', value: leads, hint: 'outreach targets' },
+      ],
+      payroll: [
+        { label: 'Employees', value: employees, hint: 'payroll base' },
+        { label: 'Attendance today', value: presentToday, hint: 'verify before run' },
+      ],
+      ai: [
+        { label: 'AI runs (mo)', value: recentAi, hint: 'this month' },
+        { label: 'Open pipeline', value: `₹${Number(pipelineValue).toLocaleString('en-IN')}`, hint: 'where AI can help close' },
+      ],
+    };
+
+    const metrics = metricsByPage[page.key] || metricsByPage.dashboard;
+
+    const highlights = [];
+    if (pendingLeaves > 0) highlights.push(`${pendingLeaves} leave request${pendingLeaves === 1 ? '' : 's'} waiting for approval`);
+    if (openTickets > 0) highlights.push(`${openTickets} support ticket${openTickets === 1 ? '' : 's'} still open`);
+    if (leads > 5) highlights.push(`${leads} leads in play — prioritize re-engagement`);
+    if (employees > 0 && presentToday / employees < 0.7) {
+      highlights.push(`Attendance looks light today (${presentToday}/${employees})`);
+    }
+    if (openDeals > 0) highlights.push(`₹${Number(pipelineValue).toLocaleString('en-IN')} sitting in open deals`);
+    if (highlights.length === 0) highlights.push('No urgent blockers detected — ask me for a deep dive on this page.');
+
+    res.json({
+      path,
+      page: page.title,
+      module: page.module,
+      key: page.key,
+      metrics,
+      highlights: highlights.slice(0, 4),
+      prompts: page.prompts,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const clientTimelineCache = new Map();
+
+export const getClientTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cacheKey = id;
+
+    // Check Cache
+    const cached = clientTimelineCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 300000) {
+      return res.json({ success: true, ...cached.data });
+    }
+
+    const client = await Client.findById(id);
+    if (!client) {
+      return res.status(404).json({ message: 'Client account not found' });
+    }
+
+    // Fetch related records in parallel
+    const [deals, invoices, calls, meetings] = await Promise.all([
+      Deal.find({ client: id }).sort({ createdAt: -1 }),
+      Invoice.find({ client: id }).sort({ createdAt: -1 }),
+      Call.find({ client: id }).sort({ calledAt: -1 }).limit(15),
+      Meeting.find({ relatedId: id }).sort({ scheduledAt: -1 }).limit(15)
+    ]);
+
+    // Build timeline events array
+    const events = [];
+
+    deals.forEach(d => {
+      events.push({
+        type: 'Deal Created',
+        date: d.createdAt,
+        summary: `Pipeline Deal: "${d.title}" created. Amount: ₹${Number(d.amount).toLocaleString('en-IN')}. Stage: ${d.stage}`,
+        owner: d.owner || 'Sales Rep',
+        color: 'bg-brand'
+      });
+    });
+
+    invoices.forEach(inv => {
+      events.push({
+        type: 'Invoice Generated',
+        date: inv.createdAt,
+        summary: `Invoice ${inv.number} generated for ₹${Number(inv.total).toLocaleString('en-IN')}. Status: ${inv.status}`,
+        owner: 'Billing Dept',
+        color: inv.status === 'Paid' ? 'bg-emerald-500' : 'bg-amber-500'
+      });
+    });
+
+    calls.forEach(c => {
+      events.push({
+        type: 'Call Logged',
+        date: c.calledAt,
+        summary: `${c.direction} Call completed. Duration: ${c.duration}s. Notes: ${c.notes || 'No notes'}`,
+        owner: c.owner || 'Agent',
+        color: 'bg-indigo-500'
+      });
+    });
+
+    meetings.forEach(m => {
+      events.push({
+        type: 'Meeting Held',
+        date: m.scheduledAt,
+        summary: `Meeting: "${m.title}". Location: ${m.location || 'Vastora Virtual'}. Notes: ${m.notes || 'No notes'}`,
+        owner: m.owner || 'Host',
+        color: 'bg-purple-500'
+      });
+    });
+
+    // Sort events chronologically descending
+    events.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Calculate numeric insights
+    const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (i.total || 0), 0);
+    const outstandingAmount = invoices.filter(i => i.status !== 'Paid').reduce((acc, i) => acc + (i.total || 0), 0);
+
+    const prompt = `
+      You are the Lead Relationship Strategist AI for Vastora CRM.
+      Analyze the CRM client account relationship for "${client.company}" (${client.name}).
+      History:
+      - Total Paid Revenue: ₹${totalRevenue.toLocaleString('en-IN')}
+      - Outstanding/Due Receivables: ₹${outstandingAmount.toLocaleString('en-IN')}
+      - Active Deals Pipeline: ${deals.filter(d => !['Closed Won', 'Closed Lost'].includes(d.stage)).length}
+      - Interactions Logged: ${calls.length + meetings.length}
+
+      Generate a structured client status summary in JSON format:
+      {
+        "healthScore": number (0-100 score reflecting active engagement),
+        "trend": "up" | "down" | "stable",
+        "reason": "Explain briefly why the health score was selected (e.g. overdue invoices or active recent meetings)",
+        "relationshipSummary": "Short 2 sentence brief of the relationship status",
+        "growthOpportunities": "Key upsell or partnership possibility",
+        "riskAnalysis": "Critical risk factor (e.g. unpaid bills, lack of followups)",
+        "nextBestAction": "The immediate next recommendation step for the account executive",
+        "confidence": number (confidence rating from 0.8 to 1.0)
+      }
+    `;
+
+    const aiSummary = await callLLM(prompt, { jsonMode: true, provider: 'groq', module: 'CRM' });
+
+    const resultData = {
+      timeline: events,
+      aiSummary,
+      clientMetrics: {
+        totalRevenue,
+        outstandingAmount
+      }
+    };
+
+    clientTimelineCache.set(cacheKey, {
+      timestamp: Date.now(),
+      data: resultData
+    });
+
+    res.json({
+      success: true,
+      ...resultData
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 

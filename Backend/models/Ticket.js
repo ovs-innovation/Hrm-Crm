@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const ticketSchema = new mongoose.Schema(
   {
@@ -15,6 +16,8 @@ const ticketSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(ticketSchema);
 
 const Ticket = mongoose.model('Ticket', ticketSchema);
 export default Ticket;

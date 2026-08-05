@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const appreciationSchema = new mongoose.Schema(
   {
@@ -12,6 +13,8 @@ const appreciationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(appreciationSchema);
 
 const Appreciation = mongoose.model('Appreciation', appreciationSchema);
 export default Appreciation;

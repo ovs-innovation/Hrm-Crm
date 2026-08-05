@@ -2,16 +2,21 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy dependency files
-COPY package*.json ./
+ENV NODE_ENV=production
 
-# Install production dependencies
+COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy remaining code
 COPY . .
 
-# Expose port (default port is overridden by env file / compose mapping)
+RUN addgroup -S app && adduser -S app -G app \
+  && mkdir -p uploads \
+  && chown -R app:app /app
+USER app
+
 EXPOSE 5000
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 \
+  CMD wget -qO- http://127.0.0.1:5000/ready || exit 1
 
 CMD ["npm", "start"]

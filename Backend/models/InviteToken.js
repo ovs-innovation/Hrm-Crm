@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 import crypto from 'crypto';
 
 const inviteTokenSchema = new mongoose.Schema(
@@ -18,6 +19,8 @@ inviteTokenSchema.statics.generate = function (email, employeeId, purpose = 'inv
   const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000);
   return { token, expiresAt, email, employeeId, purpose };
 };
+
+tenantScoped(inviteTokenSchema);
 
 const InviteToken = mongoose.model('InviteToken', inviteTokenSchema);
 export default InviteToken;

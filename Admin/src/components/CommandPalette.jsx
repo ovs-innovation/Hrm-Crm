@@ -124,17 +124,28 @@ const CommandPalette = () => {
             </div>
             
             <p className="text-ink bg-soft border border-line rounded p-3 leading-relaxed font-semibold">
-              {result.chatResponse}
+              {result.summary || result.chatResponse || 'No response summary.'}
             </p>
 
             <div className="grid grid-cols-2 gap-2 text-muted text-[12px] font-medium pt-2">
               <div>
-                <strong>Selected Tool:</strong> {result.parsedCommand?.toolName || 'General Chat'}
+                <strong>Selected Tool:</strong>{' '}
+                {result.actions?.[0]?.name || result.parsedCommand?.toolName || 'General Chat'}
               </div>
               <div>
-                <strong>Redirect URL:</strong> {result.redirectUrl || 'Stay on page'}
+                <strong>Confidence:</strong>{' '}
+                {typeof result.confidence === 'number' ? `${Math.round(result.confidence * 100)}%` : '—'}
               </div>
             </div>
+
+            {result.actions?.length > 0 && (
+              <div className="rounded border border-line bg-soft/40 p-3 space-y-1.5">
+                <span className="text-[11px] text-brand uppercase font-bold">Actions</span>
+                <pre className="font-mono text-[11px] text-muted overflow-x-auto p-1.5 bg-soft rounded border border-line">
+                  {JSON.stringify(result.actions, null, 2)}
+                </pre>
+              </div>
+            )}
 
             {result.autofillData && (
               <div className="rounded border border-line bg-soft/40 p-3 space-y-1.5">

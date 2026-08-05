@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const adminSchema = new mongoose.Schema(
   {
@@ -10,7 +11,6 @@ const adminSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
     },
     password: {
       type: String,
@@ -19,19 +19,24 @@ const adminSchema = new mongoose.Schema(
     role: {
       type: String,
       default: 'Admin',
-    }
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Method to compare entered password to hashed password
+tenantScoped(adminSchema);
+adminSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+
 adminSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Middleware to hash password before saving
 adminSchema.pre('save', async function () {
   if (this.email) {
     this.email = this.email.toLowerCase().trim();

@@ -7,6 +7,7 @@ const defaultProvider = process.env.AI_PROVIDER || 'groq';
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const groqApiKey = process.env.GROQ_API_KEY;
 const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+const openaiApiKey = process.env.OPENAI_API_KEY;
 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 
 let genAI = null;
@@ -188,6 +189,25 @@ export async function generateText(prompt, options = {}) {
     }
   }
 
+  // ── 3.5 OpenAI ──
+  if (activeProvider === 'openai') {
+    if (!openaiApiKey) throw new Error('OPENAI_API_KEY not set in environment.');
+    const modelName = options.model || process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
+    try {
+      const { text, inputTokens, outputTokens } = await openAiCompatibleFetch(
+        'https://api.openai.com', openaiApiKey, modelName, prompt, options, correlationId
+      );
+      const cost = ((inputTokens * 0.15) + (outputTokens * 0.60)) / 1_000_000;
+      const parsed = options.jsonMode ? parseJson(text) : null;
+      await logEntry('openai', modelName, text, inputTokens, outputTokens, cost, 'Success', null);
+      return { text, parsed, tokens: inputTokens + outputTokens, costUSD: cost, latencyMs: Date.now() - start, model: modelName, correlationId };
+    } catch (err) {
+      const inputTk = Math.ceil(prompt.length / 4);
+      await logEntry('openai', modelName, '', inputTk, 0, 0, 'Failed', err.message);
+      throw err;
+    }
+  }
+
   // ── 4. Gemini ──
   if (activeProvider === 'gemini') {
     if (!genAI) throw new Error('GEMINI_API_KEY not set or client failed to initialize.');
@@ -223,7 +243,7 @@ export async function generateText(prompt, options = {}) {
     }
   }
 
-  throw new Error(`AI Provider "${activeProvider}" is not supported. Set AI_PROVIDER in .env to one of: groq, openrouter, ollama, gemini.`);
+  throw new Error(`AI Provider "${activeProvider}" is not supported. Set AI_PROVIDER in .env to one of: groq, openrouter, ollama, gemini, openai.`);
 }
 
 // ─── Embeddings (Gemini only — best quality for RAG) ─────────────────────────
@@ -240,7 +260,7 @@ export async function getEmbedding(text) {
   }
 }
 
-// ─── Health Check — All 4 providers, cached 60s ───────────────────────────────
+// ─── Health Check — All 5 providers, cached 60s ───────────────────────────────
 let _healthCache = null;
 let _healthCachedAt = 0;
 
@@ -252,7 +272,7 @@ export async function checkHealth() {
     catch (e) { return { configured: true, reachable: false, error: e.message }; }
   };
 
-  const [gemini, groq, openrouter, ollama] = await Promise.all([
+  const [gemini, groq, openrouter, ollama, openai] = await Promise.all([
     geminiApiKey
       ? check('gemini', () => fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); }))
       : { configured: false, reachable: false, error: 'GEMINI_API_KEY not set' },
@@ -266,12 +286,16 @@ export async function checkHealth() {
       : { configured: false, reachable: false, error: 'OPENROUTER_API_KEY not set' },
 
     check('ollama', () => fetch(`${ollamaBaseUrl}/api/tags`).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); })),
+
+    openaiApiKey
+      ? check('openai', () => fetch('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${openaiApiKey}` } }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); }))
+      : { configured: false, reachable: false, error: 'OPENAI_API_KEY not set' },
   ]);
 
   _healthCache = {
     activeProvider: defaultProvider,
     activeModel: process.env[`${defaultProvider.toUpperCase()}_CHAT_MODEL`] || '(env not set)',
-    providers: { gemini, groq, openrouter, ollama },
+    providers: { gemini, groq, openrouter, ollama, openai },
     timestamp: new Date().toISOString(),
   };
   _healthCachedAt = Date.now();

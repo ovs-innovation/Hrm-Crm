@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const invoiceSchema = new mongoose.Schema(
   {
-    number: { type: String, required: true, unique: true },
+    number: { type: String, required: true },
     type: { type: String, enum: ['Quote', 'Invoice'], default: 'Quote' },
     status: { type: String, enum: ['Draft', 'Sent', 'Accepted', 'Paid', 'Overdue', 'Cancelled'], default: 'Draft' },
     client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
@@ -25,6 +26,9 @@ const invoiceSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tenantScoped(invoiceSchema);
+invoiceSchema.index({ tenantId: 1, number: 1 }, { unique: true });
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 export default Invoice;

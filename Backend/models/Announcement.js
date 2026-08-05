@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const announcementSchema = new mongoose.Schema({
   title: {
@@ -19,6 +20,8 @@ const announcementSchema = new mongoose.Schema({
     default: Date.now
   }
 }, { timestamps: true });
+
+tenantScoped(announcementSchema);
 
 const Announcement = mongoose.model('Announcement', announcementSchema);
 

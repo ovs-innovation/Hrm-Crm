@@ -29,6 +29,10 @@ import Appreciation from './pages/Appreciation';
 import ShiftRoster from './pages/ShiftRoster';
 import ManageAppreciation from './pages/ManageAppreciation';
 import ManageShiftRoster from './pages/ManageShiftRoster';
+import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
+import BusinessHealth from './pages/BusinessHealth';
+import WorkflowBuilder from './pages/WorkflowBuilder';
+import CostSimulator from './pages/CostSimulator';
 
 const ProtectedRoute = ({ children }) => {
   const user = useSelector((state) => state.auth.user);
@@ -93,6 +97,10 @@ function App() {
           <Route path="careers" element={<Careers />} />
           <Route path="appreciation" element={<Appreciation />} />
           <Route path="roster" element={<ShiftRoster />} />
+          <Route path="executive/command-center" element={<ExecutiveCommandCenter />} />
+          <Route path="executive/health" element={<BusinessHealth />} />
+          <Route path="executive/workflows" element={<WorkflowBuilder />} />
+          <Route path="executive/simulator" element={<CostSimulator />} />
 
           <Route path="manage/employees" element={<ManageEmployees />} />
           <Route path="manage/attendance" element={<ManageAttendance />} />

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const documentSchema = new mongoose.Schema(
   {
@@ -12,9 +13,13 @@ const documentSchema = new mongoose.Schema(
     category: { type: String, default: 'General' },
     uploadedBy: { type: String },
     notes: { type: String },
+    parsedData: { type: mongoose.Schema.Types.Mixed, default: {} },
+    aiEvaluation: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
   { timestamps: true }
 );
+
+tenantScoped(documentSchema);
 
 const Document = mongoose.model('Document', documentSchema);
 export default Document;

@@ -2,6 +2,8 @@ import express from 'express';
 import Department from '../models/Department.js';
 import Employee from '../models/Employee.js';
 import { createCrudHandlers } from '../utils/crudFactory.js';
+import { protect } from '../middlewares/authMiddleware.js';
+import { requireAdmin } from '../middlewares/roleMiddleware.js';
 
 const handlers = createCrudHandlers(Department, {
   defaultSort: { name: 1 },
@@ -28,10 +30,11 @@ export const listDepartments = async (req, res) => {
 };
 
 const router = express.Router();
+router.use(protect);
 router.get('/', listDepartments);
-router.post('/', handlers.create);
+router.post('/', requireAdmin, handlers.create);
 router.get('/:id', handlers.getOne);
-router.put('/:id', handlers.update);
-router.delete('/:id', handlers.remove);
+router.put('/:id', requireAdmin, handlers.update);
+router.delete('/:id', requireAdmin, handlers.remove);
 
 export default router;

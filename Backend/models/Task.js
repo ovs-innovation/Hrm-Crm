@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const taskSchema = new mongoose.Schema(
   {
@@ -37,6 +38,9 @@ const taskSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+tenantScoped(taskSchema);
+taskSchema.index({ tenantId: 1, assignedTo: 1, status: 1 });
 
 const Task = mongoose.model('Task', taskSchema);
 

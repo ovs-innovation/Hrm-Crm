@@ -2,6 +2,7 @@ import Tenant from '../models/Tenant.js';
 
 /**
  * Initiate multi-tenant subscription checkout session
+ * NOTE: Returns a mock Stripe URL until STRIPE_SECRET_KEY is configured.
  */
 export const createCheckoutSession = async (req, res) => {
   try {
@@ -12,14 +13,21 @@ export const createCheckoutSession = async (req, res) => {
       return res.status(404).json({ message: 'Tenant context not resolved.' });
     }
 
-    // Mock payment link generation for deployment flexibility
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(503).json({
+        message: 'Billing is not configured. Set STRIPE_SECRET_KEY to enable checkout.',
+        configured: false,
+      });
+    }
+
     const mockSessionId = 'cs_test_' + Math.random().toString(36).substring(2, 15);
     const checkoutUrl = `https://checkout.stripe.com/pay/${mockSessionId}?tenant=${tenant._id}&plan=${planType}`;
 
     res.json({
       sessionId: mockSessionId,
       url: checkoutUrl,
-      message: `Checkout session initialized for ${planType} plan.`
+      message: `Checkout session initialized for ${planType} plan.`,
+      note: 'Stripe SDK integration pending — do not treat this as a live payment session.',
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -27,38 +35,26 @@ export const createCheckoutSession = async (req, res) => {
 };
 
 /**
- * Handle Stripe inbound webhooks to update subscriptions
+ * Handle Stripe inbound webhooks to update subscriptions.
+ * Rejects unverified payloads — never trust raw body without signature.
  */
 export const handleStripeWebhook = async (req, res) => {
   try {
-    const event = req.body; // Mock parser support
-    
-    // Parse simulated checkout.session.completed event
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const tenantId = session.client_reference_id || session.metadata?.tenantId;
-      const planName = session.metadata?.plan || 'Premium';
-
-      if (tenantId) {
-        const limitsMap = {
-          Basic: { maxEmployees: 25, maxLeads: 100, maxWorkflows: 5 },
-          Premium: { maxEmployees: 100, maxLeads: 500, maxWorkflows: 15 },
-          Enterprise: { maxEmployees: 1000, maxLeads: 10000, maxWorkflows: 50 }
-        };
-
-        const targetLimits = limitsMap[planName] || limitsMap.Premium;
-
-        await Tenant.findByIdAndUpdate(tenantId, {
-          plan: planName,
-          billingStatus: 'Active',
-          limits: targetLimits
-        });
-
-        console.log(`[SaaS Billing Hub] Upgraded Tenant ID ${tenantId} to plan: ${planName}`);
-      }
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      return res.status(503).json({ message: 'Webhook not configured (STRIPE_WEBHOOK_SECRET missing).' });
     }
 
-    res.json({ received: true });
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(401).json({ message: 'Missing Stripe-Signature header.' });
+    }
+
+    // Without the Stripe SDK, we refuse to mutate tenant plans from client-supplied bodies.
+    // Wire stripe.webhooks.constructEvent when STRIPE_SECRET_KEY is provisioned.
+    return res.status(501).json({
+      message: 'Stripe signature verification is required before plan upgrades. Webhook handler is not live.',
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

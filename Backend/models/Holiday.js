@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const holidaySchema = new mongoose.Schema({
   name: {
@@ -21,6 +22,8 @@ const holidaySchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+tenantScoped(holidaySchema);
 
 const Holiday = mongoose.model('Holiday', holidaySchema);
 export default Holiday;

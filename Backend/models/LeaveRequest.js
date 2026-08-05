@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const leaveRequestSchema = new mongoose.Schema(
   {
@@ -37,6 +38,9 @@ const leaveRequestSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+tenantScoped(leaveRequestSchema);
+leaveRequestSchema.index({ tenantId: 1, employeeId: 1, status: 1 });
 
 const LeaveRequest = mongoose.model('LeaveRequest', leaveRequestSchema);
 

@@ -397,7 +397,11 @@ Operations Management`);
                 {dashboardData?.insights?.insights?.map((ins, i) => (
                   <div key={i} className="flex gap-2.5 items-start text-[13px] text-muted font-medium">
                     <span className="w-2.5 h-2.5 mt-1 rounded-full bg-brand flex-shrink-0"></span>
-                    <span>{ins}</span>
+                    <span>
+                      {typeof ins === 'object' 
+                        ? `[${ins.priority || 'Medium'}] ${ins.problem || ''} - Cause: ${ins.cause || ''}. Recommendation: ${ins.recommendation || ''}` 
+                        : ins}
+                    </span>
                   </div>
                 ))}
               </div>

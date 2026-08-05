@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const jobApplicationSchema = new mongoose.Schema(
   {
@@ -13,9 +14,13 @@ const jobApplicationSchema = new mongoose.Schema(
       enum: ['Applied', 'Reviewing', 'Interview', 'Rejected', 'Hired'],
       default: 'Applied',
     },
+    parsedData: { type: mongoose.Schema.Types.Mixed, default: {} },
+    aiEvaluation: { type: mongoose.Schema.Types.Mixed, default: {} }
   },
   { timestamps: true }
 );
+
+tenantScoped(jobApplicationSchema);
 
 const JobApplication = mongoose.model('JobApplication', jobApplicationSchema);
 export default JobApplication;

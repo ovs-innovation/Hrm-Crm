@@ -19,19 +19,9 @@ const AiCostDashboard = () => {
         setStats(statsRes.data);
         setLogs(logsRes.data || []);
       } catch (err) {
-        // Fallback mock logs for local dev display
-        setStats({
-          todayCount: 14,
-          todayCost: 0.0034,
-          monthlyCost: 0.084,
-          totalRequests: 842,
-          modules: { 'CRM': 12, 'HRM': 8, 'RAG': 15 }
-        });
-        setLogs([
-          { createdAt: new Date().toISOString(), user: 'admin@vastora.com', prompt: 'Approve leave request #1234', tokensCount: 284, latencyMs: 824, costUSD: 0.00021, module: 'HRM' },
-          { createdAt: new Date(Date.now() - 3600000).toISOString(), user: 'admin@vastora.com', prompt: 'Extract candidate resume file info', tokensCount: 1845, latencyMs: 1450, costUSD: 0.00142, module: 'RAG' },
-          { createdAt: new Date(Date.now() - 7200000).toISOString(), user: 'sales@vastora.com', prompt: 'Summarize pipeline deals for Acme Corp', tokensCount: 654, latencyMs: 912, costUSD: 0.00045, module: 'CRM' }
-        ]);
+        setStats(null);
+        setLogs([]);
+        toast.error(err.response?.data?.message || 'Failed to load AI cost analytics');
       } finally {
         setLoading(false);
       }

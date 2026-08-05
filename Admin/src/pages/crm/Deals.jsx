@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiTrash2, FiList, FiGrid, FiMessageSquare } from 'react-icons/fi';
 import PageShell from '../../components/PageShell';
 import ActivityTimeline from '../../components/ActivityTimeline';
+import AICopilotCard from '../../components/AICopilotCard';
 import api from '../../services/api';
+import toast from 'react-hot-toast';
 
 const STAGES = ['Qualification', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
 
@@ -16,6 +18,11 @@ const Deals = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [detailDeal, setDetailDeal] = useState(null);
   const [dragId, setDragId] = useState(null);
+  
+  // AI Copilot States
+  const [aiData, setAiData] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '', amount: '', stage: 'Qualification', client: '', clientName: '', expectedCloseDate: '',
   });
@@ -35,6 +42,29 @@ const Deals = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // Fetch AI Deal/Lead insights when detailDeal is opened
+  useEffect(() => {
+    if (detailDeal && detailDeal.client) {
+      setAiLoading(true);
+      api.get(`/ai/lead-score/${detailDeal.client}`)
+        .then(res => {
+          setAiData({
+            ...res.data,
+            clientName: detailDeal.clientName,
+            amount: detailDeal.amount,
+            client: detailDeal.client
+          });
+        })
+        .catch(err => {
+          console.error(err);
+          setAiData(null);
+        })
+        .finally(() => setAiLoading(false));
+    } else {
+      setAiData(null);
+    }
+  }, [detailDeal]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -199,8 +229,18 @@ const Deals = () => {
               </div>
               <button type="button" className="btn-outline h-8 px-2 text-[13px]" onClick={() => setDetailDeal(null)}>Close</button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto p-4">
-              <ActivityTimeline entityType="Deal" entityId={detailDeal._id} entityLabel={detailDeal.title} />
+            <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
+              {/* Contextual AI Deal Coach Card */}
+              <AICopilotCard 
+                title={`AI Deal Coach: ${detailDeal.title}`}
+                data={aiData}
+                loading={aiLoading}
+              />
+              
+              <div className="border-t border-line pt-4">
+                <p className="text-[10px] font-bold text-ink uppercase tracking-wide mb-2">Deal History Timeline</p>
+                <ActivityTimeline entityType="Deal" entityId={detailDeal._id} entityLabel={detailDeal.title} />
+              </div>
             </div>
           </div>
         </div>

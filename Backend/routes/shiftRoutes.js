@@ -1,13 +1,16 @@
 import ShiftRoster from '../models/ShiftRoster.js';
-import { createCrudHandlers, createCrudRouter } from '../utils/crudFactory.js';
+import { createCrudHandlers, createCrudRouter, sanitizeQueryValue } from '../utils/crudFactory.js';
 
 const handlers = createCrudHandlers(ShiftRoster, {
   defaultSort: { date: -1 },
   buildFilter: (req) => {
     const filter = {};
-    if (req.query.employeeId) filter.employeeId = req.query.employeeId;
-    if (req.query.date) filter.date = req.query.date;
-    if (req.query.month) filter.date = { $regex: `^${req.query.month}` };
+    const employeeId = sanitizeQueryValue(req.query.employeeId);
+    const date = sanitizeQueryValue(req.query.date);
+    const month = sanitizeQueryValue(req.query.month);
+    if (employeeId) filter.employeeId = employeeId;
+    if (date) filter.date = date;
+    if (month && /^\d{4}-\d{2}$/.test(month)) filter.date = { $regex: `^${month}` };
     return filter;
   },
 });

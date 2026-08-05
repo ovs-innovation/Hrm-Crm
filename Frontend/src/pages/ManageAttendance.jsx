@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FiSearch, FiCalendar, FiClock, FiCheckCircle, FiXCircle, FiAlertCircle, FiDownload, FiList, FiGrid } from 'react-icons/fi';
 import api from '../services/api';
 import EmployeeCalendarView from './EmployeeCalendarView';
+import AICopilotCard from '../components/AICopilotCard';
 
 const calculateWorkHours = (checkIn, checkOut) => {
   if (!checkIn || !checkOut || checkIn.includes('--') || checkOut.includes('--')) return '--';
@@ -52,6 +53,10 @@ const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'calendar'
 
+  // AI Copilot States
+  const [aiData, setAiData] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   React.useEffect(() => {
     // Fetch all employees to populate dropdown
     api.get('/employees')
@@ -68,11 +73,44 @@ const Attendance = () => {
     if (selectedEmployee && selectedMonth) {
       setLoading(true);
       api.get(`/attendance?employeeId=${selectedEmployee}&month=${selectedMonth}`)
-        .then(res => setAttendanceRecords(res.data))
+        .then(res => {
+          setAttendanceRecords(res.data);
+          // Run AI Attendance Analysis
+          fetchAiAnalysis(selectedEmployee, res.data);
+        })
         .catch(err => console.error(err))
         .finally(() => setLoading(false));
     }
   }, [selectedEmployee, selectedMonth]);
+
+  const fetchAiAnalysis = async (empId, records) => {
+    setAiLoading(true);
+    try {
+      const { data } = await api.post('/ai/attendance-analysis', {
+        employeeId: empId,
+        attendanceData: records,
+        leaveData: []
+      });
+      // Adapt returned structure to AICopilotCard component schema
+      setAiData({
+        employeeName: employees.find(e => (e._id || e.id) === empId)?.name || 'Employee',
+        insights: {
+          overallRating: data.pattern || 'Attendance metrics stable.',
+          promotionSuggestion: 'Maintains regular shift hours.',
+          riskLevel: data.attendanceScore < 85 ? 'High' : 'Low',
+          strengths: data.recommendations || ['Maintain active roster checks'],
+          attendanceScore: data.attendanceScore,
+          leavePattern: 'Absents count normal.',
+          performance: `Late Arrivals: ${data.lateArrivals || 0}`
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      setAiData(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -103,12 +141,29 @@ const Attendance = () => {
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Days" value={attendanceRecords.length.toString()} subtitle="Recorded this month" icon={FiCalendar} colorClass="text-brand" bgGlow="bg-brand" />
-        <StatCard title="Present / Active" value={attendanceRecords.filter(r => r.status.includes('Present') || r.status.includes('Completed')).length.toString()} subtitle="Days present" icon={FiCheckCircle} colorClass="text-brand" bgGlow="bg-brand" />
-        <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => r.status.includes('Late')).length.toString()} subtitle="Arrived after 10:00 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
-        <StatCard title="Absent" value={attendanceRecords.filter(r => r.status === 'Absent').length.toString()} subtitle="On leave or unnotified" icon={FiXCircle} colorClass="text-brand" bgGlow="bg-brand" />
+      {/* Stats & AI Copilot Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <StatCard title="Total Days" value={attendanceRecords.length.toString()} subtitle="Recorded this month" icon={FiCalendar} colorClass="text-brand" bgGlow="bg-brand" />
+          <StatCard title="Present / Active" value={attendanceRecords.filter(r => r.status.includes('Present') || r.status.includes('Completed')).length.toString()} subtitle="Days present" icon={FiCheckCircle} colorClass="text-brand" bgGlow="bg-brand" />
+          <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => r.status.includes('Late')).length.toString()} subtitle="Arrived after 10:00 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
+          <StatCard title="Absent" value={attendanceRecords.filter(r => r.status === 'Absent').length.toString()} subtitle="On leave or unnotified" icon={FiXCircle} colorClass="text-brand" bgGlow="bg-brand" />
+        </div>
+        
+        {/* Contextual Attendance Copilot Card */}
+        <div className="lg:col-span-1">
+          {selectedEmployee ? (
+            <AICopilotCard 
+              title="AI Attendance Analyst"
+              data={aiData} 
+              loading={aiLoading} 
+            />
+          ) : (
+            <div className="border border-dashed border-line rounded bg-surface p-6 text-center text-muted text-xs">
+              Select an employee below to view AI Attendance insights.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Content / Table */}

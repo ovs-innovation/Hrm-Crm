@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const clientSchema = new mongoose.Schema(
   {
@@ -13,7 +14,6 @@ const clientSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
     },
     phone: {
       type: String,
@@ -31,6 +31,9 @@ const clientSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+tenantScoped(clientSchema);
+clientSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 
 const Client = mongoose.model('Client', clientSchema);
 

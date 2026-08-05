@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const shiftRosterSchema = new mongoose.Schema(
   {
@@ -13,7 +14,9 @@ const shiftRosterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-shiftRosterSchema.index({ employeeId: 1, date: 1 }, { unique: true });
+shiftRosterSchema.index({ tenantId: 1, employeeId: 1, date: 1 }, { unique: true });
+
+tenantScoped(shiftRosterSchema);
 
 const ShiftRoster = mongoose.model('ShiftRoster', shiftRosterSchema);
 export default ShiftRoster;

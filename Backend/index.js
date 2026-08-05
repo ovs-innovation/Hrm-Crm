@@ -5,9 +5,10 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
-import messageRoutes from './routes/messageRoutes.js';
+import messageRoutes, { whatsappWebhookRouter } from './routes/messageRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
@@ -40,19 +41,20 @@ import searchRoutes from './routes/searchRoutes.js';
 import importRoutes from './routes/importRoutes.js';
 import aiRoutes from './routes/ai.routes.js';
 import billingRoutes from './routes/billingRoutes.js';
+import demoRoutes from './routes/demoRoutes.js';
+import executiveRoutes from './routes/executiveRoutes.js';
 import { app, server } from './socket/socket.js';
-
-connectDB();
-
-const __dirname = path.resolve();
-
 import { resolveTenant } from './middlewares/tenantMiddleware.js';
 import { contextMiddleware } from './middlewares/contextMiddleware.js';
 
+await connectDB();
+
+const __dirname = path.resolve();
+
 // ─── Security Headers (Helmet) ───────────────────────────────────────────────
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow /uploads static files
-  contentSecurityPolicy: false, // disabled — frontend is SPA served separately
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false,
 }));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
@@ -62,11 +64,10 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5174')
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) {
       return callback(null, true);
     }
-    
+
     let originHost = '';
     try {
       originHost = new URL(origin).hostname;
@@ -74,11 +75,14 @@ app.use(cors({
       originHost = origin;
     }
 
-    const isAllowed = allowedOrigins.includes(origin) || 
-                      allowedOrigins.some(o => o.includes(originHost)) ||
-                      originHost === 'localhost' || 
-                      originHost.endsWith('vastoratech.com') ||
-                      originHost.endsWith('127.0.0.1');
+    const isProd = process.env.NODE_ENV === 'production';
+    const isAllowed = allowedOrigins.includes(origin) ||
+      (!isProd && (
+        allowedOrigins.some(o => o.includes(originHost)) ||
+        originHost === 'localhost' ||
+        originHost.endsWith('127.0.0.1')
+      )) ||
+      originHost.endsWith('vastoratech.com');
 
     if (isAllowed) {
       callback(null, true);
@@ -91,7 +95,7 @@ app.use(cors({
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const standardLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
@@ -100,7 +104,7 @@ const standardLimiter = rateLimit({
 
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 40, // stricter limit for AI endpoints — they are expensive
+  max: 40,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'AI rate limit exceeded. Please wait before sending more AI requests.' },
@@ -108,7 +112,7 @@ const aiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // brute-force protection on login/signup
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many authentication attempts. Please try again in 15 minutes.' },
@@ -126,6 +130,7 @@ app.use(contextMiddleware);
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/messages', standardLimiter, messageRoutes);
+app.use('/api/whatsapp/webhook', whatsappWebhookRouter);
 app.use('/api/users', standardLimiter, userRoutes);
 app.use('/api/employees', standardLimiter, employeeRoutes);
 app.use('/api/leaves', standardLimiter, leaveRoutes);
@@ -158,12 +163,22 @@ app.use('/api/search', standardLimiter, searchRoutes);
 app.use('/api/import', standardLimiter, importRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/billing', standardLimiter, billingRoutes);
+app.use('/api/demo', standardLimiter, demoRoutes);
+app.use('/api/executive', standardLimiter, executiveRoutes);
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/', (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '3.0' }));
+// ─── Health / Readiness ───────────────────────────────────────────────────────
+app.get('/', (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '1.0.0-rc2' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get('/ready', (req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  if (!dbReady) {
+    return res.status(503).json({ status: 'not_ready', database: 'disconnected' });
+  }
+  res.json({ status: 'ready', database: 'connected' });
+});
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
@@ -176,3 +191,20 @@ app.use((err, req, res, next) => {
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`✅ Vastora Server started on port ${port}`));
+
+const shutdown = async (signal) => {
+  console.log(`[Shutdown] ${signal} received — closing server`);
+  server.close(async () => {
+    try {
+      await mongoose.connection.close();
+      console.log('[Shutdown] MongoDB connection closed');
+    } catch (e) {
+      console.error('[Shutdown] Mongo close error', e.message);
+    }
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

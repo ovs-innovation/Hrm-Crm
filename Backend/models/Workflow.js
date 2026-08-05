@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScoped } from '../plugins/tenantScope.plugin.js';
 
 const WorkflowSchema = new mongoose.Schema({
   name: {
@@ -45,5 +46,7 @@ const WorkflowSchema = new mongoose.Schema({
     index: true
   }
 }, { timestamps: true });
+
+tenantScoped(WorkflowSchema);
 
 export default mongoose.model('Workflow', WorkflowSchema);

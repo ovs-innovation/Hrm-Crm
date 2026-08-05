@@ -9,10 +9,11 @@ export const requireRole = (...roles) => (req, res, next) => {
   if (req.userType === 'Admin') return next();
   const role = (req.user?.role || '').toLowerCase();
   const allowed = roles.map((r) => r.toLowerCase());
-  if (allowed.includes(role) || allowed.includes('admin')) {
+  // Only authorize when the user's role is in the allowlist (not when 'admin' is listed)
+  if (allowed.includes(role)) {
     return next();
   }
   return res.status(403).json({ message: 'Insufficient permissions' });
 };
 
-export const requireStaff = requireRole('admin', 'founder', 'hr', 'manager', 'sales');
+export const requireStaff = requireRole('founder', 'hr', 'manager', 'sales');

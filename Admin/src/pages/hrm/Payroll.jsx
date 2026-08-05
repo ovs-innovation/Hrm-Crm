@@ -4,6 +4,7 @@ import { FiPlus, FiTrash2, FiExternalLink } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import PageShell from '../../components/PageShell';
 import Modal from '../../components/Modal';
+import AICopilotCard from '../../components/AICopilotCard';
 import api from '../../services/api';
 
 const formatINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
@@ -17,6 +18,10 @@ const Payroll = () => {
   const [genModal, setGenModal] = useState(false);
   const [form, setForm] = useState({ employeeId: '', basicSalary: '50000', allowances: '5000', deductions: '2000' });
   const [genForm, setGenForm] = useState({ basicSalary: '50000', allowances: '5000', deductions: '2000' });
+
+  // AI Copilot States
+  const [aiData, setAiData] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -32,7 +37,23 @@ const Payroll = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [month]);
+  useEffect(() => { 
+    fetchData(); 
+    fetchAiForecast();
+  }, [month]);
+
+  const fetchAiForecast = async () => {
+    setAiLoading(true);
+    try {
+      const { data } = await api.get('/ai/forecasts/Payroll');
+      setAiData(data);
+    } catch (err) {
+      console.error(err);
+      setAiData(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -98,10 +119,20 @@ const Payroll = () => {
         </>
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded border border-line bg-surface p-3"><p className="text-[13px] text-muted">Total payout</p><p className="text-xl font-semibold text-ink">{formatINR(totalNet)}</p></div>
-        <div className="rounded border border-line bg-surface p-3"><p className="text-[13px] text-muted">Draft</p><p className="text-xl font-semibold text-ink">{draftCount}</p></div>
-        <div className="rounded border border-line bg-surface p-3"><p className="text-[13px] text-muted">Paid</p><p className="text-xl font-semibold text-ink">{payslips.length - draftCount}</p></div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2 grid gap-3 sm:grid-cols-3 items-start">
+          <div className="rounded border border-line bg-surface p-4"><p className="text-[13px] text-muted">Total payout</p><p className="text-xl font-semibold text-ink">{formatINR(totalNet)}</p></div>
+          <div className="rounded border border-line bg-surface p-4"><p className="text-[13px] text-muted">Draft</p><p className="text-xl font-semibold text-ink">{draftCount}</p></div>
+          <div className="rounded border border-line bg-surface p-4"><p className="text-[13px] text-muted">Paid</p><p className="text-xl font-semibold text-ink">{payslips.length - draftCount}</p></div>
+        </div>
+        <div className="lg:col-span-1">
+          <AICopilotCard 
+            title="AI Payroll Advisor"
+            type="Payroll"
+            data={aiData}
+            loading={aiLoading}
+          />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded border border-line bg-surface">
