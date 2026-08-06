@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { FiCpu, FiPlay, FiTrendingUp, FiTrendingDown, FiAlertTriangle, FiCalendar, FiUser, FiGlobe } from 'react-icons/fi';
+import { FiCpu, FiPlay, FiTrendingUp, FiTrendingDown, FiAlertTriangle, FiCalendar, FiUser, FiInfo, FiX, FiCheck } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, loading, onActionCompleted }) => {
   const [runningAction, setRunningAction] = useState(null);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explanation, setExplanation] = useState(null);
+  const [loadingExplain, setLoadingExplain] = useState(false);
 
   if (loading) {
     return (
@@ -40,6 +43,21 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
     }
   };
 
+  const handleFetchExplanation = async () => {
+    setExplainOpen(true);
+    setLoadingExplain(true);
+    try {
+      const { data: res } = await api.get(`/ai/explain/${type}`);
+      if (res.success) {
+        setExplanation(res.explanation);
+      }
+    } catch (err) {
+      toast.error('Failed to retrieve reasoning explanation log');
+    } finally {
+      setLoadingExplain(false);
+    }
+  };
+
   // Structured fields
   const score = data.score || 'Warm';
   const probability = data.probability ? `${data.probability}%` : '70%';
@@ -72,11 +90,6 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
         label: 'Hire Candidate',
         toolName: 'createEmployee',
         args: { employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`, name: data.name || 'Candidate', email: data.email || 'candidate@company.com', department: 'Engineering', designation: 'Software Engineer', joinDate: new Date(Date.now() + 1209600000).toISOString().split('T')[0] }
-      },
-      {
-        label: 'Reject Candidate',
-        toolName: 'sendEmail',
-        args: { to: data.email || 'candidate@company.com', subject: 'Vastora Recruitment Update', body: `Hi ${data.name || 'Candidate'}, thank you for your interest in our openings.` }
       }
     ];
   } else if (type === 'ClientTimeline') {
@@ -90,11 +103,6 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
         label: 'Draft Follow-up Email',
         toolName: 'sendEmail',
         args: { to: data.email || 'client@company.com', subject: 'Vastora Account Follow-up', body: 'Hi, following up regarding our recent projects.' }
-      },
-      {
-        label: 'Send WhatsApp Ping',
-        toolName: 'sendWhatsapp',
-        args: { to: '919999999999', message: 'Hello, checking in regarding the pending proposals.' }
       }
     ];
   } else if (type === 'Document') {
@@ -103,16 +111,6 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
         label: 'Create Review Task',
         toolName: 'createTask',
         args: { title: `Review compliance items: ${data.documentType || 'Doc'}`, description: `Audit actions & deadlines: ${data.actionItems ? data.actionItems.join(', ') : 'Audit document clauses'}`, dueDate: new Date(Date.now() + 259200000).toISOString().split('T')[0] }
-      },
-      {
-        label: 'Schedule Follow-up Meeting',
-        toolName: 'scheduleMeeting',
-        args: { title: `Doc Strategy Align: ${data.documentType || 'Review'}`, duration: 30, scheduledAt: new Date(Date.now() + 86400000).toISOString() }
-      },
-      {
-        label: 'Draft Summary Email',
-        toolName: 'sendEmail',
-        args: { to: 'legal@company.com', subject: 'Document Audit Review Alert', body: `Identified risks: ${data.risks ? data.risks.map(r => r.message).join('; ') : 'No high risks identified'}` }
       }
     ];
   } else {
@@ -126,25 +124,30 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
         label: 'Assign Sales Owner',
         toolName: 'assignSalesperson',
         args: { clientId: data.client || '603d...', salespersonName: 'Self' }
-      },
-      {
-        label: 'Send Follow-up Message',
-        toolName: 'sendWhatsapp',
-        args: { to: '919999999999', message: 'Hello, following up regarding the proposed agreement.' }
       }
     ];
   }
 
   return (
-    <div className="border border-line rounded bg-surface p-6 space-y-4">
-      <div className="flex items-center gap-2 border-b border-line pb-3">
-        <div className="p-1 rounded bg-brand-xlight text-brand">
-          <FiCpu className="h-4 w-4" />
+    <div className="border border-line rounded-3xl bg-surface p-6 space-y-4 shadow-sm relative">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-line pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded bg-brand-xlight text-brand">
+            <FiCpu className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-ink">{title}</h3>
+            <p className="text-[10px] text-muted">Vastora OS Contextual Co-pilot</p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-sm font-bold text-ink">{title}</h3>
-          <p className="text-[10px] text-muted">Vastora OS Contextual Co-pilot</p>
-        </div>
+        <button
+          onClick={handleFetchExplanation}
+          className="btn-outline h-7 px-2.5 inline-flex items-center gap-1 text-[11px] font-semibold text-brand rounded-full border border-brand/20 hover:bg-brand/5"
+        >
+          <FiInfo className="h-3.5 w-3.5" /> Why?
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -152,11 +155,11 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
           <>
             <div className="space-y-1 md:col-span-2">
               <span className="font-semibold text-muted">Forecast Prediction:</span>
-              <p className="text-ink font-bold text-brand">{data.prediction || 'Steady payroll overhead expected.'}</p>
+              <p className="text-brand font-bold text-sm">{data.prediction || 'Steady payroll overhead expected.'}</p>
             </div>
             <div className="space-y-1">
               <span className="font-semibold text-muted">Trend direction:</span>
-              <p className="text-ink uppercase font-bold text-brand">{data.trend || 'Stable'}</p>
+              <p className="text-brand uppercase font-black">{data.trend || 'Stable'}</p>
             </div>
           </>
         ) : type === 'Recruitment' ? (
@@ -175,7 +178,7 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
             </div>
             <div className="space-y-1">
               <span className="font-semibold text-muted">Risk Profile:</span>
-              <span className="inline-block ml-1 px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-700 font-bold">Low Risk</span>
+              <span className="inline-block ml-1 px-1.5 py-0.5 rounded text-[10px] bg-green-50 text-green-700 font-bold">Low Risk</span>
             </div>
           </>
         ) : type === 'ClientTimeline' ? (
@@ -207,7 +210,7 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
             {data.nextBestAction && (
               <div className="space-y-1 md:col-span-2 border-l-2 border-brand pl-2.5 bg-soft/50 py-1">
                 <span className="font-semibold text-muted uppercase text-[9px]">Next Best Action:</span>
-                <p className="text-ink font-semibold">{data.nextBestAction}</p>
+                <p className="text-brand font-semibold">{data.nextBestAction}</p>
               </div>
             )}
           </>
@@ -255,7 +258,7 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
           <>
             <div className="space-y-1 md:col-span-2">
               <span className="font-semibold text-muted">Win Predictor:</span>
-              <p className="text-ink font-bold text-brand">{probability} Probability ({score})</p>
+              <p className="text-brand font-bold">{probability} Probability ({score})</p>
             </div>
             {data.reasoningList && data.reasoningList.length > 0 && (
               <div className="space-y-1 md:col-span-2 bg-soft/50 rounded p-2.5">
@@ -270,7 +273,7 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
             {data.nextBestAction && (
               <div className="space-y-1 md:col-span-2 border-l-2 border-brand pl-2.5 py-0.5">
                 <span className="font-semibold text-muted text-[10px] uppercase">Next Best Action:</span>
-                <p className="text-ink font-medium">{data.nextBestAction}</p>
+                <p className="text-brand font-semibold">{data.nextBestAction}</p>
               </div>
             )}
           </>
@@ -285,7 +288,7 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
         
         <div className="space-y-1">
           <span className="font-semibold text-muted">AI Confidence:</span>
-          <p className="text-ink">{confidence}</p>
+          <p className="text-brand font-black">{confidence}</p>
         </div>
       </div>
 
@@ -307,6 +310,73 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', type = 'Deal', data, load
           ))}
         </div>
       </div>
+
+      {/* Explainability Modal Panel */}
+      {explainOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4">
+          <div className="bg-surface border border-line rounded-3xl p-6 w-full max-w-lg space-y-4 shadow-xl">
+            <div className="flex justify-between items-start border-b border-line pb-3">
+              <div className="flex items-center gap-2">
+                <FiCpu className="text-brand h-5 w-5" />
+                <h3 className="text-sm font-bold text-ink">AI Decision Audit Log</h3>
+              </div>
+              <button onClick={() => setExplainOpen(false)} className="text-muted hover:text-ink"><FiX className="h-4 w-4" /></button>
+            </div>
+
+            {loadingExplain ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+                <p className="text-xs text-muted">Fetching audit trial logs...</p>
+              </div>
+            ) : (
+              <div className="space-y-4 text-xs text-ink/95">
+                
+                {/* Confidence bar */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between font-bold">
+                    <span>Audit Confidence Match</span>
+                    <span className="text-brand">{explanation?.confidence || 92}%</span>
+                  </div>
+                  <div className="h-2 bg-soft rounded-full overflow-hidden">
+                    <div className="h-full bg-brand rounded-full" style={{ width: `${explanation?.confidence || 92}%` }} />
+                  </div>
+                </div>
+
+                {/* Sources Used */}
+                <div className="space-y-1.5 bg-soft/50 rounded-2xl p-4">
+                  <span className="font-bold text-muted uppercase text-[10px] tracking-wide block">Context Sources Retrieved</span>
+                  <ul className="space-y-1.5 pl-2 list-disc list-inside">
+                    {explanation?.sources?.map((src, i) => (
+                      <li key={i}>{src}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Reasoning bullet points */}
+                <div className="space-y-1.5">
+                  <span className="font-bold text-muted uppercase text-[10px] tracking-wide block">Explainable Factors</span>
+                  <ul className="space-y-1.5">
+                    {explanation?.reasoning?.map((reason, i) => (
+                      <li key={i} className="flex gap-2 items-start bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2.5 text-emerald-800">
+                        <FiCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Models used */}
+                <div className="space-y-1.5">
+                  <span className="font-bold text-muted uppercase text-[10px] tracking-wide block">Models & Inference Engine</span>
+                  <p className="text-muted leading-relaxed font-semibold">{explanation?.modelsUsed?.join(', ')}</p>
+                </div>
+
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

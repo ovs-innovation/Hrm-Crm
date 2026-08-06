@@ -89,6 +89,35 @@ export const getBusinessHealthScore = async (req, res) => {
       riskDetails.push({ message: 'No critical operational risks identified.', severity: 'Low' });
     }
 
+    // Fetch past snapshots for historical trend
+    const pastSnapshots = await BusinessHealthSnapshot.find({ tenantId }).sort({ createdAt: -1 }).limit(10);
+    const historicalTrend = pastSnapshots.map(snap => ({
+      date: snap.createdAt,
+      score: snap.overallScore
+    })).reverse();
+
+    // Call LLM to predict next week's score based on current stats and risks
+    const predictPrompt = `
+      You are the Lead Risk Forecasting AI.
+      Given the current overall business health score: ${overallScore}
+      Breakdown: Sales: ${salesHealth}, HR: ${hrHealth}, Finance: ${financeHealth}, Support: ${supportHealth}
+      Active Risks: ${JSON.stringify(riskDetails)}
+      
+      Predict next week's score and outline the primary driver in a short sentence.
+      Return JSON ONLY matching the following schema:
+      {
+        "predictedNextWeekScore": 93,
+        "predictionReasoning": "Finance collection ratio improvement is expected to lift overall score by 2 points."
+      }
+    `;
+
+    let prediction = { predictedNextWeekScore: overallScore, predictionReasoning: 'Consistent metrics forecast stable outlook.' };
+    try {
+      prediction = await callLLM(predictPrompt, { jsonMode: true, provider: 'groq', module: 'Analytics' });
+    } catch (err) {
+      console.error('LLM score prediction failed:', err);
+    }
+
     // Save snapshot to DB
     const snapshot = new BusinessHealthSnapshot({
       tenantId,
@@ -100,7 +129,10 @@ export const getBusinessHealthScore = async (req, res) => {
         recruiting: recruitingHealth,
         support: supportHealth
       },
-      riskDetails
+      riskDetails,
+      historicalTrend,
+      predictedNextWeekScore: prediction.predictedNextWeekScore,
+      predictionReasoning: prediction.predictionReasoning
     });
     await snapshot.save();
 
@@ -109,6 +141,9 @@ export const getBusinessHealthScore = async (req, res) => {
       overallScore,
       breakdown: snapshot.breakdown,
       riskDetails,
+      historicalTrend: snapshot.historicalTrend,
+      predictedNextWeekScore: snapshot.predictedNextWeekScore,
+      predictionReasoning: snapshot.predictionReasoning,
       updatedAt: snapshot.createdAt
     });
   } catch (error) {

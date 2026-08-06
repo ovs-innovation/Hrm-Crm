@@ -180,10 +180,13 @@ const Dashboard = () => {
                       <span className="text-[10px] text-muted block">/ 100</span>
                     </div>
                   </div>
-                  <p className="mt-3 text-[11px] font-semibold text-emerald-500 flex items-center gap-1">
-                    <FiCheckCircle className="h-3 w-3" />
-                    Stable Operating Levels (Trend: Stable)
-                  </p>
+                  <div className="mt-4 text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-emerald-500 flex items-center justify-center gap-1">
+                      <FiCheckCircle className="h-3 w-3" />
+                      AI Next-Week Forecast: {health?.predictedNextWeekScore || 93} / 100
+                    </p>
+                    <p className="text-[10px] text-muted max-w-[200px] leading-relaxed mx-auto">{health?.predictionReasoning || 'Consistent metrics forecast stable outlook.'}</p>
+                  </div>
                 </>
               )}
             </div>

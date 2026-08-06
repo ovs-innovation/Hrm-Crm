@@ -16,7 +16,15 @@ const businessHealthSnapshotSchema = new mongoose.Schema(
         message: { type: String },
         severity: { type: String, enum: ['Low', 'Medium', 'High'] }
       }
-    ]
+    ],
+    historicalTrend: [
+      {
+        date: { type: Date, default: Date.now },
+        score: { type: Number }
+      }
+    ],
+    predictedNextWeekScore: { type: Number },
+    predictionReasoning: { type: String }
   },
   { timestamps: true }
 );

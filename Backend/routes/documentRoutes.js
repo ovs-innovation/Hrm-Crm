@@ -2,7 +2,7 @@ import express from 'express';
 import Document from '../models/Document.js';
 import { createCrudHandlers } from '../utils/crudFactory.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { evaluateDocument } from '../controllers/documentController.js';
+import { evaluateDocument, auditDocument } from '../controllers/documentController.js';
 
 const handlers = createCrudHandlers(Document, {
   buildFilter: (req) => {
@@ -22,5 +22,6 @@ router.get('/:id', handlers.getOne);
 router.put('/:id', handlers.update);
 router.delete('/:id', handlers.remove);
 router.post('/:id/evaluate', evaluateDocument);
+router.post('/:id/audit', auditDocument);
 
 export default router;

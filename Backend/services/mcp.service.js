@@ -154,6 +154,19 @@ export const TOOLS_SCHEMA = [
       location: 'string',
       notes: 'string'
     }
+  },
+  {
+    name: 'createTicket',
+    description: 'Register a new customer support ticket.',
+    requiredRole: 'Employee',
+    parameters: {
+      title: 'string',
+      description: 'string',
+      category: 'string',
+      priority: 'string',
+      createdBy: 'string',
+      createdByName: 'string'
+    }
   }
 ];
 
@@ -233,6 +246,26 @@ export async function executeTool(toolName, args, userRole, tenantId) {
           success: true, 
           message: `Created lead for ${name} at ${company}.`,
           data: client 
+        };
+      }
+
+      case 'createTicket': {
+        const { title, description, category, priority, createdBy, createdByName } = args;
+        const Ticket = (await import('../models/Ticket.js')).default;
+        const ticket = new Ticket({
+          title,
+          description,
+          category: category || 'General',
+          priority: priority || 'Medium',
+          status: 'Open',
+          createdBy,
+          createdByName
+        });
+        await ticket.save();
+        return {
+          success: true,
+          message: `Support ticket #${ticket._id.toString().slice(-6)} created.`,
+          data: ticket
         };
       }
 

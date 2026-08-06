@@ -496,3 +496,48 @@ Return JSON: { "workflows": [{ "name": "string", "trigger": "string", "actions":
   const compiled = await compileBusinessPrompt('Automation', prompt);
   return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Automation' });
 }
+
+// ─── Document Intelligence Functions ──────────────────────────────────────────
+export async function extractClauses(documentText) {
+  const prompt = `You are a contract analysis bot.
+Extract all key clauses (e.g. Indemnity, Termination, Liability, Payment Terms) from this contract text:
+---
+${documentText}
+---
+Return a JSON object: { "clauses": [{ "title": "string", "text": "string" }] }`;
+  const compiled = await compileBusinessPrompt('OCR', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'OCR' });
+}
+
+export async function evaluateContractRisk(documentText) {
+  const prompt = `You are a contract risk evaluation agent.
+Evaluate potential risks in this contract text:
+---
+${documentText}
+---
+Return a JSON object: { "risks": [{ "severity": "High"|"Medium"|"Low", "clause": "string", "reason": "string" }] }`;
+  const compiled = await compileBusinessPrompt('OCR', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'OCR' });
+}
+
+export async function checkCompliance(documentText, regulations = 'Standard corporate guidelines') {
+  const prompt = `You are a compliance auditing agent.
+Audit this text against regulations: "${regulations}"
+---
+${documentText}
+---
+Return a JSON object: { "compliant": boolean, "violations": [{ "issue": "string", "recommendation": "string" }] }`;
+  const compiled = await compileBusinessPrompt('OCR', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'OCR' });
+}
+
+export async function generateAiActions(analysisData) {
+  const prompt = `You are an automated operations workflow architect.
+Review the following document analysis metadata:
+${JSON.stringify(analysisData)}
+
+Recommend 3 automated workflow action tasks to execute next.
+Return JSON: { "actions": [{ "title": "string", "actionType": "string", "description": "string" }] }`;
+  const compiled = await compileBusinessPrompt('Automation', prompt);
+  return callLLM(compiled, { jsonMode: true, ...FAST, module: 'Automation' });
+}

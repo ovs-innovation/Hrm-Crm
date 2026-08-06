@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'async_hooks';
+import crypto from 'crypto';
 
 export const contextStorage = new AsyncLocalStorage();
 
@@ -7,10 +8,19 @@ export const contextStorage = new AsyncLocalStorage();
  * Uses enterWith so async Mongoose queries keep the tenant after next().
  */
 export const contextMiddleware = (req, res, next) => {
+  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
+  const correlationId = req.headers['x-correlation-id'] || requestId;
+
+  // Set trace headers back on client response
+  res.setHeader('x-request-id', requestId);
+  res.setHeader('x-correlation-id', correlationId);
+
   const store = {
     tenantId: req.tenantId,
     user: req.user?.email || req.user?.userName || 'System',
     skipTenantScope: false,
+    requestId,
+    correlationId
   };
   contextStorage.enterWith(store);
   next();

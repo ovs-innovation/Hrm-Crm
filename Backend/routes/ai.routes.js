@@ -42,7 +42,9 @@ import {
   getPredictiveInsights,
   submitLearningFeedback,
   getCopilotBriefing,
-  getClientTimeline
+  getClientTimeline,
+  explainRecommendation,
+  analyzeDocumentIntel
 } from '../controllers/aiController.js';
 
 const router = express.Router();
@@ -64,6 +66,7 @@ router.get('/health', protect, getAiHealth);
 router.get('/dashboard', protect, getDashboardInsights);
 router.get('/search', protect, naturalLanguageSearch);
 router.get('/employee-card/:id', protect, getEmployeeInsights);
+router.get('/explain/:id', protect, explainRecommendation);
 router.get('/lead-score/:id', protect, getLeadScore);
 router.get('/client-timeline/:id', protect, getClientTimeline);
 router.get('/reports/:reportType', protect, getReportSummary);
@@ -98,6 +101,7 @@ router.post('/kb/query', protect, queryKnowledgeBase);
 router.post('/workflow', protect, saveWorkflow);
 router.post('/voice-command', protect, processVoiceCommand);
 router.post('/ocr', protect, upload.single('document'), ocrFormExtract);
+router.post('/doc-intel/analyze', protect, upload.single('document'), analyzeDocumentIntel);
 router.post('/recruitment/rank', protect, rankJobApplicants);
 router.post('/hr-letter', protect, generateHrLetterHandler);
 router.post('/performance-summary', protect, generatePerformanceSummaryHandler);

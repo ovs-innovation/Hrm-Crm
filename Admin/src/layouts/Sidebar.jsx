@@ -40,6 +40,7 @@ const SALES = [
   { title: 'Campaigns', to: '/crm/campaigns', icon: FiRadio },
   { title: 'Automation Builder', to: '/crm/automation', icon: FiCpu },
   { title: 'Report Builder', to: '/crm/reports', icon: FiFileText },
+  { title: 'AI Unified Inbox', to: '/crm/inbox', icon: FiMessageSquare },
   { title: 'SaaS Marketplace', to: '/crm/marketplace', icon: FiShoppingBag },
   { title: 'AI Cost Audit', to: '/crm/ai-costs', icon: FiPieChart },
 ];
@@ -52,6 +53,7 @@ const ACTIVITIES = [
 
 const PEOPLE = [
   { title: 'Employees', to: '/hrm/employees', icon: FiUsers },
+  { title: 'Setup Wizard (10m)', to: '/setup-wizard', icon: FiSettings },
   { title: 'Org Chart', to: '/hrm/org-chart', icon: FiUsers },
   { title: 'Departments', to: '/hrm/department', icon: FiBriefcase },
   { title: 'Designations', to: '/hrm/designation', icon: FiAward },

@@ -4,6 +4,7 @@ import {
   getDemoWorkspaceStatus,
   ensureDemoWorkspace,
   exploreDemoWorkspace,
+  wizardSetupWorkspace,
 } from '../controllers/demoController.js';
 
 const router = express.Router();
@@ -19,5 +20,6 @@ const demoLimiter = rateLimit({
 router.get('/workspace', demoLimiter, getDemoWorkspaceStatus);
 router.post('/workspace/ensure', demoLimiter, ensureDemoWorkspace);
 router.post('/workspace/explore', demoLimiter, exploreDemoWorkspace);
+router.post('/workspace/wizard-setup', demoLimiter, wizardSetupWorkspace);
 
 export default router;

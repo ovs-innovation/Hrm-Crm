@@ -11,7 +11,11 @@ const auditLogSchema = new mongoose.Schema(
     userName: { type: String },
     userRole: { type: String },
     changes: { type: mongoose.Schema.Types.Mixed },
+    beforeValue: { type: mongoose.Schema.Types.Mixed },
+    afterValue: { type: mongoose.Schema.Types.Mixed },
     ip: { type: String },
+    device: { type: String },
+    actorType: { type: String, enum: ['Human', 'AI'], default: 'Human' }
   },
   { timestamps: true }
 );

@@ -36,11 +36,13 @@ import Settings from './pages/settings/Settings';
 import Invoices from './pages/crm/Invoices';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import SetupWizard from './pages/auth/SetupWizard';
 import AutomationBuilder from './pages/crm/AutomationBuilder';
 import ReportBuilder from './pages/crm/ReportBuilder';
 import Marketplace from './pages/crm/Marketplace';
 import OrgChart from './pages/employees/OrgChart';
 import AiCostDashboard from './pages/crm/AiCostDashboard';
+import AIInbox from './pages/crm/AIInbox';
 
 function App() {
   return (
@@ -76,6 +78,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/setup-wizard" element={<ProtectedRoute><SetupWizard /></ProtectedRoute>} />
 
         <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           {/* CRM Home — Zoho-style onboarding */}
@@ -94,6 +97,7 @@ function App() {
           <Route path="crm/reports" element={<ReportBuilder />} />
           <Route path="crm/marketplace" element={<Marketplace />} />
           <Route path="crm/ai-costs" element={<AiCostDashboard />} />
+          <Route path="crm/inbox" element={<AIInbox />} />
 
           {/* CRM — Activities */}
           <Route path="crm/tasks" element={<Tasks />} />
