@@ -5,10 +5,8 @@ node_modules/
 # Ignore local environment files
 .env
 .env.*
-!.env.example
 **/.env
 **/.env.*
-!**/.env.example
 
 # Ignore production builds
 dist/

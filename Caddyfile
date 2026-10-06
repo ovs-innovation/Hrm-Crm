@@ -1,0 +1,7 @@
+hrm.vastoratech.com {
+	reverse_proxy frontend:80
+}
+
+hrmadmin.vastoratech.com {
+	reverse_proxy admin:80
+}
