@@ -39,7 +39,7 @@ const Tasks = () => {
 
   return (
     <PageShell title="My tasks" description="Work assigned to you" count={tasks.length}>
-      <div className="overflow-hidden rounded border border-line bg-surface">
+      <div className="overflow-x-auto rounded border border-line bg-surface">
         <table className="w-full min-w-[720px] text-left text-[13px]">
           <thead>
             <tr className="border-b border-line bg-soft text-muted">

@@ -4,7 +4,10 @@ export const getNotifications = async (req, res) => {
   try {
     const userId = req.user._id.toString();
     const limit = Math.min(Number(req.query.limit) || 30, 100);
-    const notifications = await Notification.find({ userId })
+    const filter = { userId };
+    if (req.query.category) filter.category = req.query.category;
+    if (req.query.unread === 'true') filter.read = false;
+    const notifications = await Notification.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit);
     res.json(notifications);

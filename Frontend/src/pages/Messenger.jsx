@@ -191,7 +191,7 @@ const Messenger = () => {
   const isOnline = (userId) => onlineUsers.includes(userId);
 
   return (
-    <div className="mx-auto max-w-[1280px]">
+    <div className="w-full">
       <div className="flex h-[calc(100vh-140px)] min-h-[480px] overflow-hidden rounded border border-line bg-surface">
         <div className={`${activeContact ? 'hidden md:flex' : 'flex'} w-full md:w-72 flex-col border-r border-line bg-surface`}>
           

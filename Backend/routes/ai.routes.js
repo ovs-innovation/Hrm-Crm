@@ -14,6 +14,8 @@ import {
   getReportSummary,
   uploadKnowledgeDoc,
   queryKnowledgeBase,
+  getKnowledgeDocs,
+  deleteKnowledgeDoc,
   saveWorkflow,
   getForecasts,
   processVoiceCommand,
@@ -44,22 +46,47 @@ import {
   getCopilotBriefing,
   getClientTimeline,
   explainRecommendation,
-  analyzeDocumentIntel
+  analyzeDocumentIntel,
+  getProactiveInsights
 } from '../controllers/aiController.js';
 
 const router = express.Router();
 
-// Config multer in-memory for PDF processing
 const storage = multer.memoryStorage();
+const ALLOWED_UPLOAD_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain',
+  'text/csv',
+  'application/csv',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+const ALLOWED_UPLOAD_EXT = /\.(pdf|txt|csv|docx|doc|jpe?g|png|webp)$/i;
+
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/plain']);
-    if (!allowed.has(file.mimetype)) return cb(new Error('Unsupported file type'));
-    cb(null, true);
+    const name = file.originalname || '';
+    if (ALLOWED_UPLOAD_TYPES.has(file.mimetype) || ALLOWED_UPLOAD_EXT.test(name)) {
+      return cb(null, true);
+    }
+    cb(new Error('Unsupported file type. Use PDF, DOCX, TXT, CSV, or an image.'));
   },
 });
+
+const withUpload = (field) => (req, res, next) => {
+  upload.single(field)(req, res, (err) => {
+    if (!err) return next();
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'File is too large. Maximum size is 10MB.'
+      : err.message || 'File upload failed';
+    return res.status(400).json({ message });
+  });
+};
 
 // Routes mapped to controllers
 router.get('/health', protect, getAiHealth);
@@ -88,20 +115,24 @@ router.get('/automation/suggest', protect, getAutomationSuggestions);
 router.get('/predict', protect, getPredictiveInsights);
 router.post('/learning/feedback', protect, submitLearningFeedback);
 
+router.get('/proactive-insights', protect, getProactiveInsights);
 router.get('/copilot/briefing', protect, getCopilotBriefing);
 router.post('/agent/command', protect, executeAgentCommand);
 router.post('/leads/merge', protect, mergeDuplicateLeads);
-router.post('/resume-parser', protect, upload.single('resume'), parseResumePdf);
+router.post('/resume-parser', protect, withUpload('resume'), parseResumePdf);
 router.post('/email-writer', protect, writeLeadEmail);
 router.post('/whatsapp-reply', protect, writeWhatsAppReply);
-router.post('/doc-generator', protect, upload.single('document'), generateDocumentPdf); // handles template uploads if any
+router.post('/doc-generator', protect, generateDocumentPdf);
 router.post('/meeting-summary', protect, generateMeetingSummary);
-router.post('/kb/upload', protect, upload.single('document'), uploadKnowledgeDoc);
+router.post('/kb/upload', protect, withUpload('document'), uploadKnowledgeDoc);
 router.post('/kb/query', protect, queryKnowledgeBase);
+router.get('/documents', protect, getKnowledgeDocs);
+router.post('/documents/upload', protect, withUpload('document'), uploadKnowledgeDoc);
+router.delete('/documents/:id', protect, deleteKnowledgeDoc);
 router.post('/workflow', protect, saveWorkflow);
 router.post('/voice-command', protect, processVoiceCommand);
-router.post('/ocr', protect, upload.single('document'), ocrFormExtract);
-router.post('/doc-intel/analyze', protect, upload.single('document'), analyzeDocumentIntel);
+router.post('/ocr', protect, withUpload('document'), ocrFormExtract);
+router.post('/doc-intel/analyze', protect, withUpload('document'), analyzeDocumentIntel);
 router.post('/recruitment/rank', protect, rankJobApplicants);
 router.post('/hr-letter', protect, generateHrLetterHandler);
 router.post('/performance-summary', protect, generatePerformanceSummaryHandler);

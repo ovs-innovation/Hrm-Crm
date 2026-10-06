@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FiBell } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAppSocket } from '../context/SocketContext';
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false);
@@ -9,6 +10,7 @@ const NotificationBell = () => {
   const [items, setItems] = useState([]);
   const ref = useRef(null);
   const navigate = useNavigate();
+  const { socket } = useAppSocket();
 
   const load = async () => {
     try {
@@ -30,11 +32,26 @@ const NotificationBell = () => {
   }, []);
 
   useEffect(() => {
+    if (!socket) return undefined;
+    const onNew = (doc) => {
+      setCount((c) => c + 1);
+      setItems((prev) => [doc, ...prev].slice(0, 30));
+    };
+    socket.on('notification:new', onNew);
+    return () => socket.off('notification:new', onNew);
+  }, [socket]);
+
+  useEffect(() => {
     const onClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const markRead = async (id, link) => {
@@ -58,6 +75,8 @@ const NotificationBell = () => {
         onClick={() => { setOpen(!open); if (!open) load(); }}
         className="relative rounded p-1.5 text-muted hover:bg-soft hover:text-ink"
         aria-label="Notifications"
+        aria-expanded={open}
+        aria-haspopup="true"
       >
         <FiBell className="h-[18px] w-[18px]" />
         {count > 0 && (
@@ -67,7 +86,7 @@ const NotificationBell = () => {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded border border-line bg-surface shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-md border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <span className="text-[13px] font-semibold text-ink">Notifications</span>
             {count > 0 && (
@@ -86,6 +105,7 @@ const NotificationBell = () => {
                 onClick={() => markRead(n._id, n.link)}
                 className={`block w-full border-b border-line px-3 py-2.5 text-left last:border-0 hover:bg-soft ${n.read ? 'opacity-70' : ''}`}
               >
+                <p className="text-[11px] font-medium capitalize text-muted">{n.category || n.module || 'Update'}</p>
                 <p className="text-[13px] font-medium text-ink">{n.title}</p>
                 {n.message && <p className="mt-0.5 text-[12px] text-muted line-clamp-2">{n.message}</p>}
                 <p className="mt-1 text-[11px] text-muted">{new Date(n.createdAt).toLocaleString('en-IN')}</p>

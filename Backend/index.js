@@ -45,13 +45,25 @@ import demoRoutes from './routes/demoRoutes.js';
 import executiveRoutes from './routes/executiveRoutes.js';
 import aiInboxRoutes from './routes/aiInboxRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
+import workspaceRoutes from './routes/workspaceRoutes.js';
+import wfhRoutes from './routes/wfhRoutes.js';
 import { app, server } from './socket/socket.js';
 import { resolveTenant } from './middlewares/tenantMiddleware.js';
+import { protect } from './middlewares/authMiddleware.js';
 import { contextMiddleware } from './middlewares/contextMiddleware.js';
 
 await connectDB();
 
 const __dirname = path.resolve();
+app.set('trust proxy', 1);
+
+if (process.env.NODE_ENV === 'production') {
+  const secret = process.env.JWT_SECRET || '';
+  if (secret.length < 24 || secret.includes('change-me')) {
+    console.error('Refusing to start: set a long JWT_SECRET before production.');
+    process.exit(1);
+  }
+}
 
 // ─── Security Headers (Helmet) ───────────────────────────────────────────────
 app.use(helmet({
@@ -60,9 +72,11 @@ app.use(helmet({
 }));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5174')
-  .split(',')
-  .map(o => o.trim());
+const allowedOrigins = [
+  'https://hrm.vastoratech.com',
+  'https://hrmadmin.vastoratech.com',
+  ...(process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174').split(','),
+].map((o) => o.trim()).filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -79,12 +93,7 @@ app.use(cors({
 
     const isProd = process.env.NODE_ENV === 'production';
     const isAllowed = allowedOrigins.includes(origin) ||
-      (!isProd && (
-        allowedOrigins.some(o => o.includes(originHost)) ||
-        originHost === 'localhost' ||
-        originHost.endsWith('127.0.0.1')
-      )) ||
-      originHost.endsWith('vastoratech.com');
+      (!isProd && (originHost === 'localhost' || originHost === '127.0.0.1'));
 
     if (isAllowed) {
       callback(null, true);
@@ -159,6 +168,15 @@ app.use('/api/documents', standardLimiter, documentRoutes);
 app.use('/api/settings', standardLimiter, settingsRoutes);
 app.use('/api/activities', standardLimiter, activityRoutes);
 app.use('/api/notifications', standardLimiter, notificationRoutes);
+app.use('/api/workspace', standardLimiter, workspaceRoutes);
+const wfhLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many work tracking updates. Please try again later.' },
+});
+app.use('/api/wfh', wfhLimiter, wfhRoutes);
 app.use('/api/audit', standardLimiter, auditRoutes);
 app.use('/api/invoices', standardLimiter, invoiceRoutes);
 app.use('/api/search', standardLimiter, searchRoutes);
@@ -167,10 +185,16 @@ app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/ai-inbox', standardLimiter, aiInboxRoutes);
 app.use('/api/system', standardLimiter, systemRoutes);
 app.use('/api/billing', standardLimiter, billingRoutes);
-app.use('/api/demo', standardLimiter, demoRoutes);
+app.use('/api/demo', (req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ message: 'Not found.' });
+  }
+  next();
+}, standardLimiter, demoRoutes);
 app.use('/api/executive', standardLimiter, executiveRoutes);
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
+app.use('/uploads/wfh', protect, express.static(path.join(__dirname, '/uploads/wfh')));
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 // ─── Health / Readiness ───────────────────────────────────────────────────────

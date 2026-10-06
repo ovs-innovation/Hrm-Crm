@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { FiPlus, FiTrash2, FiEye, FiCpu } from 'react-icons/fi';
 import Modal from '../../components/Modal';
 import PageShell from '../../components/PageShell';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewEmployee, setViewEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,8 +70,12 @@ const EmployeeList = () => {
   useEffect(() => { fetchEmployees(); }, []);
 
   const filtered = employees.filter((emp) =>
-    [emp.id, emp.name, emp.email].some((v) => String(v || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    [emp.id, emp.name, emp.email, emp.department].some((v) => String(v || '').toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  const pageSize = 20;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const visible = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const handleDelete = async (emp) => {
     if (!window.confirm(`Remove ${emp.name}?`)) return;
@@ -102,7 +108,7 @@ const EmployeeList = () => {
           placeholder="Search by ID, name, or email…"
           className="app-input h-9 max-w-sm text-[13px]"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
         />
       </div>
 
@@ -123,21 +129,31 @@ const EmployeeList = () => {
               <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">Loading…</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">No employees found.</td></tr>
-            ) : filtered.map((emp) => (
+            ) : visible.map((emp) => (
               <tr key={emp._id} className="border-b border-line last:border-0 hover:bg-soft/60">
                 <td className="px-4 py-3 text-muted">{emp.id}</td>
-                <td className="px-4 py-3 font-medium text-ink">{emp.name}</td>
+                <td className="px-4 py-3 font-medium text-ink">
+                  <Link to={`/hrm/employees/${emp._id}`} className="hover:text-brand">{emp.name}</Link>
+                </td>
                 <td className="px-4 py-3 text-muted">{emp.email}</td>
                 <td className="px-4 py-3 text-muted">{emp.department || '—'}</td>
                 <td className="px-4 py-3 text-muted">{emp.designation || '—'}</td>
                 <td className="px-4 py-3 text-right">
-                  <button type="button" onClick={() => setViewEmployee(emp)} className="mr-1 rounded p-1.5 text-muted hover:text-brand"><FiEye className="h-3.5 w-3.5" /></button>
+                  <Link to={`/hrm/employees/${emp._id}`} className="mr-1 inline-flex rounded p-1.5 text-muted hover:text-brand"><FiEye className="h-3.5 w-3.5" /></Link>
                   <button type="button" onClick={() => handleDelete(emp)} className="rounded p-1.5 text-muted hover:text-danger"><FiTrash2 className="h-3.5 w-3.5" /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-[13px] text-muted">
+        <span>{filtered.length} employees</span>
+        <div className="flex items-center gap-2">
+          <button type="button" disabled={safePage <= 1} onClick={() => setPage((n) => Math.max(1, n - 1))} className="h-8 rounded border border-line bg-surface px-3 disabled:opacity-40">Previous</button>
+          <span>{safePage} / {pageCount}</span>
+          <button type="button" disabled={safePage >= pageCount} onClick={() => setPage((n) => n + 1)} className="h-8 rounded border border-line bg-surface px-3 disabled:opacity-40">Next</button>
+        </div>
       </div>
 
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add employee" size="xl">

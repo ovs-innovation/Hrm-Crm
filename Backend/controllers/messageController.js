@@ -221,9 +221,11 @@ export const uploadFile = async (req, res) => {
     const mimeType = req.file.mimetype;
     let fileType = 'file';
     if (mimeType.startsWith('image/')) fileType = 'image';
+    else if (mimeType.startsWith('video/')) fileType = 'video';
+    else if (mimeType.startsWith('audio/')) fileType = 'audio';
     else if (mimeType === 'application/pdf') fileType = 'pdf';
 
-    res.status(200).json({ fileUrl, fileType });
+    res.status(200).json({ fileUrl, fileType, fileName: req.file.originalname });
   } catch (error) {
     console.error('Error in uploadFile controller: ', error.message);
     res.status(500).json({ error: 'Internal server error' });

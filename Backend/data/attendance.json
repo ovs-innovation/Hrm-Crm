@@ -1,0 +1,26 @@
+[
+  {
+    "employeeId": "6ac4ab01b639a6b95ab25cb4",
+    "date": "2026-10-06",
+    "checkIn": "01:32 PM",
+    "checkOut": null,
+    "status": "Late (Active)",
+    "workMode": "Home",
+    "workedMinutes": null,
+    "latitude": null,
+    "longitude": null,
+    "distanceFromOffice": null
+  },
+  {
+    "employeeId": "64a200000000000000000005",
+    "date": "2026-10-06",
+    "checkIn": "01:03 PM",
+    "checkOut": null,
+    "status": "Late (Active)",
+    "workMode": "Office",
+    "workedMinutes": null,
+    "latitude": 28.580805652964436,
+    "longitude": 77.36456665616423,
+    "distanceFromOffice": 207.15147032973388
+  }
+]

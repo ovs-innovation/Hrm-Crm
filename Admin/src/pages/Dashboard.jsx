@@ -76,6 +76,7 @@ const Dashboard = () => {
     fetchMetrics();
     fetchHealthScore();
     fetchAiSummary();
+    fetchProactiveInsights();
   }, []);
 
   const fetchMetrics = async () => {
@@ -117,6 +118,17 @@ const Dashboard = () => {
       console.error(err);
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const fetchProactiveInsights = async () => {
+    try {
+      const { data } = await api.get('/ai/proactive-insights');
+      if (data.summary) {
+        window.dispatchEvent(new CustomEvent('ai-proactive-speech', { detail: { text: data.summary } }));
+      }
+    } catch (err) {
+      console.error('[Proactive insights fetch error]', err);
     }
   };
 

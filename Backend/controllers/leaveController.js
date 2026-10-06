@@ -4,6 +4,7 @@ import Admin from '../models/Admin.js';
 import { createNotification } from '../utils/notify.js';
 import { sendEmail, leaveStatusEmailHtml } from '../utils/emailService.js';
 import { logActivity } from '../utils/activityLogger.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 // @desc    Create a new leave request
 // @route   POST /api/leaves
@@ -95,8 +96,17 @@ export const updateLeaveStatus = async (req, res) => {
       }
     }
 
+    const previous = leave.status;
     leave.status = status;
     const updatedLeave = await leave.save();
+    await logAudit({
+      req,
+      action: 'UPDATE',
+      module: 'leave',
+      entityId: leave._id,
+      entityLabel: leave.employeeName,
+      changes: { status: { from: previous, to: status } },
+    });
 
     if (requester) {
       await createNotification({

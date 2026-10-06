@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import VastoraLogo from '../../../components/VastoraLogo';
 import api from '../../../services/api';
@@ -20,13 +20,19 @@ const LoginForm = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       const response = await api.post('/auth/admin/login', { email, password });
       dispatch(setCredentials(response.data));
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during login');
+      const apiMessage = err.response?.data?.message || '';
+      if (!err.response) {
+        setError('Cannot reach the server. Wait until the backend shows “started on port 5000”, then try again.');
+      } else if (err.response?.status === 503 || /buffering timed out|Tenant resolution|Database is offline/i.test(apiMessage)) {
+        setError('Database is offline. MongoDB is not connected — fix MONGO_URI or start MongoDB, then restart the backend.');
+      } else {
+        setError(apiMessage || 'Could not sign in. Check your email and password.');
+      }
     } finally {
       setLoading(false);
     }
@@ -40,90 +46,87 @@ const LoginForm = () => {
       dispatch(setCredentials(response.data));
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not open demo workspace. Try again.');
+      setError(err.response?.data?.message || 'Could not open the demo workspace.');
     } finally {
       setDemoLoading(false);
     }
   };
 
+  const busy = loading || demoLoading;
+
   return (
-    <div className="w-full max-w-[360px]">
-      <div className="mb-8 lg:hidden">
-        <VastoraLogo className="h-9 w-auto max-w-[180px] object-contain" />
+    <div className="w-full">
+      <div className="mb-6">
+        <VastoraLogo variant="header" />
       </div>
 
-      <h1 className="text-xl font-semibold tracking-tight text-ink">Sign in</h1>
-      <p className="mt-1 text-[13px] text-muted">Use your Vastora Business OS admin credentials.</p>
+      <h2 className="text-[20px] font-semibold tracking-tight text-ink">Sign in</h2>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted">
+        Use your admin email and password.
+      </p>
 
       {error && (
-        <div className="mt-5 rounded border border-danger/25 bg-danger/5 px-3 py-2.5 text-[13px] text-danger">
+        <div role="alert" className="mt-4 rounded-md border border-danger/20 bg-danger/5 px-3 py-2.5 text-[13px] text-danger">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div>
-          <label className="app-label mb-1 block text-[13px]">Email</label>
+          <label htmlFor="admin-email" className="app-label mb-1.5 block text-[13px]">Email</label>
           <input
+            id="admin-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="app-input h-9 text-[13px]"
+            className="app-input h-11 text-[14px]"
             autoComplete="email"
+            autoFocus
             required
+            placeholder="you@company.com"
           />
         </div>
-
         <div>
-          <div className="mb-1 flex items-center justify-between">
-            <label className="app-label text-[13px]">Password</label>
-            <button type="button" className="text-[13px] font-medium text-brand hover:text-brand-hover">
-              Forgot password?
-            </button>
-          </div>
+          <label htmlFor="admin-password" className="app-label mb-1.5 block text-[13px]">Password</label>
           <div className="relative">
             <input
+              id="admin-password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="app-input h-9 pr-10 text-[13px]"
+              className="app-input h-11 pr-11 text-[14px]"
               autoComplete="current-password"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-ink"
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-ink"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
             </button>
           </div>
         </div>
-
-        <button type="submit" disabled={loading || demoLoading} className="btn-primary h-9 w-full text-[13px]">
-          {loading ? 'Signing in…' : 'Continue'}
+        <button type="submit" disabled={busy} className="btn-primary h-11 w-full text-[14px] font-semibold">
+          {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <div className="relative my-6">
+      <div className="relative my-5">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-line" />
         </div>
-        <div className="relative flex justify-center text-[11px] uppercase tracking-wide">
-          <span className="bg-surface px-2 text-muted">or</span>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-2 text-[11px] uppercase tracking-wide text-muted">or</span>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleExploreDemo}
-        disabled={loading || demoLoading}
-        className="btn-outline h-9 w-full text-[13px]"
-      >
-        {demoLoading ? 'Preparing NovaTech workspace…' : 'Explore Demo Company'}
+      <button type="button" onClick={handleExploreDemo} disabled={busy} className="btn-outline h-11 w-full text-[13px]">
+        {demoLoading ? 'Opening demo…' : 'Explore demo company'}
       </button>
       <p className="mt-2 text-center text-[12px] text-muted">
-        NovaTech Solutions — 52 employees, live pipeline, AI-ready.
+        Sample workspace with HR, CRM, and invoices.
       </p>
 
       <p className="mt-6 text-[13px] text-muted">

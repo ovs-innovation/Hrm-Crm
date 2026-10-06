@@ -12,7 +12,7 @@ const ShiftRoster = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [form, setForm] = useState({ employeeId: '', date: '', shiftType: 'General', startTime: '09:00', endTime: '18:00', notes: '' });
+  const [form, setForm] = useState({ employeeId: '', date: '', shiftType: 'General', startTime: '10:15', endTime: '18:30', notes: '' });
 
   const fetchItems = async () => {
     setLoading(true);
@@ -39,7 +39,7 @@ const ShiftRoster = () => {
       employeeName: emp?.name || 'Employee',
     });
     setModalOpen(false);
-    setForm({ employeeId: '', date: '', shiftType: 'General', startTime: '09:00', endTime: '18:00', notes: '' });
+    setForm({ employeeId: '', date: '', shiftType: 'General', startTime: '10:15', endTime: '18:30', notes: '' });
     fetchItems();
   };
 
@@ -52,7 +52,7 @@ const ShiftRoster = () => {
   return (
     <PageShell
       title="Shift roster"
-      description="Assign and view employee shift schedules"
+      description="Assign and view employee shift schedules. Office lunch is 1:30 PM – 2:15 PM."
       count={items.length}
       actions={
         <>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -13,12 +13,12 @@ import Campaigns from './pages/crm/Campaigns';
 import Meetings from './pages/crm/Meetings';
 import Calls from './pages/crm/Calls';
 import EmployeeList from './pages/employees/EmployeeList';
+import EmployeeProfile from './pages/employees/EmployeeProfile';
 import DepartmentList from './features/organization/components/DepartmentList';
 import DesignationList from './features/organization/components/DesignationList';
 import Reports from './pages/hrm/Reports';
-import Analytics from './pages/analytics/Analytics';
-import Messenger from './pages/Messenger';
 import Attendance from './pages/hrm/Attendance';
+import WfhBoard from './pages/hrm/WfhBoard';
 import Clients from './pages/crm/Clients';
 import Projects from './pages/crm/Projects';
 import Leaves from './pages/hrm/Leaves';
@@ -43,6 +43,9 @@ import Marketplace from './pages/crm/Marketplace';
 import OrgChart from './pages/employees/OrgChart';
 import AiCostDashboard from './pages/crm/AiCostDashboard';
 import AIInbox from './pages/crm/AIInbox';
+import KnowledgeBase from './pages/crm/KnowledgeBase';
+
+const Workspace = lazy(() => import('./pages/workspace/Workspace'));
 
 function App() {
   return (
@@ -83,7 +86,10 @@ function App() {
         <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           {/* CRM Home — Zoho-style onboarding */}
           <Route index element={<CrmHome />} />
-          <Route path="ai-hub" element={<AIHub />} />
+          <Route path="ai" element={<AIHub />} />
+          <Route path="ai-hub" element={<Navigate to="/ai" replace />} />
+          <Route path="ai/knowledge" element={<KnowledgeBase />} />
+          <Route path="ai/usage" element={<AiCostDashboard />} />
 
           {/* CRM — Sales */}
           <Route path="crm/leads" element={<Leads />} />
@@ -92,43 +98,53 @@ function App() {
           <Route path="crm/deals" element={<Deals />} />
           <Route path="crm/invoices" element={<Invoices />} />
           <Route path="crm/documents" element={<Documents />} />
+          <Route path="crm/knowledge-base" element={<Navigate to="/ai/knowledge" replace />} />
           <Route path="crm/campaigns" element={<Campaigns />} />
           <Route path="crm/automation" element={<AutomationBuilder />} />
-          <Route path="crm/reports" element={<ReportBuilder />} />
+          <Route path="crm/reports" element={<Navigate to="/reports/builder" replace />} />
           <Route path="crm/marketplace" element={<Marketplace />} />
-          <Route path="crm/ai-costs" element={<AiCostDashboard />} />
+          <Route path="crm/ai-costs" element={<Navigate to="/ai/usage" replace />} />
           <Route path="crm/inbox" element={<AIInbox />} />
 
           {/* CRM — Activities */}
-          <Route path="crm/tasks" element={<Tasks />} />
+          <Route path="crm/tasks" element={<Navigate to="/work/tasks" replace />} />
           <Route path="crm/meetings" element={<Meetings />} />
           <Route path="crm/calls" element={<Calls />} />
 
+          <Route path="reports/builder" element={<ReportBuilder />} />
           <Route path="reports/*" element={<Reports />} />
-          <Route path="analytics" element={<Analytics />} />
+          <Route path="analytics" element={<Navigate to="/reports" replace />} />
 
           {/* HRM */}
+          <Route path="hrm/employees/:id" element={<EmployeeProfile />} />
           <Route path="hrm/employees" element={<EmployeeList />} />
           <Route path="hrm/leaves" element={<Leaves />} />
           <Route path="hrm/shift-roster" element={<ShiftRoster />} />
           <Route path="hrm/attendance" element={<Attendance />} />
+          <Route path="hrm/wfh" element={<WfhBoard />} />
           <Route path="hrm/holiday" element={<Holiday />} />
-          <Route path="hrm/tasks" element={<Tasks />} />
+          <Route path="hrm/tasks" element={<Navigate to="/work/tasks" replace />} />
+          <Route path="hrm/org-chart" element={<OrgChart />} />
           <Route path="hrm/designation" element={<DesignationList />} />
           <Route path="hrm/department" element={<DepartmentList />} />
           <Route path="hrm/daily-reports" element={<EmployeeReports />} />
           <Route path="hrm/appreciation" element={<Appreciation />} />
           <Route path="hrm/announcements" element={<AnnouncementsView />} />
-          <Route path="hrm/projects" element={<Projects />} />
+          <Route path="hrm/projects" element={<Navigate to="/work/projects" replace />} />
           <Route path="hrm/payroll" element={<Payroll />} />
           <Route path="hrm/payroll/invoice/:id" element={<PayslipDetail />} />
-          <Route path="hrm/tickets" element={<Tickets />} />
+          <Route path="hrm/tickets" element={<Navigate to="/support/tickets" replace />} />
           <Route path="hrm/recruitment" element={<Recruitment />} />
 
-          <Route path="messenger" element={<Messenger />} />
+          <Route path="work/projects" element={<Projects />} />
+          <Route path="work/tasks/:id" element={<Tasks />} />
+          <Route path="work/tasks" element={<Tasks />} />
+          <Route path="support/tickets" element={<Tickets />} />
+          <Route path="workspace" element={<Suspense fallback={<div className="p-6 text-[13px] text-muted">Loading workspace…</div>}><Workspace /></Suspense>} />
+          <Route path="messenger" element={<Navigate to="/workspace" replace />} />
           <Route path="settings" element={<Settings />} />
           <Route path="crm" element={<Navigate to="/crm/accounts" replace />} />
-          <Route path="projects" element={<Projects />} />
+          <Route path="projects" element={<Navigate to="/work/projects" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

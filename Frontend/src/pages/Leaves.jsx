@@ -60,14 +60,21 @@ const Leaves = () => {
         </button>
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded border border-line bg-surface p-3"><p className="text-[13px] text-muted">Pending</p><p className="text-xl font-semibold text-ink">{pending}</p></div>
-        <div className="rounded border border-line bg-surface p-3"><p className="text-[13px] text-muted">Approved</p><p className="text-xl font-semibold text-ink">{approved}</p></div>
-        <div className="rounded border border-line bg-surface p-3"><p className="text-[13px] text-muted">Total requests</p><p className="text-xl font-semibold text-ink">{leaves.length}</p></div>
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        {[
+          ['Pending', pending],
+          ['Approved', approved],
+          ['Total requests', leaves.length],
+        ].map(([label, value]) => (
+          <div key={label} className="flex min-h-[76px] flex-col justify-center rounded border border-line bg-surface px-4 py-3">
+            <p className="text-[13px] text-muted">{label}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums leading-none text-ink">{value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="overflow-hidden rounded border border-line bg-surface">
-        <table className="w-full text-left text-[13px]">
+      <div className="overflow-x-auto rounded border border-line bg-surface">
+        <table className="w-full min-w-[640px] text-left text-[13px]">
           <thead>
             <tr className="border-b border-line bg-soft text-muted">
               <th className="px-4 py-2.5 font-medium">Type</th>

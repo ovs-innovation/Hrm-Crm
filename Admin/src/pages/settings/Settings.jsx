@@ -61,7 +61,7 @@ const Settings = () => {
     <PageShell title="Settings" description="Company profile, policies, and audit trail">
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <form onSubmit={save} className="space-y-4">
-          <section className="rounded border border-line bg-surface p-4">
+          <section id="company" className="rounded border border-line bg-surface p-4">
             <h2 className="mb-3 text-[14px] font-semibold text-ink">Company profile</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Company name" value={form.companyName} onChange={(v) => set('companyName', v)} />
@@ -110,7 +110,7 @@ const Settings = () => {
           <button type="submit" disabled={saving} className="btn-primary h-9 px-4 text-[13px]">{saving ? 'Saving…' : 'Save settings'}</button>
         </form>
 
-        <aside className="rounded border border-line bg-surface p-4">
+        <aside id="audit" className="rounded border border-line bg-surface p-4">
           <h2 className="mb-3 text-[14px] font-semibold text-ink">Recent audit log</h2>
           {audit.length === 0 ? (
             <p className="text-[13px] text-muted">No activity logged yet.</p>

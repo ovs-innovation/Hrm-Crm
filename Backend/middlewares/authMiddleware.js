@@ -1,19 +1,41 @@
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import Admin from '../models/Admin.js';
 import Employee from '../models/Employee.js';
 import { bindRequestTenant } from './contextMiddleware.js';
-import { withoutTenantScope } from '../plugins/tenantScope.plugin.js';
+import { readAccessToken } from '../utils/generateToken.js';
+
+const SKIP_TENANT = { skipTenantScope: true };
+
+async function findAuthUser(userId, preferredType) {
+  if (!userId || !mongoose.isValidObjectId(userId)) {
+    return { user: null, userType: null };
+  }
+
+  const findAdmin = () => Admin.findById(userId).select('-password').setOptions(SKIP_TENANT);
+  const findEmployee = () => Employee.findById(userId).select('-password').setOptions(SKIP_TENANT);
+
+  if (preferredType === 'Employee') {
+    const employee = await findEmployee();
+    if (employee) return { user: employee, userType: 'Employee' };
+    const admin = await findAdmin();
+    if (admin) return { user: admin, userType: 'Admin' };
+    return { user: null, userType: null };
+  }
+
+  const admin = await findAdmin();
+  if (admin) return { user: admin, userType: 'Admin' };
+  const employee = await findEmployee();
+  if (employee) return { user: employee, userType: 'Employee' };
+  return { user: null, userType: null };
+}
 
 /**
- * Auth middleware — supports both cookie JWT and Bearer token.
+ * Auth middleware — supports cookie JWT (admin + employee) and Bearer token.
  * Binds tenant from token/user into request ALS (overrides hostname default).
  */
 const protect = async (req, res, next) => {
-  let token;
-
-  if (req.cookies?.jwt) {
-    token = req.cookies.jwt;
-  }
+  let token = readAccessToken(req);
 
   if (!token && req.headers.authorization?.startsWith('Bearer ')) {
     token = req.headers.authorization.split(' ')[1];
@@ -29,30 +51,18 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'Not authorized, access token required' });
     }
 
+    const userId = decoded.userId || decoded.id || decoded._id;
     if (decoded.tenantId) {
       bindRequestTenant(req, decoded.tenantId);
     }
 
-    let user = null;
-    let userType = decoded.userType;
-
-    await withoutTenantScope(async () => {
-      if (userType === 'Employee') {
-        user = await Employee.findById(decoded.userId).select('-password');
-        if (user) userType = 'Employee';
-      } else {
-        user = await Admin.findById(decoded.userId).select('-password');
-        if (user) {
-          userType = 'Admin';
-        } else {
-          user = await Employee.findById(decoded.userId).select('-password');
-          if (user) userType = 'Employee';
-        }
-      }
-    });
+    const { user, userType } = await findAuthUser(userId, decoded.userType);
 
     if (!user) {
-      return res.status(401).json({ message: 'Not authorized, user not found' });
+      return res.status(401).json({
+        message: 'Session expired. Please sign in again.',
+        code: 'USER_NOT_FOUND',
+      });
     }
 
     if (typeof decoded.tokenVersion === 'number' && typeof user.tokenVersion === 'number') {

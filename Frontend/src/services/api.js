@@ -5,6 +5,14 @@ const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('employeeToken');
+  if (token && token !== 'session') {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export default api;
 
 export const getFileUrl = (path) => {

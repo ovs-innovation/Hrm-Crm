@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Vastora Work From Home",
+  "version": "1.0.0",
+  "description": "Sends the active tab hostname and time to Vastora. Does not read page content.",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["http://localhost:5000/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html" }
+}

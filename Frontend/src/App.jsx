@@ -10,6 +10,7 @@ import Messenger from './pages/Messenger';
 import SetPassword from './pages/auth/SetPassword';
 import Login from './pages/auth/Login';
 import DailyReports from './pages/DailyReports';
+import Wfh from './pages/Wfh';
 
 // Management Pages
 import ManageEmployees from './pages/ManageEmployees';
@@ -89,6 +90,7 @@ function App() {
           <Route path="leaves" element={<Leaves />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="daily-reports" element={<DailyReports />} />
+          <Route path="wfh" element={<Wfh />} />
           <Route path="messenger" element={<Messenger />} />
           <Route path="policies" element={<Policies />} />
           <Route path="profile" element={<Profile />} />

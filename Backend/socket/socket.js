@@ -2,13 +2,24 @@ import { Server } from 'socket.io';
 import http from 'http';
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import Message from '../models/Message.js';
+import {
+  handleConnect,
+  handleDisconnect,
+  setPresence,
+  emitPresenceChange,
+  getOnlineUserIds,
+} from '../services/presence.service.js';
+import { SOCKET_EVENTS, userRoom, tenantRoom, channelRoom } from './events.js';
 
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5174')
-  .split(',')
-  .map((o) => o.trim());
+const allowedOrigins = [
+  'https://hrm.vastoratech.com',
+  'https://hrmadmin.vastoratech.com',
+  ...(process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174').split(','),
+].map((o) => o.trim()).filter(Boolean);
 
 const parseCookie = (header = '') => {
   const out = {};
@@ -30,8 +41,7 @@ const io = new Server(server, {
       let host = '';
       try { host = new URL(origin).hostname; } catch { host = origin; }
       const ok = allowedOrigins.includes(origin) ||
-        (!isProd && (host === 'localhost' || host.endsWith('127.0.0.1'))) ||
-        host.endsWith('vastoratech.com');
+        (!isProd && (host === 'localhost' || host === '127.0.0.1'));
       callback(ok ? null : new Error('CORS blocked'), ok);
     },
     methods: ['GET', 'POST'],
@@ -39,13 +49,10 @@ const io = new Server(server, {
   },
 });
 
-const userSocketMap = {}; // {userId: socketId}
-
-import Message from '../models/Message.js';
-
 export const getReceiverSocketId = (receiverId) => {
   if (!receiverId) return undefined;
-  return userSocketMap[String(receiverId)];
+  const ids = [...io.sockets.adapter.rooms.get(userRoom(receiverId)) || []];
+  return ids[0];
 };
 
 io.use((socket, next) => {
@@ -59,13 +66,15 @@ io.use((socket, next) => {
     }
     if (!token && socket.handshake.headers?.cookie) {
       const parsed = parseCookie(socket.handshake.headers.cookie);
-      token = parsed.jwt;
+      token = parsed.admin_jwt || parsed.jwt;
     }
     if (!token || !process.env.JWT_SECRET) {
       return next(new Error('Unauthorized'));
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = decoded.userId?.toString();
+    socket.userId = (decoded.userId || decoded.id || decoded._id)?.toString();
+    socket.tenantId = decoded.tenantId?.toString() || null;
+    socket.userType = decoded.userType || 'Admin';
     if (!socket.userId) return next(new Error('Unauthorized'));
     next();
   } catch (err) {
@@ -74,25 +83,40 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('A user connected', socket.id);
-
   const userId = socket.userId;
-  if (userId) {
-    userSocketMap[userId] = socket.id;
+  const tenantId = socket.tenantId;
 
-    Message.updateMany(
-      { receiverId: userId, status: 'sent' },
-      { $set: { status: 'delivered' } }
-    ).then(async () => {
-      const pendingMessages = await Message.find({ receiverId: userId, status: 'delivered' }).distinct('senderId');
-      pendingMessages.forEach(senderId => {
-        const senderSocket = getReceiverSocketId(senderId.toString());
-        if (senderSocket) {
-          io.to(senderSocket).emit('messagesDelivered', userId);
-        }
-      });
-    }).catch(err => console.error(err));
-  }
+  socket.join(userRoom(userId));
+  if (tenantId) socket.join(tenantRoom(tenantId));
+
+  handleConnect({ io, socket, userId, tenantId }).catch((err) => console.error(err));
+
+  socket.on(SOCKET_EVENTS.CHANNEL_JOIN, (channelId) => {
+    if (!channelId) return;
+    socket.join(channelRoom(channelId));
+  });
+
+  socket.on(SOCKET_EVENTS.CHANNEL_LEAVE, (channelId) => {
+    if (!channelId) return;
+    socket.leave(channelRoom(channelId));
+  });
+
+  socket.on(SOCKET_EVENTS.TYPING_START, ({ channelId }) => {
+    if (!channelId) return;
+    socket.to(channelRoom(channelId)).emit(SOCKET_EVENTS.TYPING_START, { channelId, userId });
+  });
+
+  socket.on(SOCKET_EVENTS.TYPING_STOP, ({ channelId }) => {
+    if (!channelId) return;
+    socket.to(channelRoom(channelId)).emit(SOCKET_EVENTS.TYPING_STOP, { channelId, userId });
+  });
+
+  socket.on(SOCKET_EVENTS.PRESENCE_SET, async ({ status }) => {
+    const allowed = ['online', 'away', 'busy', 'in_meeting'];
+    const next = allowed.includes(status) ? status : 'online';
+    await setPresence({ userId, tenantId, status: next });
+    await emitPresenceChange(io, { userId, tenantId, status: next });
+  });
 
   socket.on('markSeen', async ({ senderId, receiverId }) => {
     try {
@@ -103,21 +127,17 @@ io.on('connection', (socket) => {
       );
       const senderSocket = getReceiverSocketId(senderId);
       if (senderSocket) {
-        io.to(senderSocket).emit('messagesSeen', receiverId);
+        io.to(senderSocket).emit(SOCKET_EVENTS.MESSAGES_SEEN, receiverId);
       }
     } catch (err) {
       console.error(err);
     }
   });
 
-  io.emit('getOnlineUsers', Object.keys(userSocketMap));
+  io.emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIds());
 
   socket.on('disconnect', () => {
-    console.log('User disconnected', socket.id);
-    if (userId) {
-      delete userSocketMap[userId];
-    }
-    io.emit('getOnlineUsers', Object.keys(userSocketMap));
+    handleDisconnect({ io, socket, userId, tenantId }).catch((err) => console.error(err));
   });
 });
 

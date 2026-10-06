@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import mammoth from 'mammoth';
 import Employee from '../models/Employee.js';
 import Client from '../models/Client.js';
 import Deal from '../models/Deal.js';
@@ -100,15 +101,61 @@ export const executeAgentCommand = async (req, res) => {
       return res.status(400).json({ message: 'userInput is required' });
     }
 
+    // Retrieve matching RAG document chunks for context injection
+    let ragContext = "";
+    try {
+      const docs = await KnowledgeDoc.find({ tenantId: req.tenantId });
+      const allChunks = [];
+      docs.forEach(doc => {
+        doc.chunks.forEach(chunk => {
+          allChunks.push({
+            id: chunk._id.toString(),
+            title: doc.title,
+            text: chunk.text,
+            embedding: chunk.embedding,
+            pageNumber: chunk.pageNumber,
+            metadata: chunk.metadata
+          });
+        });
+      });
+
+      if (allChunks.length > 0) {
+        const matches = await vectorService.searchVectorDatabase(userInput, allChunks, 3);
+        if (matches && matches.length > 0) {
+          ragContext = matches.map(m => `[Document: ${m.title}, Page: ${m.pageNumber || 1}] ${m.text}`).join('\n---\n');
+        }
+      }
+    } catch (ragErr) {
+      console.error('[RAG command injection error]', ragErr.message);
+    }
+
     // 1. Gather Database details of selected entities in the context
+    const pathHint = String(clientContext?.path || clientContext?.page || '');
+    const moduleFromPath = (() => {
+      if (pathHint.includes('/hrm/employees')) return 'Employees';
+      if (pathHint.includes('/hrm/leaves')) return 'Leave';
+      if (pathHint.includes('/hrm/payroll')) return 'Payroll';
+      if (pathHint.includes('/hrm/attendance')) return 'Attendance';
+      if (pathHint.includes('/crm/leads')) return 'Leads';
+      if (pathHint.includes('/crm/deals')) return 'Deals';
+      if (pathHint.includes('/crm/invoices')) return 'Invoices';
+      if (pathHint.includes('/crm/')) return 'CRM';
+      if (pathHint.includes('/workspace') || pathHint.includes('/messenger')) return 'Workspace';
+      if (pathHint.includes('/hrm')) return 'HRM';
+      return clientContext?.module || 'Dashboard';
+    })();
+
     const businessContext = {
       tenantId: req.tenantId,
       companyName: req.tenant?.companyName || 'Vastora Tech',
       userRole,
       userEmail,
-      page: clientContext?.page || 'Dashboard',
-      module: clientContext?.module || 'Dashboard',
-      filters: clientContext?.filters || {}
+      page: clientContext?.page || pathHint || 'Dashboard',
+      path: pathHint,
+      module: clientContext?.module || moduleFromPath,
+      filters: clientContext?.filters || {},
+      ragContext,
+      instruction: `The user is currently on ${pathHint || 'the dashboard'} in the ${moduleFromPath} module. Prefer actions for that module unless they clearly ask for something else.`,
     };
 
     if (clientContext?.selectedEmployeeId) {
@@ -155,8 +202,31 @@ export const executeAgentCommand = async (req, res) => {
       prevLogs
     );
 
+    // Map action names to corresponding frontend routes
+    let redirectUrl = null;
+    const actions = orchestratorResult.actions || [];
+    for (const act of actions) {
+      const actName = act.name || '';
+      if (actName === 'showEmployees' || actName === 'createEmployee') {
+        redirectUrl = '/hrm/employees';
+      } else if (actName === 'showAttendance') {
+        redirectUrl = '/hrm/attendance';
+      } else if (actName === 'showPayroll') {
+        redirectUrl = '/hrm/payroll';
+      } else if (actName === 'showDeals') {
+        redirectUrl = '/crm/deals';
+      } else if (actName === 'showLeads') {
+        redirectUrl = '/crm/leads';
+      } else if (actName === 'showInvoices' || actName === 'createInvoice') {
+        redirectUrl = '/crm/invoices';
+      }
+    }
+
     res.json({
       userInput,
+      redirectUrl,
+      chatReply: orchestratorResult.summary, // align with chatReply/chatResponse expected properties
+      chatResponse: orchestratorResult.summary,
       ...orchestratorResult
     });
   } catch (error) {
@@ -246,9 +316,10 @@ export const detectAttendanceFraud = async (req, res) => {
     const alerts = [];
 
     // Office central coordinates check
-    const OFFICE_LAT = 28.582078;
-    const OFFICE_LON = 77.365970;
-    const MAX_ALLOWED_DISTANCE = 200; // meters
+    // 2nd Floor, JS Acade, 203, above PNB, Sharma Market, Hoshiyarpur, Sector 51, Noida 201301
+const OFFICE_LAT = 28.579126;
+const OFFICE_LON = 77.363649;
+    const MAX_ALLOWED_DISTANCE = 300; // meters
 
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371e3;
@@ -345,8 +416,9 @@ export const getEmployeeTimeline = async (req, res) => {
 export const getDashboardInsights = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    
-    // Gather metrics
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const tenantMatch = req.tenantId ? { tenantId: req.tenantId } : {};
+
     const [
       totalEmployees,
       attendanceToday,
@@ -362,7 +434,7 @@ export const getDashboardInsights = async (req, res) => {
       Client.countDocuments({ status: 'Lead' }),
       Deal.find().sort({ amount: -1 }).limit(5),
       Task.aggregate([
-        { $match: { status: 'Completed' } },
+        { $match: { status: 'Completed', ...tenantMatch } },
         { $group: { _id: '$assignedTo', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 3 }
@@ -372,26 +444,30 @@ export const getDashboardInsights = async (req, res) => {
         scheduledAt: { $gte: new Date() }
       }).limit(5),
       Employee.find({
-        dateOfBirth: { $regex: new RegExp(`-${new Date().getMonth() + 1}-`, 'i') }
+        dateOfBirth: { $regex: new RegExp(`-${month}-`) }
       }).limit(5)
     ]);
 
     const checkedInIds = new Set(attendanceToday.map(a => a.employeeId?._id?.toString()));
-    const employeesAbsent = employeesAbsentRaw
-      .filter(emp => !checkedInIds.has(emp._id.toString()))
-      .slice(0, 5)
-      .map(emp => emp.name);
+    const absentEmployees = employeesAbsentRaw.filter(emp => !checkedInIds.has(emp._id.toString()));
+    const employeesAbsent = absentEmployees.slice(0, 5).map(emp => emp.name);
 
     const topPerformers = [];
     for (const p of topPerformersRaw) {
-      const emp = await Employee.findOne({ employeeId: p._id });
+      const assigned = p._id;
+      let emp = null;
+      if (assigned && mongoose.isValidObjectId(assigned)) {
+        emp = await Employee.findOne({ $or: [{ _id: assigned }, { employeeId: String(assigned) }] });
+      } else if (assigned) {
+        emp = await Employee.findOne({ employeeId: assigned });
+      }
       if (emp) topPerformers.push(`${emp.name} (${p.count} tasks completed)`);
     }
 
     const salesStats = totalDeals.map(d => ({ title: d.title, amount: d.amount, stage: d.stage }));
     const attendanceSummary = {
       presentCount: attendanceToday.length,
-      absentCount: employeesAbsent.length,
+      absentCount: absentEmployees.length,
       totalCount: totalEmployees
     };
 
@@ -407,10 +483,19 @@ export const getDashboardInsights = async (req, res) => {
       }
     };
 
-    const insights = await aiService.generateDashboardInsights(stats);
+    let insights = { businessSummary: '', insights: [] };
+    try {
+      insights = await aiService.generateDashboardInsights(stats);
+    } catch (insightError) {
+      insights = {
+        businessSummary: 'Live metrics loaded. AI commentary is temporarily unavailable.',
+        insights: []
+      };
+    }
+
     res.json({ stats, insights });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message || 'Failed to load AI dashboard' });
   }
 };
 
@@ -426,6 +511,10 @@ export const naturalLanguageSearch = async (req, res) => {
 
     const translation = await aiService.translateNaturalLanguageQuery(query);
     const { collection, query: filterQuery, sort, limit, explanation } = translation;
+    const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 50);
+    const safeFilter = (filterQuery && typeof filterQuery === 'object' && !Array.isArray(filterQuery))
+      ? filterQuery
+      : {};
 
     const modelToCollection = {
       'Employee': 'employees',
@@ -446,26 +535,25 @@ export const naturalLanguageSearch = async (req, res) => {
 
     // Secure Whitelist Operator Validation
     try {
-      validateMongoQuery(colName, filterQuery);
+      validateMongoQuery(colName, safeFilter);
     } catch (err) {
       return res.status(403).json({
-        message: 'Security Block: Unsafe operators or unauthorized query detected.',
+        message: 'This search was blocked because it used an unsupported query pattern.',
         error: err.message
       });
     }
 
     const Model = mongoose.model(collection);
-    
-    let mongoQuery = Model.find(filterQuery);
-    if (sort) mongoQuery = mongoQuery.sort(sort);
-    if (limit) mongoQuery = mongoQuery.limit(limit);
 
-    const results = await mongoQuery.exec();
+    let mongoQuery = Model.find(safeFilter).limit(safeLimit);
+    if (sort && typeof sort === 'object') mongoQuery = mongoQuery.sort(sort);
+
+    const results = await mongoQuery.lean().exec();
 
     res.json({
       query,
       collection,
-      filter: filterQuery,
+      filter: safeFilter,
       explanation,
       results
     });
@@ -522,12 +610,17 @@ export const parseResumePdf = async (req, res) => {
 
     const pdfParse = await getPdfParser();
     const parsedData = await pdfParse(req.file.buffer);
-    const resumeText = parsedData.text;
+    const resumeText = String(parsedData.text || '').trim();
+    if (!resumeText) {
+      return res.status(400).json({
+        message: 'Could not read text from this PDF. If it is a scanned image, export a text-based PDF and try again.',
+      });
+    }
 
     const parsedResume = await aiService.parseResume(resumeText, jobDescription);
     res.json(parsedResume);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.status || 500).json({ message: error.message });
   }
 };
 
@@ -596,25 +689,35 @@ export const generateDocumentPdf = async (req, res) => {
       return res.status(400).json({ message: 'templateName and content are required' });
     }
 
-    let finalContent = content;
-    if (placeholders) {
+    let finalContent = String(content);
+    if (placeholders && typeof placeholders === 'object') {
       Object.entries(placeholders).forEach(([key, val]) => {
-        finalContent = finalContent.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val);
-        finalContent = finalContent.replace(new RegExp(`\\[${key}\\]`, 'g'), val);
+        const safeKey = String(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        finalContent = finalContent.replace(new RegExp(`\\{\\{${safeKey}\\}\\}`, 'g'), String(val ?? ''));
+        finalContent = finalContent.replace(new RegExp(`\\[${safeKey}\\]`, 'g'), String(val ?? ''));
       });
     }
 
     const PDFDocument = await getPdfKit();
     const doc = new PDFDocument({ margin: 50 });
-    
+    const safeName = String(templateName).replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 80) || 'document';
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${templateName.replace(/\s+/g, '_')}.pdf"`);
-    
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"`);
+
+    doc.on('error', (err) => {
+      if (!res.headersSent) {
+        res.status(500).json({ message: err.message || 'Failed to generate PDF' });
+      } else {
+        res.destroy(err);
+      }
+    });
+
     doc.pipe(res);
 
-    doc.fillColor('#1E293B').fontSize(24).font('Helvetica-Bold').text(templateName.toUpperCase(), { align: 'center' });
+    doc.fillColor('#1E293B').fontSize(24).font('Helvetica-Bold').text(String(templateName).toUpperCase(), { align: 'center' });
     doc.moveDown(1.5);
-    
+
     doc.strokeColor('#E2E8F0').lineWidth(2).moveTo(50, doc.y).lineTo(562, doc.y).stroke();
     doc.moveDown(2);
 
@@ -632,7 +735,11 @@ export const generateDocumentPdf = async (req, res) => {
 
     doc.end();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (!res.headersSent) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.destroy(error);
+    }
   }
 };
 
@@ -642,11 +749,24 @@ export const generateDocumentPdf = async (req, res) => {
 export const generateMeetingSummary = async (req, res) => {
   try {
     const { transcript } = req.body;
-    if (!transcript) {
+    if (!transcript || !String(transcript).trim()) {
       return res.status(400).json({ message: 'Meeting transcript is required' });
     }
-    const summary = await aiService.summarizeMeeting(transcript);
-    res.json(summary);
+    if (String(transcript).length > 40000) {
+      return res.status(400).json({ message: 'Transcript is too long. Please paste a shorter excerpt.' });
+    }
+    const summary = await aiService.summarizeMeeting(String(transcript).trim());
+    const tasks = (summary?.actionItems || summary?.tasks || []).map((t) => ({
+      task: t.task || t.title || '',
+      assignee: t.assignee || t.owner || 'Unassigned',
+      deadline: t.deadline || t.dueDate || 'TBD',
+    }));
+    res.json({
+      summary: summary?.summary || '',
+      decisions: summary?.decisions || summary?.keyDecisions || [],
+      tasks,
+      nextMeetingSuggestion: summary?.nextMeetingSuggestion || '',
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -690,28 +810,47 @@ export const getReportSummary = async (req, res) => {
   }
 };
 
+// Helper to parse file buffers based on mimetype and extension
+async function parseFileBuffer(file) {
+  const mime = file.mimetype || '';
+  const originalName = file.originalname.toLowerCase();
+
+  if (mime === 'application/pdf' || originalName.endsWith('.pdf')) {
+    const pdfParse = await getPdfParser();
+    const parsed = await pdfParse(file.buffer);
+    return parsed.pages.map(p => ({ text: p.text, num: p.num }));
+  } else if (mime === 'text/plain' || originalName.endsWith('.txt') || originalName.endsWith('.csv') || mime.includes('csv')) {
+    const text = file.buffer.toString('utf-8');
+    return [{ text, num: 1 }];
+  } else if (originalName.endsWith('.docx') || mime.includes('officedocument.wordprocessingml')) {
+    const result = await mammoth.extractRawText({ buffer: file.buffer });
+    return [{ text: result.value, num: 1 }];
+  } else {
+    throw new Error('Unsupported file type. Supported types: PDF, DOCX, TXT, CSV');
+  }
+}
+
 /**
  * Module 11: RAG Knowledge Base Upload
  */
 export const uploadKnowledgeDoc = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'PDF document file is required' });
+      return res.status(400).json({ message: 'Document file is required' });
     }
     const { title, category } = req.body;
 
-    const pdfParse = await getPdfParser();
-    const parsed = await pdfParse(req.file.buffer);
+    const parsedPages = await parseFileBuffer(req.file);
 
     const chunks = [];
     const size = 600;
     const overlap = 200;
-    const step = size - overlap; // 400 step size for overlap window
-    
-    // Chunk page-by-page to preserve citations with sliding window overlap
-    for (const page of parsed.pages) {
+    const step = size - overlap;
+
+    for (const page of parsedPages) {
       const pageText = page.text;
-      const pageNum = page.num;
+      const pageNum = page.num || 1;
+      
       for (let i = 0; i < pageText.length; i += step) {
         const chunkText = pageText.slice(i, i + size).trim();
         if (chunkText.length > 50) {
@@ -727,7 +866,6 @@ export const uploadKnowledgeDoc = async (req, res) => {
             }
           });
         }
-        // Break early if we reached the end of page text
         if (i + size >= pageText.length) break;
       }
     }
@@ -741,7 +879,35 @@ export const uploadKnowledgeDoc = async (req, res) => {
     });
 
     await doc.save();
-    res.status(201).json({ message: 'Knowledge document loaded and indexed', chunksCount: chunks.length });
+    res.status(201).json({ message: 'Knowledge document loaded and indexed', chunksCount: chunks.length, docId: doc._id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Get all loaded knowledge documents
+ */
+export const getKnowledgeDocs = async (req, res) => {
+  try {
+    const docs = await KnowledgeDoc.find({ tenantId: req.tenantId }).select('title fileName category createdAt');
+    res.json(docs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Delete a knowledge document
+ */
+export const deleteKnowledgeDoc = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await KnowledgeDoc.findOneAndDelete({ _id: id, tenantId: req.tenantId });
+    if (!doc) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+    res.json({ message: 'Document deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -753,7 +919,7 @@ export const uploadKnowledgeDoc = async (req, res) => {
 export const queryKnowledgeBase = async (req, res) => {
   try {
     const { question } = req.body;
-    if (!question) {
+    if (!question || !String(question).trim()) {
       return res.status(400).json({ message: 'Question is required' });
     }
 
@@ -836,8 +1002,21 @@ export const saveWorkflow = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: 'Workflow name is required' });
     }
+    if (!Array.isArray(nodes) || nodes.length === 0) {
+      return res.status(400).json({ message: 'At least one workflow step is required' });
+    }
 
-    const workflow = new Workflow({ name, description, nodes, edges });
+    const triggerNode = nodes.find((n) => n.type === 'trigger') || nodes[0];
+    const triggerType = String(triggerNode?.label || 'LeadCreated').replace(/\s+/g, '');
+
+    const workflow = new Workflow({
+      name,
+      description,
+      nodes,
+      edges: Array.isArray(edges) ? edges : [],
+      trigger: { type: triggerType, config: {} },
+      tenantId: req.tenantId,
+    });
     await workflow.save();
     res.status(201).json({ message: 'Automation workflow saved successfully', workflow });
   } catch (error) {
@@ -851,7 +1030,11 @@ export const saveWorkflow = async (req, res) => {
 export const getForecasts = async (req, res) => {
   try {
     const { type } = req.params;
-    
+    const allowed = new Set(['Sales', 'Payroll', 'Attrition']);
+    if (!allowed.has(type)) {
+      return res.status(400).json({ message: 'Unsupported forecast type' });
+    }
+
     let historicalData = [];
     if (type === 'Sales') {
       historicalData = await Deal.find({ stage: 'Closed Won' }).limit(20).select('amount expectedCloseDate');
@@ -862,7 +1045,12 @@ export const getForecasts = async (req, res) => {
     }
 
     const forecast = await aiService.predictForecast(type, historicalData);
-    res.json(forecast);
+    res.json({
+      prediction: forecast?.prediction || 'Not enough historical data to project.',
+      confidenceScore: Number(forecast?.confidenceScore) || 0,
+      trend: forecast?.trend || 'stable',
+      explanation: forecast?.explanation || '',
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -878,7 +1066,14 @@ export const processVoiceCommand = async (req, res) => {
       return res.status(400).json({ message: 'Transcript text is required' });
     }
     const response = await aiService.processVoiceCommand(transcript);
-    res.json(response);
+    const payload = response && typeof response === 'object' ? response : { intent: 'unknown' };
+    res.json({
+      ...payload,
+      confirmationMessage:
+        payload.confirmationMessage ||
+        [payload.action, payload.intent, payload.entity].filter(Boolean).join(' · ') ||
+        'Command received',
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -950,13 +1145,21 @@ export const rankJobApplicants = async (req, res) => {
   try {
     const { jobRequirements } = req.body;
     const applications = await JobApplication.find().limit(10).select('name email phone coverLetter status');
-    
+
     if (applications.length === 0) {
-      return res.json({ rankings: [] });
+      return res.json({ rankings: [], message: 'No job applications found to rank.' });
     }
 
-    const rankings = await aiService.rankCandidates(applications, jobRequirements || 'General Engineer requirements');
-    res.json(rankings);
+    const result = await aiService.rankCandidates(applications, jobRequirements || 'General Engineer requirements');
+    const raw = result?.ranked || result?.rankings || (Array.isArray(result) ? result : []);
+    const rankings = raw.map((c, i) => ({
+      rank: c.rank || i + 1,
+      candidateName: c.candidateName || c.name || applications[i]?.name || 'Candidate',
+      fitReason: c.fitReason || c.reason || '',
+      score: c.score,
+      questions: c.questions || [],
+    }));
+    res.json({ rankings });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -972,7 +1175,15 @@ export const getSalesCoach = async (req, res) => {
       Call.find().limit(20)
     ]);
     const coach = await aiService.getSalesCoachInsights(deals, calls);
-    res.json(coach);
+    res.json({
+      coachingSuggestions: coach?.coachingSuggestions || [],
+      riskDeals: coach?.riskDeals || [],
+      winProbabilityInsight: coach?.winProbabilityInsight || '',
+      nextBestAction: coach?.nextBestAction || '',
+      followUps: coach?.followUps || [],
+      upsells: coach?.upsells || [],
+      inactiveRecoveries: coach?.inactiveRecoveries || [],
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1713,6 +1924,69 @@ export const explainRecommendation = async (req, res) => {
 
     const explanation = await callLLM(prompt, { jsonMode: true, provider: 'groq', module: 'Analytics' });
     res.json({ success: true, explanation });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getProactiveInsights = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    
+    const mongoose = (await import('mongoose')).default;
+    const LeaveRequest = mongoose.model('LeaveRequest');
+    const Client = mongoose.model('Client');
+    const Invoice = mongoose.model('Invoice');
+
+    const todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23,59,59,999);
+
+    // 1. Count leaves today
+    const activeLeaves = await LeaveRequest.countDocuments({
+      tenantId,
+      status: 'Approved',
+      startDate: { $lte: todayEnd },
+      endDate: { $gte: todayStart }
+    });
+
+    // 2. Count overdue invoices
+    const overdueInvoices = await Invoice.countDocuments({
+      tenantId,
+      status: 'Unpaid',
+      dueDate: { $lt: todayStart }
+    });
+
+    // 3. Count new CRM leads needing follow up
+    const followUpLeads = await Client.countDocuments({
+      tenantId,
+      status: 'Lead'
+    });
+
+    // 4. Synthesize speech insight
+    const prompt = `
+You are Vastora, the proactive executive AI coach of a company.
+A CEO has just opened their dashboard.
+Generate a short (1-2 sentences), highly encouraging, natural, and professional greeting summary based on these statistics:
+- Employees on leave today: ${activeLeaves}
+- Overdue invoices: ${overdueInvoices}
+- Leads needing follow-up: ${followUpLeads}
+
+Example: "Good morning! Today, you have ${activeLeaves} employees on leave, ${overdueInvoices} overdue invoices, and ${followUpLeads} leads awaiting follow-up. Let me know if you want me to generate payslips or view the deal pipeline."
+Make it sound human, encouraging, and clear.
+`;
+
+    const summary = await callLLM(prompt, { provider: 'gemini', module: 'Analytics' });
+    
+    res.json({
+      summary,
+      stats: {
+        activeLeaves,
+        overdueInvoices,
+        followUpLeads
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -49,6 +49,7 @@ export function tenantScoped(schema) {
   schema.index({ [TENANT_FIELD]: 1 });
 
   const injectFilter = function injectTenantFilter() {
+    if (this.getOptions?.()?.skipTenantScope) return;
     const store = contextStorage.getStore();
     if (!store || store.skipTenantScope) return;
     const tenantId = toTenantObjectId(store.tenantId);

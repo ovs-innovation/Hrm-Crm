@@ -7,8 +7,10 @@ const shiftRosterSchema = new mongoose.Schema(
     employeeName: { type: String, required: true },
     date: { type: String, required: true },
     shiftType: { type: String, enum: ['Morning', 'Evening', 'Night', 'General'], default: 'General' },
-    startTime: { type: String, default: '09:00' },
-    endTime: { type: String, default: '18:00' },
+    startTime: { type: String, default: '10:15' },
+    endTime: { type: String, default: '18:30' },
+    lunchStart: { type: String, default: '13:30' },
+    lunchEnd: { type: String, default: '14:15' },
     notes: { type: String },
   },
   { timestamps: true }

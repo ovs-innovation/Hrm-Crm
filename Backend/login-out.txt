@@ -1,0 +1,1 @@
+﻿{"_id":"6ac4872a9c6a34bc7e61c898","name":"Vastora Admin","email":"admin@vastora.tech","role":"Admin","tenantId":"6ac487299c6a34bc7e61c897"}

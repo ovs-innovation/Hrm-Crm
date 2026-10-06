@@ -1,0 +1,46 @@
+[
+  {
+    "_id": "64a200000000000000000001",
+    "employeeId": "EMP-001",
+    "name": "Rohit Sharma",
+    "email": "rs0043071@gmail.com",
+    "role": "Employee"
+  },
+  {
+    "_id": "64a200000000000000000002",
+    "employeeId": "EMP-002",
+    "name": "Saurabh Singh",
+    "email": "saurabhxox6@gmail.com",
+    "role": "Employee"
+  },
+  {
+    "_id": "64a200000000000000000003",
+    "employeeId": "EMP-003",
+    "name": "Rohit Rathore",
+    "email": "rkrathaur841442@gmail.com",
+    "role": "Employee"
+  },
+  {
+    "_id": "64a200000000000000000004",
+    "employeeId": "EMP-004",
+    "name": "Vaishnavi Shrivastava",
+    "email": "vaishnavisrivastava68581@gmail.com",
+    "role": "Employee"
+  },
+  {
+    "_id": "64a200000000000000000005",
+    "employeeId": "EMP-005",
+    "name": "Vansh Kesarvani",
+    "email": "vanshkesarwanivk02@gmail.com",
+    "role": "Employee"
+  },
+  {
+    "_id": "64a200000000000000000006",
+    "employeeId": "EMP-006",
+    "name": "Dristy Kumari",
+    "email": "dristykumari13@gmail.com",
+    "role": "Manager",
+    "designation": "Team Leader",
+    "department": "Operations"
+  }
+]

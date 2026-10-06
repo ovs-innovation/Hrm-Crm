@@ -187,7 +187,7 @@ const ContextCopilot = () => {
     } catch (err) {
       const msg = err.response?.data?.message || 'Co-Pilot could not complete that request.';
       setChatLog((prev) => [...prev, { sender: 'ai', text: msg, error: true }]);
-      toast.error('Co-Pilot request failed');
+      toast.error(err.response?.status === 401 ? 'Please sign in again' : 'Co-Pilot request failed');
     } finally {
       setLoading(false);
     }

@@ -74,10 +74,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-12 items-center justify-between border-b border-line px-3">
-          <div>
-            <VastoraLogo className="h-8 w-auto max-w-[150px] object-contain" />
-            <p className="text-[10px] font-medium text-muted">Employee Portal</p>
+        <div className="flex h-14 items-center justify-between border-b border-line px-3">
+          <div className="min-w-0">
+            <VastoraLogo />
+            <p className="truncate text-[10px] font-medium leading-none text-muted">Employee Portal</p>
           </div>
           <button type="button" onClick={() => setIsOpen(false)} className="rounded p-1 text-muted hover:bg-soft md:hidden" aria-label="Close">
             <FiX className="h-4 w-4" />
@@ -91,6 +91,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavItem to="/leaves" icon={FiCalendar} title="Leave" onClick={() => setIsOpen(false)} />
             <NavItem to="/tasks" icon={FiCheckSquare} title="My tasks" onClick={() => setIsOpen(false)} />
             <NavItem to="/daily-reports" icon={FiFileText} title="Daily report" onClick={() => setIsOpen(false)} />
+            <NavItem to="/wfh" icon={FiHome} title="Work from home" onClick={() => setIsOpen(false)} />
             <NavItem to="/messenger" icon={FiMessageSquare} title="Messages" onClick={() => setIsOpen(false)} />
             <NavItem to="/policies" icon={FiBell} title="Announcements" onClick={() => setIsOpen(false)} />
             <NavItem to="/payslips" icon={FiDollarSign} title="Payslips" onClick={() => setIsOpen(false)} />

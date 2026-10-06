@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { store } from '../store/store';
+import { logout } from '../store/slices/authSlice';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -23,6 +25,17 @@ async function refreshSession() {
   return refreshPromise;
 }
 
+async function clearBrokenSession() {
+  try {
+    store.dispatch(logout());
+  } catch {
+    localStorage.removeItem('adminInfo');
+  }
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    window.location.assign('/login');
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -39,11 +52,20 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         await refreshSession();
-        return api(original);
+        try {
+          return await api(original);
+        } catch (retryErr) {
+          if (retryErr.response?.status === 401) {
+            await clearBrokenSession();
+          }
+          return Promise.reject(retryErr);
+        }
       } catch {
+        await clearBrokenSession();
         return Promise.reject(error);
       }
     }
+
     return Promise.reject(error);
   }
 );

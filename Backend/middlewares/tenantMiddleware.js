@@ -1,5 +1,6 @@
 import Tenant from '../models/Tenant.js';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 
 /**
  * Tenant resolution middleware
@@ -8,6 +9,12 @@ import crypto from 'crypto';
  */
 export const resolveTenant = async (req, res, next) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        message: 'Database is offline. MongoDB did not connect. Check MONGO_URI or start MongoDB, then restart the backend.',
+      });
+    }
+
     let tenantId = null;
     let tenant = null;
 

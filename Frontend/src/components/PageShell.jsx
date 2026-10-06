@@ -1,9 +1,9 @@
 import React from 'react';
 
 const PageShell = ({ title, description, count, actions, children, fullWidth }) => (
-  <div className={fullWidth ? 'w-full' : 'mx-auto max-w-[1280px]'}>
+  <div className="w-full">
     {(title || actions) && (
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           {title && <h1 className="text-[15px] font-semibold text-ink">{title}</h1>}
           {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}

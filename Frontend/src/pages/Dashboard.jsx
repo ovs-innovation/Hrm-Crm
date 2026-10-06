@@ -5,9 +5,15 @@ import { FiClock, FiLogOut, FiBriefcase, FiHome, FiMapPin, FiX } from 'react-ico
 import api from '../services/api';
 import { useSelector } from 'react-redux';
 
-const OFFICE_LAT = 28.582078;
-const OFFICE_LON = 77.365970;
-const ALLOWED_RADIUS_METERS = 100;
+// Gali Number 2, Punjab National Bank, Hoshiyarpur, Sector 51, Noida
+const OFFICE_LAT = 28.579126;
+const OFFICE_LON = 77.363649;
+const ALLOWED_RADIUS_METERS = 300;
+
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3;
@@ -24,11 +30,15 @@ const Dashboard = () => {
   const [holidays, setHolidays] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [pendingTasks, setPendingTasks] = useState(0);
+  const [dueToday, setDueToday] = useState(0);
+  const [openTasks, setOpenTasks] = useState([]);
+  const [leavePending, setLeavePending] = useState(0);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [hasCompletedShift, setHasCompletedShift] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [modeModalOpen, setModeModalOpen] = useState(false);
+  const [reportPrompt, setReportPrompt] = useState(false);
   const user = useSelector((state) => state.auth.user || {});
   const navigate = useNavigate();
   const userId = user._id || user.employeeId;
@@ -41,28 +51,45 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!userId) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localToday();
 
     const load = async () => {
       try {
-        const [attRes, holRes, annRes, taskRes] = await Promise.all([
+        const [attRes, holRes, annRes, taskRes, leaveRes] = await Promise.all([
           api.get(`/attendance?employeeId=${userId}`),
           api.get('/holidays'),
           api.get('/announcements'),
           api.get(`/tasks?employeeId=${user.employeeId || userId}`),
+          api.get(`/leaves?employeeId=${user._id || userId}`).catch(() => ({ data: [] })),
         ]);
 
-        const pending = localStorage.getItem('pendingCheckIn');
-        if (pending && JSON.parse(pending).date === today) {
+        const pendingRaw = localStorage.getItem('pendingCheckIn');
+        const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+        const serverToday = (attRes.data || []).find((row) => row.date === today);
+        if (serverToday?.checkIn) {
+          localStorage.removeItem('pendingCheckIn');
+          setRecords(attRes.data);
+          if (serverToday.checkOut) setHasCompletedShift(true);
+          else setIsCheckedIn(true);
+        } else if (pending?.date === today && pending.checkIn) {
           setIsCheckedIn(true);
-          setRecords([JSON.parse(pending), ...attRes.data]);
+          setRecords([pending, ...attRes.data]);
+          api.post('/attendance/checkin', {
+            employeeId: userId,
+            date: pending.date,
+            checkIn: pending.checkIn,
+            status: pending.status,
+            workMode: pending.workMode,
+            latitude: pending.latitude,
+            longitude: pending.longitude,
+            accuracy: pending.accuracy,
+            distanceFromOffice: pending.distanceFromOffice,
+          }).then((res) => {
+            localStorage.removeItem('pendingCheckIn');
+            setRecords((rows) => rows.map((row) => (row.date === today ? res.data : row)));
+          }).catch(() => {});
         } else {
           setRecords(attRes.data);
-          const latest = attRes.data[0];
-          if (latest?.date === today) {
-            if (!latest.checkOut) setIsCheckedIn(true);
-            else setHasCompletedShift(true);
-          }
         }
 
         const future = holRes.data
@@ -71,7 +98,11 @@ const Dashboard = () => {
           .slice(0, 3);
         setHolidays(future);
         setAnnouncements(annRes.data.slice(0, 3));
-        setPendingTasks(taskRes.data.filter((t) => t.status !== 'Completed').length);
+        const open = (taskRes.data || []).filter((t) => t.status !== 'Completed');
+        setPendingTasks(open.length);
+        setOpenTasks(open);
+        setDueToday(open.filter((t) => t.dueDate === today).length);
+        setLeavePending((leaveRes.data || []).filter((row) => row.status === 'Pending').length);
       } catch (e) {
         console.error(e);
       }
@@ -79,15 +110,51 @@ const Dashboard = () => {
     load();
   }, [userId, user.employeeId]);
 
-  const performCheckIn = (mode) => {
-    const today = new Date().toISOString().split('T')[0];
+  const performCheckIn = async (mode, gps = null) => {
+    const today = localToday();
+    const already = records.find((row) => row.date === today);
+    if (already?.checkIn || isCheckedIn) {
+      toast.error(already?.checkOut ? 'Already checked out today' : 'Already checked in today');
+      return;
+    }
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 0);
-    const pending = { id: `pending-${Date.now()}`, date: today, checkIn: timeStr, status: isLate ? 'Late (Active)' : 'Present (Active)', workMode: mode };
-    localStorage.setItem('pendingCheckIn', JSON.stringify(pending));
-    setRecords([pending, ...records.filter((r) => r.date !== today)]);
-    setIsCheckedIn(true);
-    toast.success(isLate ? `Checked in (late) from ${mode}` : `Checked in from ${mode}`);
+    const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 15);
+    const pending = {
+      id: `pending-${Date.now()}`,
+      date: today,
+      checkIn: timeStr,
+      status: isLate ? 'Late (Active)' : 'Present (Active)',
+      workMode: mode,
+      latitude: gps?.latitude ?? null,
+      longitude: gps?.longitude ?? null,
+      accuracy: gps?.accuracy ?? null,
+      distanceFromOffice: gps?.distanceFromOffice ?? null,
+    };
+    try {
+      const res = await api.post('/attendance/checkin', {
+        employeeId: userId,
+        date: today,
+        checkIn: timeStr,
+        workMode: mode,
+        latitude: pending.latitude,
+        longitude: pending.longitude,
+        accuracy: pending.accuracy,
+        distanceFromOffice: pending.distanceFromOffice,
+      });
+      localStorage.removeItem('pendingCheckIn');
+      setRecords([res.data, ...records.filter((row) => row.date !== today)]);
+      setIsCheckedIn(true);
+      toast.success(isLate
+        ? `Checked in at ${timeStr}. Saved. Checkout opens at 6:30 PM.`
+        : `Checked in at ${timeStr}. Saved. This shift stays open until 6:30 PM.`);
+    } catch (error) {
+      const unauthorized = error.response?.status === 401;
+      if (unauthorized) {
+        toast.error('Session expired. Sign in again, then check in. This check-in was not saved.');
+        return;
+      }
+      toast.error(error.response?.data?.message || 'Check-in was not saved. Try again.');
+    }
   };
 
   const handleMode = (mode) => {
@@ -105,74 +172,123 @@ const Dashboard = () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setIsLocating(false);
-        const { latitude: lat, longitude: lon } = pos.coords;
+        const { latitude: lat, longitude: lon, accuracy } = pos.coords;
         if (mode === 'Office') {
           const d = calculateDistance(OFFICE_LAT, OFFICE_LON, lat, lon);
-          if (d <= ALLOWED_RADIUS_METERS) performCheckIn('Office');
-          else setLocationError(`You are ${Math.round(d)}m from office. Use Home or Field mode.`);
-        } else performCheckIn('Field');
+          if (!Number.isFinite(accuracy) || accuracy > ALLOWED_RADIUS_METERS) {
+            const message = `GPS is only accurate to about ${Math.round(accuracy || 0)}m. Stand near a window and try Office check-in again.`;
+            setLocationError(message);
+            toast.error(message);
+            return;
+          }
+          if (d > ALLOWED_RADIUS_METERS) {
+            const message = `You are ${Math.round(d)}m from the office. Office check-in works only within ${ALLOWED_RADIUS_METERS}m. Use Home or Field if you are away.`;
+            setLocationError(message);
+            toast.error(message);
+            return;
+          }
+          performCheckIn('Office', { latitude: lat, longitude: lon, accuracy, distanceFromOffice: d });
+        } else performCheckIn('Field', { latitude: lat, longitude: lon, accuracy });
       },
       () => {
         setIsLocating(false);
-        setLocationError('Could not get location. Allow GPS or choose Home.');
+        const message = 'Location was blocked. Allow GPS for this site, then try Office check-in again.';
+        setLocationError(message);
+        toast.error(message);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 
+  const shiftStillOpen = now.getHours() < 18 || (now.getHours() === 18 && now.getMinutes() < 30);
+
   const handleCheckOut = async () => {
-    const today = new Date().toISOString().split('T')[0];
+    if (shiftStillOpen) {
+      toast.error('Checkout stays closed until 6:30 PM. One check-in covers the full shift.');
+      return;
+    }
+    const today = localToday();
     const pending = localStorage.getItem('pendingCheckIn');
-    if (!pending) return toast.error('No active check-in');
+    if (!pending) return toast.error('Check in first. There is no open shift to close.');
     const p = JSON.parse(pending);
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     try {
+      const reports = await api.get('/reports/my');
+      const hasReport = (reports.data || []).some((row) => row.date === today);
+      if (!hasReport) {
+        setReportPrompt(true);
+        return;
+      }
       const res = await api.post('/attendance/checkin', {
         employeeId: userId,
         date: today,
         checkIn: p.checkIn,
         checkOut: timeStr,
-        status: now.getHours() < 18 ? 'Early Leave' : 'Completed',
         workMode: p.workMode,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        accuracy: p.accuracy,
+        distanceFromOffice: p.distanceFromOffice,
       });
       localStorage.removeItem('pendingCheckIn');
       setRecords(records.map((r) => (r.date === today ? res.data : r)));
       setIsCheckedIn(false);
       setHasCompletedShift(true);
-      toast.success('Shift completed');
+      const mins = res.data.workedMinutes;
+      const hoursLabel = Number.isFinite(mins) ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` : '';
+      const note = res.data.status === 'Half Day'
+        ? 'Marked Half Day because checkout is before 6:30 PM.'
+        : res.data.status === 'Late'
+          ? 'Marked Late. You stayed till the end, but checked in after 10:15 AM.'
+          : 'Full day recorded.';
+      toast.success(`${res.data.status || 'Checked out'}${hoursLabel ? ` · ${hoursLabel}` : ''}. ${note}`);
     } catch (error) {
       if (error.response?.data?.message === 'MISSING_REPORT') {
-        toast.error('Submit daily report before checkout');
-        navigate('/daily-reports');
-      } else toast.error('Checkout failed');
+        setReportPrompt(true);
+      } else toast.error(error.response?.data?.message || 'Checkout failed');
     }
   };
 
-  const presentDays = records.filter((r) => r.status?.includes('Present') || r.status === 'Completed').length;
   const lateDays = records.filter((r) => r.status?.includes('Late')).length;
   const todayLabel = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
+  const todayKey = localToday();
+  const todayRow = records.find((row) => row.date === todayKey);
+  const place = todayRow?.workMode === 'Home' ? 'Working from home' : todayRow?.workMode === 'Field' ? 'On field' : 'At office';
+  const hour = now.getHours();
+  const hello = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const statusLine = !todayRow?.checkIn
+    ? 'Not checked in'
+    : todayRow.checkOut
+      ? `Checked out · ${todayRow.status || 'Done'}${Number.isFinite(todayRow.workedMinutes) ? ` · ${Math.floor(todayRow.workedMinutes / 60)}h ${String(todayRow.workedMinutes % 60).padStart(2, '0')}m` : ''}`
+      : `${place} · in at ${todayRow.checkIn}`;
+  const prettyDate = (value) => {
+    if (!value) return '—';
+    const [y, m, day] = String(value).slice(0, 10).split('-');
+    if (!y || !m || !day) return String(value);
+    return new Date(Number(y), Number(m) - 1, Number(day)).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
+    <div className="w-full space-y-4">
+      <header className="flex flex-col gap-4 border border-line bg-surface px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[13px] text-muted">{todayLabel}</p>
-          <h1 className="mt-1 text-[22px] font-semibold tracking-tight text-ink">Welcome back, {firstName}</h1>
-          {pendingTasks > 0 && (
-            <p className="mt-1 text-[13px] text-muted">{pendingTasks} open task{pendingTasks > 1 ? 's' : ''} · <Link to="/tasks" className="text-brand">View</Link></p>
-          )}
+          <h1 className="mt-0.5 text-[18px] font-semibold text-ink">{hello}, {firstName}</h1>
+          <p className="mt-1 text-[13px] text-muted">{statusLine}</p>
+          <p className="mt-1 text-[13px] text-muted">Shift 10:15 AM – 6:30 PM · Lunch 1:30 PM – 2:15 PM</p>
         </div>
-        <div className="flex items-center gap-3 rounded border border-line bg-surface px-4 py-3">
-          <div className="border-r border-line pr-4 text-right">
-            <p className="text-[11px] uppercase tracking-wide text-muted">Time</p>
-            <p className="font-mono text-lg font-semibold tabular-nums text-ink">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
-          </div>
+        <div className="flex items-center gap-3">
+          <p className="font-mono text-[15px] tabular-nums text-ink">
+            {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
           {hasCompletedShift ? (
-            <span className="rounded bg-brand-xlight px-3 py-2 text-[13px] font-medium text-brand">Shift done</span>
+            <span className="bg-brand-xlight px-3 py-2 text-[13px] font-medium text-brand">Shift complete</span>
           ) : !isCheckedIn ? (
             <button type="button" disabled={isLocating} onClick={() => setModeModalOpen(true)} className="btn-primary inline-flex h-9 items-center gap-2 px-4 text-[13px]">
               <FiClock className="h-4 w-4" /> {isLocating ? 'Locating…' : 'Check in'}
             </button>
+          ) : shiftStillOpen ? (
+            <span className="border border-line bg-soft px-3 py-2 text-[13px] text-ink">Checked in · out at 6:30 PM</span>
           ) : (
             <button type="button" onClick={handleCheckOut} className="btn-outline inline-flex h-9 items-center gap-2 px-4 text-[13px]">
               <FiLogOut className="h-4 w-4" /> Check out
@@ -181,101 +297,131 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {locationError && <p className="rounded border border-warning/30 bg-warning/5 px-3 py-2 text-[13px] text-warning">{locationError}</p>}
+      {locationError && (
+        <div className="border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-ink">
+          <p className="font-medium">Office check-in needs a better location</p>
+          <p className="mt-1 text-ink/80">{locationError}</p>
+        </div>
+      )}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {reportPrompt && (
+        <div className="border border-line bg-surface px-4 py-3">
+          <p className="text-[14px] font-medium text-ink">Daily report is required before checkout</p>
+          <p className="mt-1 text-[13px] text-muted">Save today’s work report, then come back and check out.</p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={() => navigate('/daily-reports')} className="h-8 bg-brand px-3 text-[13px] text-white">Write daily report</button>
+            <button type="button" onClick={() => setReportPrompt(false)} className="h-8 border border-line px-3 text-[13px]">Not now</button>
+          </div>
+        </div>
+      )}
+
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: 'Present days', value: presentDays },
-          { label: 'Late marks', value: lateDays },
+          { label: 'Due today', value: dueToday },
           { label: 'Open tasks', value: pendingTasks },
-          { label: 'This month', value: records.length },
+          { label: 'Leave waiting', value: leavePending },
+          { label: 'Late days', value: lateDays },
         ].map((s) => (
-          <div key={s.label} className="rounded border border-line bg-surface p-4">
+          <div key={s.label} className="border border-line bg-surface px-4 py-3">
             <p className="text-[13px] text-muted">{s.label}</p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums text-ink">{s.value}</p>
+            <p className="mt-1 text-[22px] font-semibold tabular-nums text-ink">{s.value}</p>
           </div>
         ))}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="rounded border border-line bg-surface">
-          <div className="border-b border-line px-4 py-3 flex justify-between">
-            <h2 className="text-[13px] font-semibold text-ink">Recent attendance</h2>
-            <Link to="/attendance" className="text-[13px] text-brand">View all</Link>
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <section className="border border-line bg-surface">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <h2 className="text-[14px] font-semibold text-ink">Tasks</h2>
+            <Link to="/tasks" className="text-[13px] text-brand">View all</Link>
           </div>
-          <table className="w-full text-left text-[13px]">
-            <thead>
-              <tr className="border-b border-line bg-soft text-muted">
-                <th className="px-4 py-2.5 font-medium">Date</th>
-                <th className="px-4 py-2.5 font-medium">In</th>
-                <th className="px-4 py-2.5 font-medium">Out</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.slice(0, 5).map((r, i) => (
-                <tr key={r.id || i} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3 text-ink">{r.date}</td>
-                  <td className="px-4 py-3 text-muted">{r.checkIn || '—'}{r.workMode ? ` · ${r.workMode}` : ''}</td>
-                  <td className="px-4 py-3 text-muted">{r.checkOut || '—'}</td>
-                  <td className="px-4 py-3"><span className="rounded bg-soft px-2 py-0.5 text-xs">{r.status}</span></td>
-                </tr>
+          {openTasks.length === 0 ? (
+            <p className="px-4 py-6 text-[13px] text-muted">Nothing open.</p>
+          ) : (
+            <ul>
+              {openTasks.slice(0, 6).map((task) => (
+                <li key={task._id} className="flex items-center justify-between gap-4 border-b border-line px-4 py-3 last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-ink">{task.title}</p>
+                    <p className="mt-0.5 text-[12px] text-muted">Due {prettyDate(task.dueDate)}</p>
+                  </div>
+                  <span className="shrink-0 bg-soft px-2 py-0.5 text-[12px] text-ink">{task.status}</span>
+                </li>
               ))}
-              {records.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted">No records yet</td></tr>}
-            </tbody>
-          </table>
+            </ul>
+          )}
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded border border-line bg-surface">
-            <div className="border-b border-line px-4 py-3 text-[13px] font-semibold text-ink">Upcoming holidays</div>
-            <ul className="divide-y divide-line">
-              {holidays.length === 0 ? (
-                <li className="px-4 py-4 text-[13px] text-muted">None scheduled</li>
-              ) : holidays.map((h) => (
-                <li key={h.id || h._id} className="px-4 py-3">
-                  <p className="text-[13px] font-medium text-ink">{h.name}</p>
-                  <p className="text-xs text-muted">{new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-                </li>
-              ))}
-            </ul>
+        <section className="border border-line bg-surface">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <h2 className="text-[14px] font-semibold text-ink">Attendance</h2>
+            <Link to="/attendance" className="text-[13px] text-brand">View all</Link>
           </div>
-          <div className="rounded border border-line bg-surface">
-            <div className="border-b border-line px-4 py-3 text-[13px] font-semibold text-ink">Announcements</div>
-            <ul className="divide-y divide-line">
-              {announcements.length === 0 ? (
-                <li className="px-4 py-4 text-[13px] text-muted">No announcements</li>
-              ) : announcements.map((a) => (
-                <li key={a._id} className="px-4 py-3">
-                  <p className="text-[13px] font-medium text-ink">{a.title}</p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-muted">{a.description}</p>
-                </li>
-              ))}
-            </ul>
-            <div className="border-t border-line px-4 py-2">
-              <Link to="/policies" className="text-[13px] text-brand">View all</Link>
-            </div>
+          <ul>
+            {records.length === 0 ? (
+              <li className="px-4 py-6 text-[13px] text-muted">No check-ins yet.</li>
+            ) : records.slice(0, 5).map((r, i) => (
+              <li key={r.id || i} className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 last:border-0">
+                <div>
+                  <p className="text-[13px] font-medium text-ink">{prettyDate(r.date)}</p>
+                  <p className="mt-0.5 text-[12px] text-muted">{r.checkIn || '—'}{r.checkOut ? ` – ${r.checkOut}` : ''}</p>
+                </div>
+                <span className="bg-soft px-2 py-0.5 text-[12px] text-ink">{r.workMode || r.status}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        <section className="border border-line bg-surface">
+          <h2 className="border-b border-line px-4 py-3 text-[14px] font-semibold text-ink">Holidays</h2>
+          <ul>
+            {holidays.length === 0 ? (
+              <li className="px-4 py-6 text-[13px] text-muted">No upcoming holidays.</li>
+            ) : holidays.slice(0, 4).map((h) => (
+              <li key={h.id || h._id} className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 last:border-0">
+                <p className="text-[13px] font-medium text-ink">{h.name}</p>
+                <p className="text-[13px] text-muted">{prettyDate(h.date)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className="border border-line bg-surface">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <h2 className="text-[14px] font-semibold text-ink">Announcements</h2>
+            <Link to="/policies" className="text-[13px] text-brand">View all</Link>
           </div>
-        </aside>
+          <ul>
+            {announcements.length === 0 ? (
+              <li className="px-4 py-6 text-[13px] text-muted">Nothing new.</li>
+            ) : announcements.slice(0, 3).map((a) => (
+              <li key={a._id} className="border-b border-line px-4 py-3 last:border-0">
+                <p className="text-[13px] font-medium text-ink">{a.title}</p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] text-muted">{a.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
 
       {modeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4" onClick={() => setModeModalOpen(false)}>
-          <div className="w-full max-w-md rounded border border-line bg-surface p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded border border-line bg-surface p-5 shadow-sm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-ink">Work location</h3>
-              <button type="button" onClick={() => setModeModalOpen(false)} className="text-muted"><FiX /></button>
+              <h3 className="text-[15px] font-semibold text-ink">Where are you working?</h3>
+              <button type="button" onClick={() => setModeModalOpen(false)} className="rounded p-1 text-muted hover:bg-soft" aria-label="Close"><FiX /></button>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { mode: 'Office', icon: FiBriefcase, sub: 'GPS required' },
+                { mode: 'Office', icon: FiBriefcase, sub: 'Within 300m' },
                 { mode: 'Home', icon: FiHome, sub: 'Remote' },
                 { mode: 'Field', icon: FiMapPin, sub: 'On site' },
               ].map(({ mode, icon: Icon, sub }) => (
-                <button key={mode} type="button" onClick={() => handleMode(mode)} className="rounded border border-line p-4 text-center hover:border-brand/40 hover:bg-brand-xlight">
+                <button key={mode} type="button" onClick={() => handleMode(mode)} className="rounded border border-line px-2 py-4 text-center transition hover:border-brand/40 hover:bg-brand-xlight">
                   <Icon className="mx-auto h-5 w-5 text-brand" />
                   <p className="mt-2 text-[13px] font-medium text-ink">{mode}</p>
-                  <p className="text-[10px] text-muted">{sub}</p>
+                  <p className="mt-0.5 text-[11px] text-muted">{sub}</p>
                 </button>
               ))}
             </div>

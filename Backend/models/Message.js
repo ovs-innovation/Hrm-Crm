@@ -57,12 +57,61 @@ const messageSchema = new mongoose.Schema(
       index: true,
       default: '',
     },
+    conversationKind: {
+      type: String,
+      enum: ['dm', 'channel', 'group', 'whatsapp'],
+      default: 'dm',
+      index: true,
+    },
+    channelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'WorkspaceChannel',
+      default: null,
+      index: true,
+    },
+    threadId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+      default: null,
+      index: true,
+    },
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+      default: null,
+    },
+    forwardedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+      default: null,
+    },
+    fileName: { type: String, default: '' },
+    durationMs: { type: Number, default: 0 },
+    mentions: [{ type: mongoose.Schema.Types.ObjectId }],
+    reactions: [
+      {
+        emoji: { type: String, required: true },
+        userIds: [{ type: mongoose.Schema.Types.ObjectId }],
+      },
+    ],
+    readBy: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, required: true },
+        at: { type: Date, default: Date.now },
+      },
+    ],
+    editedAt: { type: Date, default: null },
+    deletedAt: { type: Date, default: null, index: true },
+    pinnedAt: { type: Date, default: null },
+    pinnedBy: { type: mongoose.Schema.Types.ObjectId, default: null },
   },
   { timestamps: true }
 );
 
 messageSchema.index({ channel: 1, whatsappPhone: 1, createdAt: 1 });
 messageSchema.index({ senderId: 1, receiverId: 1, createdAt: 1 });
+messageSchema.index({ tenantId: 1, channelId: 1, deletedAt: 1, createdAt: -1 });
+messageSchema.index({ tenantId: 1, conversationKind: 1, createdAt: -1 });
 
 tenantScoped(messageSchema);
 

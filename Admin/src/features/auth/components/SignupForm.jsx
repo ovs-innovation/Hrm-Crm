@@ -45,7 +45,7 @@ const SignupForm = () => {
         <div className="relative z-10">
           <div className="text-center mb-6">
             <div className="mb-5 flex justify-center">
-              <VastoraLogo className="h-14 w-auto max-w-[240px] object-contain" />
+              <VastoraLogo variant="header" className="mx-auto" />
             </div>
             <h2 className="text-xl font-semibold text-ink">Create Account</h2>
             <p className="mt-1 text-sm text-muted">Setup your Vastora admin profile</p>

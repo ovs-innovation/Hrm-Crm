@@ -1,167 +1,143 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCommand, FiSearch, FiCpu, FiCornerDownLeft, FiX } from 'react-icons/fi';
 import api from '../services/api';
-import toast from 'react-hot-toast';
+
+const PAGES = [
+  { label: 'Dashboard', path: '/' },
+  { label: 'Leads', path: '/crm/leads' },
+  { label: 'Contacts', path: '/crm/contacts' },
+  { label: 'Accounts', path: '/crm/accounts' },
+  { label: 'Deals', path: '/crm/deals' },
+  { label: 'Quotes & Invoices', path: '/crm/invoices' },
+  { label: 'Meetings', path: '/crm/meetings' },
+  { label: 'Calls', path: '/crm/calls' },
+  { label: 'Campaigns', path: '/crm/campaigns' },
+  { label: 'Documents', path: '/crm/documents' },
+  { label: 'Employees', path: '/hrm/employees' },
+  { label: 'Attendance', path: '/hrm/attendance' },
+  { label: 'Leave', path: '/hrm/leaves' },
+  { label: 'Payroll', path: '/hrm/payroll' },
+  { label: 'Recruitment', path: '/hrm/recruitment' },
+  { label: 'Projects', path: '/work/projects' },
+  { label: 'Tasks', path: '/work/tasks' },
+  { label: 'Workspace', path: '/workspace' },
+  { label: 'Tickets', path: '/support/tickets' },
+  { label: 'Copilot', path: '/ai' },
+  { label: 'Knowledge base', path: '/ai/knowledge' },
+  { label: 'Reports', path: '/reports' },
+  { label: 'Company settings', path: '/settings' },
+];
 
 const CommandPalette = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  
-  const navigate = useNavigate();
+  const [records, setRecords] = useState([]);
+  const [active, setActive] = useState(0);
   const inputRef = useRef(null);
-  const paletteRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Global key listener for Ctrl + K
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
-      if (e.key === 'Escape') {
-        setIsOpen(false);
+        setOpen((v) => !v);
+      } else if (e.key === 'Escape') {
+        setOpen(false);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Autofocus input on open
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-      setQuery('');
-      setResult(null);
-    }
-  }, [isOpen]);
+    if (!open) return undefined;
+    setQuery('');
+    setRecords([]);
+    setActive(0);
+    const t = setTimeout(() => inputRef.current?.focus(), 20);
+    return () => clearTimeout(t);
+  }, [open]);
 
-  // Click outside to close
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (paletteRef.current && !paletteRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+    if (query.trim().length < 2) {
+      setRecords([]);
+      return undefined;
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  const handleCommandSubmit = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    setLoading(true);
-    try {
-      const res = await api.post('/ai/agent/command', { userInput: query });
-      setResult(res.data);
-      toast.success('AI executed action!');
-      
-      // Auto redirect if returned by agent
-      if (res.data.redirectUrl) {
-        setTimeout(() => {
-          navigate(res.data.redirectUrl);
-          setIsOpen(false);
-        }, 1500);
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await api.get(`/search?q=${encodeURIComponent(query.trim())}`);
+        const rows = [
+          ...(data.clients || []).map((c) => ({ id: c._id, label: c.company || c.name, hint: c.status, path: c.status === 'Lead' ? '/crm/leads' : '/crm/accounts' })),
+          ...(data.deals || []).map((d) => ({ id: d._id, label: d.title, hint: 'Deal', path: '/crm/deals' })),
+          ...(data.employees || []).map((e) => ({ id: e._id, label: e.name, hint: 'Employee', path: '/hrm/employees' })),
+          ...(data.projects || []).map((p) => ({ id: p._id, label: p.name, hint: 'Project', path: '/work/projects' })),
+          ...(data.tickets || []).map((ticket) => ({ id: ticket._id, label: ticket.subject, hint: 'Ticket', path: '/support/tickets' })),
+        ];
+        setRecords(rows.slice(0, 8));
+      } catch {
+        setRecords([]);
       }
-    } catch (err) {
-      toast.error('Agent execution failed');
-    } finally {
-      setLoading(false);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const pages = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return PAGES.filter((page) => !q || page.label.toLowerCase().includes(q)).slice(0, 8);
+  }, [query]);
+
+  const items = [...pages.map((p) => ({ ...p, hint: 'Go to' })), ...records];
+
+  const go = (path) => {
+    setOpen(false);
+    navigate(path);
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive((i) => Math.min(i + 1, Math.max(items.length - 1, 0)));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && items[active]) {
+      e.preventDefault();
+      go(items[active].path);
     }
   };
 
-  if (!isOpen) return null;
+  if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-start justify-center bg-black/50 pt-[15vh] backdrop-blur-sm p-4 animate-fade-in">
-      <div 
-        ref={paletteRef} 
-        className="w-full max-w-2xl rounded border border-line bg-surface p-4 shadow-xl relative"
-      >
-        <div className="flex justify-between items-center border-b border-line pb-3 mb-3">
-          <span className="text-[13px] font-bold text-muted flex items-center gap-1.5">
-            <FiCommand className="h-3.5 w-3.5" /> Vastora AI Command Palette
-          </span>
-          <button onClick={() => setIsOpen(false)} className="text-muted hover:text-ink transition-colors">
-            <FiX className="h-4 w-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleCommandSubmit} className="flex gap-2 relative">
-          <FiSearch className="absolute left-3 top-2.5 h-4.5 w-4.5 text-muted" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command... (e.g. 'Approve leave #123', 'Create lead Jane Doe', 'Today's attendance')"
-            className="app-input h-10 w-full pl-9 pr-4 text-[13px] focus:outline-none"
-          />
-          <button 
-            type="submit" 
-            className="btn-primary h-10 px-4 text-[13px] font-semibold flex items-center gap-1"
-          >
-            Run <FiCornerDownLeft className="h-3 w-3" />
-          </button>
-        </form>
-
-        {loading && (
-          <div className="flex items-center gap-2 text-[12px] text-muted mt-4 justify-center py-4">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
-            Analyzing parameters and selecting execution tool...
-          </div>
-        )}
-
-        {result && (
-          <div className="mt-4 border-t border-line/60 pt-4 space-y-3 text-[13px]">
-            <div className="flex items-center gap-2">
-              <FiCpu className="text-brand h-4.5 w-4.5" />
-              <span className="font-bold text-ink">Execution Result</span>
-            </div>
-            
-            <p className="text-ink bg-soft border border-line rounded p-3 leading-relaxed font-semibold">
-              {result.summary || result.chatResponse || 'No response summary.'}
-            </p>
-
-            <div className="grid grid-cols-2 gap-2 text-muted text-[12px] font-medium pt-2">
-              <div>
-                <strong>Selected Tool:</strong>{' '}
-                {result.actions?.[0]?.name || result.parsedCommand?.toolName || 'General Chat'}
-              </div>
-              <div>
-                <strong>Confidence:</strong>{' '}
-                {typeof result.confidence === 'number' ? `${Math.round(result.confidence * 100)}%` : '—'}
-              </div>
-            </div>
-
-            {result.actions?.length > 0 && (
-              <div className="rounded border border-line bg-soft/40 p-3 space-y-1.5">
-                <span className="text-[11px] text-brand uppercase font-bold">Actions</span>
-                <pre className="font-mono text-[11px] text-muted overflow-x-auto p-1.5 bg-soft rounded border border-line">
-                  {JSON.stringify(result.actions, null, 2)}
-                </pre>
-              </div>
-            )}
-
-            {result.autofillData && (
-              <div className="rounded border border-line bg-soft/40 p-3 space-y-1.5">
-                <span className="text-[11px] text-brand uppercase font-bold">Prefilled form parameters detected</span>
-                <pre className="font-mono text-[11px] text-muted overflow-x-auto p-1.5 bg-soft rounded border border-line">
-                  {JSON.stringify(result.autofillData, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-3 border-t border-line pt-3 flex justify-between items-center text-[11px] text-muted font-semibold">
-          <span>Type <kbd className="bg-soft px-1 rounded border border-line">Esc</kbd> to exit</span>
-          <span>Press <kbd className="bg-soft px-1 rounded border border-line">Ctrl + K</kbd> to toggle anywhere</span>
-        </div>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-ink/40 px-4 pt-[12vh]">
+      <div className="w-full max-w-lg overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setActive(0); }}
+          onKeyDown={onKeyDown}
+          placeholder="Search pages and records"
+          className="h-11 w-full border-b border-line bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-muted"
+        />
+        <ul className="max-h-80 overflow-y-auto py-1">
+          {items.length === 0 && (
+            <li className="px-4 py-6 text-[13px] text-muted">No matches.</li>
+          )}
+          {items.map((item, index) => (
+            <li key={`${item.path}-${item.label}-${item.id || index}`}>
+              <button
+                type="button"
+                onMouseEnter={() => setActive(index)}
+                onClick={() => go(item.path)}
+                className={`flex w-full items-center justify-between px-4 py-2 text-left text-[13px] ${index === active ? 'bg-soft text-ink' : 'text-ink'}`}
+              >
+                <span>{item.label}</span>
+                <span className="text-[12px] text-muted">{item.hint}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="border-t border-line px-4 py-2 text-[11px] text-muted">Ctrl+K to toggle · Enter to open</div>
       </div>
     </div>
   );

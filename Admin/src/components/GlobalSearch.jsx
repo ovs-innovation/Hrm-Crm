@@ -68,7 +68,7 @@ const GlobalSearch = () => {
             <Section title="Employees" items={results.employees.map((e) => ({ key: e._id, label: e.name, sub: e.department, path: '/hrm/employees' }))} onGo={go} />
           )}
           {results.tickets?.length > 0 && (
-            <Section title="Tickets" items={results.tickets.map((t) => ({ key: t._id, label: t.subject, sub: t.status, path: '/hrm/tickets' }))} onGo={go} />
+            <Section title="Tickets" items={results.tickets.map((t) => ({ key: t._id, label: t.subject, sub: t.status, path: '/support/tickets' }))} onGo={go} />
           )}
         </div>
       )}

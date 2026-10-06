@@ -6,7 +6,10 @@ const memoryCache = new Map();
 
 let hasWarned = false;
 try {
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  const redisUrl = process.env.REDIS_URL || '';
+  if (!redisUrl) {
+    console.log('[Redis] REDIS_URL is not set. Using in-memory cache.');
+  } else {
   redisClient = new Redis(redisUrl, {
     maxRetriesPerRequest: 1,
     enableReadyCheck: false,
@@ -25,6 +28,7 @@ try {
       hasWarned = true;
     }
   });
+  }
 } catch (e) {
   console.warn('[Redis] Initialization error, using in-memory fallback:', e.message);
 }

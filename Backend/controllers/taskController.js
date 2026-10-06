@@ -1,10 +1,11 @@
 import Task from '../models/Task.js';
+import { logAudit } from '../utils/auditLogger.js';
 import Employee from '../models/Employee.js';
 import mongoose from 'mongoose';
 
 export const createTask = async (req, res) => {
   try {
-    const { title, description, assignedTo, assignedBy, dueDate, assignerRole, projectName } = req.body;
+    const { title, description, assignedTo, assignedBy, dueDate, assignerRole, projectName, priority } = req.body;
     
     // Support for multiple assignees
     const employeeIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
@@ -24,7 +25,7 @@ export const createTask = async (req, res) => {
       const dept = (emp.department || '').toLowerCase().trim();
       const role = (assignerRole || '').toLowerCase().trim();
 
-      if (role === 'founder') continue;
+      if (['founder', 'admin', 'owner'].includes(role)) continue;
 
       const isEngineering = dept === 'software' || dept === 'engineering';
 
@@ -49,6 +50,7 @@ export const createTask = async (req, res) => {
         assignedTo: empId,
         assignedBy,
         dueDate,
+        priority: priority || 'Medium',
         status: 'Pending'
       }));
 
@@ -62,6 +64,7 @@ export const createTask = async (req, res) => {
         assignedTo,
         assignedBy,
         dueDate,
+        priority: priority || 'Medium',
         status: 'Pending'
       });
       return res.status(201).json(task);
@@ -90,17 +93,28 @@ export const getTasks = async (req, res) => {
 export const updateTaskStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, employeeComment } = req.body;
+    const { status, employeeComment, priority, progress } = req.body;
     
     const task = await Task.findById(id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    const previousStatus = task.status;
     if (status) task.status = status;
+    if (priority) task.priority = priority;
+    if (progress !== undefined && progress !== '') task.progress = Number(progress);
     if (employeeComment !== undefined) task.employeeComment = employeeComment;
 
     const updatedTask = await task.save();
+    await logAudit({
+      req,
+      action: 'UPDATE',
+      module: 'task',
+      entityId: updatedTask._id,
+      entityLabel: updatedTask.title,
+      changes: status && status !== previousStatus ? { status: { from: previousStatus, to: status } } : undefined,
+    });
     res.json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -110,10 +124,12 @@ export const updateTaskStatus = async (req, res) => {
 export const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
-    const task = await Task.findByIdAndDelete(id);
+    const task = await Task.findById(id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
+    await logAudit({ req, action: 'DELETE', module: 'task', entityId: task._id, entityLabel: task.title });
+    await task.deleteOne();
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

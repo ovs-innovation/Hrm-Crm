@@ -1,4 +1,5 @@
 import { callLLM } from './llm.service.js';
+import { screenResume } from './resumeScreener.service.js';
 import PromptConfig from '../models/PromptConfig.js';
 import Memory from '../models/Memory.js';
 import Learning from '../models/Learning.js';
@@ -143,36 +144,7 @@ Return JSON with: attendanceScore, performance, lateLoginPattern, leavePattern, 
 
 // ─── Module 4: Resume Parser & Scoring ───────────────────────────────────────
 export async function parseResume(resumeText, jobDescription) {
-  const defaultPrompt = `
-You are an AI Recruitment assistant.
-Analyze the following resume text:
----
-{{resumeText}}
----
-
-Score against Job Description:
----
-{{jobDescription}}
----
-
-Return JSON:
-{
-  "name": "string",
-  "email": "string",
-  "phone": "string",
-  "matchPercentage": number,
-  "confidence": number,
-  "experience": "string",
-  "skills": ["string"],
-  "jobDescriptionScoreExplanation": "string"
-}
-`;
-  const dbPrompt = await getSystemPrompt('resume_parser', defaultPrompt);
-  const compiled = await compileBusinessPrompt('Recruitment', dbPrompt);
-  const finalPrompt = compiled
-    .replace('{{resumeText}}', resumeText)
-    .replace('{{jobDescription}}', jobDescription || 'Full Stack Software Engineer');
-  return callLLM(finalPrompt, { jsonMode: true, ...DEEP, module: 'Recruitment' });
+  return screenResume(resumeText, jobDescription);
 }
 
 // ─── Module 5: Lead Scoring ───────────────────────────────────────────────────

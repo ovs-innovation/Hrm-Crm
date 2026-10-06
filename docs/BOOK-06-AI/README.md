@@ -8,7 +8,7 @@
 
 ## Scope
 
-- AI Assistant (context-aware chat)
+- [AI Assistant & Voice Roadmap](file:///c:/Users/drist/Hrm-Crm/docs/BOOK-06-AI/voice_assistant_roadmap.md) (context-aware chat, voice STT/TTS)
 - Email Writer, Proposal Generator
 - Meeting Summary, Lead Analysis
 - Resume Parser, AI Reports

@@ -40,7 +40,7 @@ async function retryWithBackoff(fn, retries = 3, delay = 1000) {
 
 // ─── OpenAI-compatible fetch (Groq, OpenRouter, Ollama share this format) ─────
 async function openAiCompatibleFetch(baseUrl, apiKey, modelName, prompt, options, correlationId) {
-  const timeoutMs = Number(process.env.AI_TIMEOUT) || 30000;
+  const timeoutMs = Number(options.timeoutMs || process.env.AI_TIMEOUT) || 30000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   if (options.signal) options.signal.addEventListener('abort', () => controller.abort());
@@ -57,8 +57,8 @@ async function openAiCompatibleFetch(baseUrl, apiKey, modelName, prompt, options
   const payload = {
     model: modelName,
     messages: [{ role: 'user', content: prompt }],
-    temperature: Number(process.env.AI_TEMPERATURE) || 0.2,
-    max_tokens: Number(process.env.AI_MAX_TOKENS) || 4096,
+    temperature: options.temperature ?? (Number(process.env.AI_TEMPERATURE) || 0.2),
+    max_tokens: Number(options.maxTokens || process.env.AI_MAX_TOKENS) || 4096,
     ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
   };
 
@@ -93,7 +93,7 @@ async function openAiCompatibleFetch(baseUrl, apiKey, modelName, prompt, options
 // ─── Core: generateText ───────────────────────────────────────────────────────
 export async function generateText(prompt, options = {}) {
   const start = Date.now();
-  const activeProvider = options.provider || defaultProvider;
+  const primaryProvider = options.provider || defaultProvider;
 
   const store = contextStorage.getStore();
   const activeTenantId = options.tenantId || store?.tenantId;
@@ -104,7 +104,8 @@ export async function generateText(prompt, options = {}) {
   const logEntry = async (providerName, modelName, text, inputTk, outputTk, cost, status, errorMsg) => {
     if (!activeTenantId) return;
     AILog.create({
-      prompt, response: text,
+      prompt: String(prompt || '').slice(0, 4000),
+      response: String(text || '').slice(0, 4000),
       latencyMs: Date.now() - start,
       tokensCount: inputTk + outputTk,
       costUSD: cost,
@@ -129,15 +130,13 @@ export async function generateText(prompt, options = {}) {
     }
   };
 
-  // ── 1. Groq ──
-  if (activeProvider === 'groq') {
-    if (!groqApiKey) throw new Error('GROQ_API_KEY not set in environment.');
-    const modelName = options.model || process.env.GROQ_CHAT_MODEL || 'llama-3.1-8b-instant';
-    // Groq doesn't support json_object format for all models — strip it
-    const groqOptions = { ...options, jsonMode: false };
-    // Instead instruct JSON via prompt suffix
-    const groqPrompt = options.jsonMode ? `${prompt}\n\nRespond with valid JSON only.` : prompt;
-    try {
+  async function runProvider(prov) {
+    // ── 1. Groq ──
+    if (prov === 'groq') {
+      if (!groqApiKey) throw new Error('GROQ_API_KEY not set in environment.');
+      const modelName = options.model || process.env.GROQ_CHAT_MODEL || 'llama-3.1-8b-instant';
+      const groqOptions = { ...options };
+      const groqPrompt = options.jsonMode ? `${prompt}\n\nRespond with valid JSON only.` : prompt;
       const { text, inputTokens, outputTokens } = await openAiCompatibleFetch(
         'https://api.groq.com/openai', groqApiKey, modelName, groqPrompt, groqOptions, correlationId
       );
@@ -145,18 +144,12 @@ export async function generateText(prompt, options = {}) {
       const parsed = options.jsonMode ? parseJson(text) : null;
       await logEntry('groq', modelName, text, inputTokens, outputTokens, cost, 'Success', null);
       return { text, parsed, tokens: inputTokens + outputTokens, costUSD: cost, latencyMs: Date.now() - start, model: modelName, correlationId };
-    } catch (err) {
-      const inputTk = Math.ceil(prompt.length / 4);
-      await logEntry('groq', modelName, '', inputTk, 0, 0, 'Failed', err.message);
-      throw err;
     }
-  }
 
-  // ── 2. OpenRouter ──
-  if (activeProvider === 'openrouter') {
-    if (!openrouterApiKey) throw new Error('OPENROUTER_API_KEY not set in environment.');
-    const modelName = options.model || process.env.OPENROUTER_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct';
-    try {
+    // ── 2. OpenRouter ──
+    if (prov === 'openrouter') {
+      if (!openrouterApiKey) throw new Error('OPENROUTER_API_KEY not set in environment.');
+      const modelName = options.model || process.env.OPENROUTER_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct';
       const { text, inputTokens, outputTokens } = await openAiCompatibleFetch(
         'https://openrouter.ai/api', openrouterApiKey, modelName, prompt, options, correlationId
       );
@@ -164,17 +157,11 @@ export async function generateText(prompt, options = {}) {
       const parsed = options.jsonMode ? parseJson(text) : null;
       await logEntry('openrouter', modelName, text, inputTokens, outputTokens, cost, 'Success', null);
       return { text, parsed, tokens: inputTokens + outputTokens, costUSD: cost, latencyMs: Date.now() - start, model: modelName, correlationId };
-    } catch (err) {
-      const inputTk = Math.ceil(prompt.length / 4);
-      await logEntry('openrouter', modelName, '', inputTk, 0, 0, 'Failed', err.message);
-      throw err;
     }
-  }
 
-  // ── 3. Ollama (local) ──
-  if (activeProvider === 'ollama') {
-    const modelName = options.model || process.env.OLLAMA_CHAT_MODEL || 'llama3.2';
-    try {
+    // ── 3. Ollama (local) ──
+    if (prov === 'ollama') {
+      const modelName = options.model || process.env.OLLAMA_CHAT_MODEL || 'llama3.2';
       const { text, inputTokens, outputTokens } = await openAiCompatibleFetch(
         ollamaBaseUrl, null, modelName, prompt, options, correlationId
       );
@@ -182,18 +169,12 @@ export async function generateText(prompt, options = {}) {
       const parsed = options.jsonMode ? parseJson(text) : null;
       await logEntry('ollama', modelName, text, inputTokens, outputTokens, cost, 'Success', null);
       return { text, parsed, tokens: inputTokens + outputTokens, costUSD: cost, latencyMs: Date.now() - start, model: modelName, correlationId };
-    } catch (err) {
-      const inputTk = Math.ceil(prompt.length / 4);
-      await logEntry('ollama', modelName, '', inputTk, 0, 0, 'Failed', err.message);
-      throw err;
     }
-  }
 
-  // ── 3.5 OpenAI ──
-  if (activeProvider === 'openai') {
-    if (!openaiApiKey) throw new Error('OPENAI_API_KEY not set in environment.');
-    const modelName = options.model || process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
-    try {
+    // ── 3.5 OpenAI ──
+    if (prov === 'openai') {
+      if (!openaiApiKey) throw new Error('OPENAI_API_KEY not set in environment.');
+      const modelName = options.model || process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
       const { text, inputTokens, outputTokens } = await openAiCompatibleFetch(
         'https://api.openai.com', openaiApiKey, modelName, prompt, options, correlationId
       );
@@ -201,23 +182,17 @@ export async function generateText(prompt, options = {}) {
       const parsed = options.jsonMode ? parseJson(text) : null;
       await logEntry('openai', modelName, text, inputTokens, outputTokens, cost, 'Success', null);
       return { text, parsed, tokens: inputTokens + outputTokens, costUSD: cost, latencyMs: Date.now() - start, model: modelName, correlationId };
-    } catch (err) {
-      const inputTk = Math.ceil(prompt.length / 4);
-      await logEntry('openai', modelName, '', inputTk, 0, 0, 'Failed', err.message);
-      throw err;
     }
-  }
 
-  // ── 4. Gemini ──
-  if (activeProvider === 'gemini') {
-    if (!genAI) throw new Error('GEMINI_API_KEY not set or client failed to initialize.');
-    const modelName = options.model || process.env.GEMINI_CHAT_MODEL || 'gemini-2.0-flash';
-    const timeoutMs = Number(process.env.AI_TIMEOUT) || 30000;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    if (options.signal) options.signal.addEventListener('abort', () => controller.abort());
+    // ── 4. Gemini ──
+    if (prov === 'gemini') {
+      if (!genAI) throw new Error('GEMINI_API_KEY not set or client failed to initialize.');
+      const modelName = options.model || process.env.GEMINI_CHAT_MODEL || 'gemini-2.0-flash';
+      const timeoutMs = Number(process.env.AI_TIMEOUT) || 30000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      if (options.signal) options.signal.addEventListener('abort', () => controller.abort());
 
-    try {
       const model = genAI.getGenerativeModel({ model: modelName });
       const config = {
         maxOutputTokens: Number(process.env.AI_MAX_TOKENS) || 4096,
@@ -235,28 +210,63 @@ export async function generateText(prompt, options = {}) {
       const parsed = options.jsonMode ? parseJson(text) : null;
       await logEntry('gemini', modelName, text, inputTokens, outputTokens, cost, 'Success', null);
       return { text, parsed, tokens: inputTokens + outputTokens, costUSD: cost, latencyMs: Date.now() - start, model: modelName, correlationId };
+    }
+
+    throw new Error(`AI Provider "${prov}" is not supported.`);
+  }
+
+  if (options.fallback === false) {
+    return runProvider(primaryProvider);
+  }
+
+  // Create automatic fallback chain
+  const providersChain = [primaryProvider];
+  if (primaryProvider !== 'openrouter' && openrouterApiKey) providersChain.push('openrouter');
+  if (primaryProvider !== 'groq' && groqApiKey) providersChain.push('groq');
+  if (primaryProvider !== 'gemini' && geminiApiKey) providersChain.push('gemini');
+
+  let lastError = null;
+  for (const prov of providersChain) {
+    try {
+      return await runProvider(prov);
     } catch (err) {
-      clearTimeout(timer);
+      console.error(`[AI Provider Fallback] Attempt with ${prov} failed: ${err.message}. Trying next...`);
+      lastError = err;
       const inputTk = Math.ceil(prompt.length / 4);
-      await logEntry('gemini', modelName, '', inputTk, 0, 0, 'Failed', err.message);
-      throw err;
+      await logEntry(prov, 'fallback-error', '', inputTk, 0, 0, 'Failed', err.message);
     }
   }
 
-  throw new Error(`AI Provider "${activeProvider}" is not supported. Set AI_PROVIDER in .env to one of: groq, openrouter, ollama, gemini, openai.`);
+  throw lastError || new Error('All AI providers in fallback chain failed.');
 }
 
-// ─── Embeddings (Gemini only — best quality for RAG) ─────────────────────────
+function generateLocalFallbackEmbedding(text) {
+  const embedding = new Array(768).fill(0);
+  for (let i = 0; i < text.length; i++) {
+    const charCode = text.charCodeAt(i);
+    const index = (charCode * (i + 1)) % 768;
+    embedding[index] = (embedding[index] + charCode) / 255;
+  }
+  let sumSq = 0;
+  for (let val of embedding) sumSq += val * val;
+  const norm = Math.sqrt(sumSq) || 1;
+  return embedding.map(val => val / norm);
+}
+
+// ─── Embeddings (Gemini with local fallback) ─────────────────────────────────
 export async function getEmbedding(text) {
-  if (!genAI) throw new Error('Gemini is required for embeddings. Set GEMINI_API_KEY in .env.');
+  if (!genAI) {
+    console.warn('[Embedding] Gemini client not initialized. Using local fallback embedding.');
+    return generateLocalFallbackEmbedding(text);
+  }
   const modelName = process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004';
   try {
     const model = genAI.getGenerativeModel({ model: modelName });
     const result = await model.embedContent(text);
     return result.embedding.values;
   } catch (err) {
-    console.error('[Embedding error]', err.message);
-    throw err;
+    console.error('[Embedding error] falling back to local embedding:', err.message);
+    return generateLocalFallbackEmbedding(text);
   }
 }
 

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import VastoraLogo from '../components/VastoraLogo';
 import { getNavAccess } from '../utils/roleAccess';
 import {
   FiHome,
   FiBarChart2,
-  FiPieChart,
   FiChevronDown,
   FiChevronRight,
   FiX,
@@ -20,54 +19,123 @@ import {
   FiCalendar,
   FiPhone,
   FiUsers,
-  FiMessageSquare,
   FiAward,
   FiClock,
   FiLifeBuoy,
   FiSettings,
   FiFileText,
   FiCpu,
-  FiShoppingBag,
+  FiBook,
+  FiHash,
+  FiPieChart,
 } from 'react-icons/fi';
 
-const SALES = [
-  { title: 'Leads', to: '/crm/leads', icon: FiTarget },
-  { title: 'Contacts', to: '/crm/contacts', icon: FiUser },
-  { title: 'Accounts', to: '/crm/accounts', icon: FiBriefcase },
-  { title: 'Deals', to: '/crm/deals', icon: FiDollarSign },
-  { title: 'Quotes & Invoices', to: '/crm/invoices', icon: FiFileText },
-  { title: 'Documents', to: '/crm/documents', icon: FiFolder },
-  { title: 'Campaigns', to: '/crm/campaigns', icon: FiRadio },
-  { title: 'Automation Builder', to: '/crm/automation', icon: FiCpu },
-  { title: 'Report Builder', to: '/crm/reports', icon: FiFileText },
-  { title: 'AI Unified Inbox', to: '/crm/inbox', icon: FiMessageSquare },
-  { title: 'SaaS Marketplace', to: '/crm/marketplace', icon: FiShoppingBag },
-  { title: 'AI Cost Audit', to: '/crm/ai-costs', icon: FiPieChart },
-];
-
-const ACTIVITIES = [
-  { title: 'Tasks', to: '/crm/tasks', icon: FiCheckSquare },
-  { title: 'Meetings', to: '/crm/meetings', icon: FiCalendar },
-  { title: 'Calls', to: '/crm/calls', icon: FiPhone },
-];
-
-const PEOPLE = [
-  { title: 'Employees', to: '/hrm/employees', icon: FiUsers },
-  { title: 'Setup Wizard (10m)', to: '/setup-wizard', icon: FiSettings },
-  { title: 'Org Chart', to: '/hrm/org-chart', icon: FiUsers },
-  { title: 'Departments', to: '/hrm/department', icon: FiBriefcase },
-  { title: 'Designations', to: '/hrm/designation', icon: FiAward },
-  { title: 'Leaves', to: '/hrm/leaves', icon: FiCalendar },
-  { title: 'Attendance', to: '/hrm/attendance', icon: FiCalendar },
-  { title: 'Shift roster', to: '/hrm/shift-roster', icon: FiClock },
-  { title: 'Holidays', to: '/hrm/holiday', icon: FiCalendar },
-  { title: 'Payroll', to: '/hrm/payroll', icon: FiDollarSign },
-  { title: 'Appreciation', to: '/hrm/appreciation', icon: FiAward },
-  { title: 'Support tickets', to: '/hrm/tickets', icon: FiLifeBuoy },
-  { title: 'Recruitment', to: '/hrm/recruitment', icon: FiTarget },
-  { title: 'Announcements', to: '/hrm/announcements', icon: FiRadio },
-  { title: 'Daily reports', to: '/hrm/daily-reports', icon: FiFolder },
-  { title: 'Projects', to: '/hrm/projects', icon: FiBriefcase },
+const SECTIONS = [
+  {
+    id: 'crm',
+    title: 'CRM',
+    access: 'crm',
+    items: [
+      { title: 'Leads', to: '/crm/leads', icon: FiTarget },
+      { title: 'Contacts', to: '/crm/contacts', icon: FiUser },
+      { title: 'Accounts', to: '/crm/accounts', icon: FiBriefcase },
+      { title: 'Deals', to: '/crm/deals', icon: FiDollarSign },
+      {
+        title: 'Sales',
+        children: [
+          { title: 'Quotes & Invoices', to: '/crm/invoices', icon: FiFileText },
+          { title: 'Meetings', to: '/crm/meetings', icon: FiCalendar },
+          { title: 'Calls', to: '/crm/calls', icon: FiPhone },
+          { title: 'Campaigns', to: '/crm/campaigns', icon: FiRadio },
+          { title: 'Documents', to: '/crm/documents', icon: FiFolder },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'hrms',
+    title: 'HRMS',
+    access: 'hrms',
+    items: [
+      { title: 'Employees', to: '/hrm/employees', icon: FiUsers },
+      { title: 'Attendance', to: '/hrm/attendance', icon: FiClock },
+      { title: 'Work from home', to: '/hrm/wfh', icon: FiHome },
+      { title: 'Leave', to: '/hrm/leaves', icon: FiCalendar },
+      { title: 'Payroll', to: '/hrm/payroll', icon: FiDollarSign },
+      { title: 'Recruitment', to: '/hrm/recruitment', icon: FiTarget },
+      {
+        title: 'Organization',
+        children: [
+          { title: 'Departments', to: '/hrm/department', icon: FiBriefcase },
+          { title: 'Designations', to: '/hrm/designation', icon: FiAward },
+          { title: 'Org chart', to: '/hrm/org-chart', icon: FiUsers },
+          { title: 'Shift roster', to: '/hrm/shift-roster', icon: FiClock },
+          { title: 'Holidays', to: '/hrm/holiday', icon: FiCalendar },
+        ],
+      },
+      {
+        title: 'Announcements',
+        children: [
+          { title: 'Announcements', to: '/hrm/announcements', icon: FiRadio },
+          { title: 'Appreciation', to: '/hrm/appreciation', icon: FiAward },
+          { title: 'Daily reports', to: '/hrm/daily-reports', icon: FiFolder },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'work',
+    title: 'Work',
+    access: 'work',
+    items: [
+      { title: 'Projects', to: '/work/projects', icon: FiBriefcase },
+      { title: 'Tasks', to: '/work/tasks', icon: FiCheckSquare },
+    ],
+  },
+  {
+    id: 'workspace',
+    title: 'Workspace',
+    access: 'workspace',
+    items: [{ title: 'Channels', to: '/workspace', icon: FiHash }],
+  },
+  {
+    id: 'support',
+    title: 'Support',
+    access: 'support',
+    items: [{ title: 'Tickets', to: '/support/tickets', icon: FiLifeBuoy }],
+  },
+  {
+    id: 'ai',
+    title: 'AI',
+    access: 'ai',
+    items: [
+      { title: 'Copilot', to: '/ai', icon: FiCpu },
+      { title: 'Knowledge base', to: '/ai/knowledge', icon: FiBook },
+      { title: 'Usage', to: '/ai/usage', icon: FiPieChart },
+    ],
+  },
+  {
+    id: 'reports',
+    title: 'Reports',
+    access: 'reports',
+    items: [
+      { title: 'CRM', to: '/reports?report=sales-overview', icon: FiBarChart2 },
+      { title: 'HR', to: '/reports?report=attendance', icon: FiUsers },
+      { title: 'Work', to: '/reports?report=tasks', icon: FiCheckSquare },
+      { title: 'Finance', to: '/reports?report=payroll', icon: FiDollarSign },
+      { title: 'Builder', to: '/reports/builder', icon: FiFileText },
+    ],
+  },
+  {
+    id: 'admin',
+    title: 'Administration',
+    access: 'administration',
+    items: [
+      { title: 'Company', to: '/settings', icon: FiBriefcase },
+      { title: 'Audit', to: '/settings#audit', icon: FiFileText },
+      { title: 'Setup', to: '/setup-wizard', icon: FiSettings },
+    ],
+  },
 ];
 
 const NavItem = ({ to, icon: Icon, title, end, onClick }) => (
@@ -88,11 +156,11 @@ const NavItem = ({ to, icon: Icon, title, end, onClick }) => (
   </NavLink>
 );
 
-const Section = ({ title, children, defaultOpen = true }) => {
+const Section = ({ title, children, defaultOpen }) => {
   const [open, setOpen] = useState(defaultOpen);
   if (!children || React.Children.count(children) === 0) return null;
   return (
-    <div className="pt-4">
+    <div className="pt-3">
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -107,6 +175,7 @@ const Section = ({ title, children, defaultOpen = true }) => {
 };
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
+  const location = useLocation();
   const adminInfo = useSelector((state) => state.auth.adminInfo || {});
   const access = getNavAccess(adminInfo.role);
   const close = () => setIsOpen(false);
@@ -114,11 +183,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   return (
     <>
       {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-ink/20 md:hidden"
-          onClick={close}
-          aria-hidden
-        />
+        <div className="fixed inset-0 z-40 bg-ink/20 md:hidden" onClick={close} aria-hidden />
       )}
 
       <aside
@@ -127,7 +192,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         }`}
       >
         <div className="flex h-12 items-center justify-between border-b border-line px-3">
-          <VastoraLogo className="h-8 w-auto max-w-[150px] object-contain" />
+          <VastoraLogo variant="header" />
           <button
             type="button"
             onClick={close}
@@ -148,41 +213,36 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           </div>
         )}
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
-          <div className="space-y-0.5">
-            {access.home && <NavItem to="/" icon={FiHome} title="Home" end onClick={close} />}
-            <NavItem to="/ai-hub" icon={FiCpu} title="AI Hub (Co-Pilot)" onClick={close} />
-            {access.reports && <NavItem to="/reports" icon={FiBarChart2} title="Reports" end onClick={close} />}
-            {access.analytics && <NavItem to="/analytics" icon={FiPieChart} title="Analytics" end onClick={close} />}
-            {access.settings && <NavItem to="/settings" icon={FiSettings} title="Settings" end onClick={close} />}
-          </div>
-
-          {access.sales && (
-            <Section title="Sales">
-              {SALES.map((item) => (
-                <NavItem key={item.to} {...item} onClick={close} />
-              ))}
-            </Section>
+        <nav className="flex-1 overflow-y-auto px-2 py-2">
+          {access.dashboard && (
+            <NavItem to="/" icon={FiHome} title="Dashboard" end onClick={close} />
           )}
 
-          {access.activities && (
-            <Section title="Activities">
-              {ACTIVITIES.map((item) => (
-                <NavItem key={item.to} {...item} onClick={close} />
-              ))}
-            </Section>
-          )}
-
-          {access.people && (
-            <Section title="People">
-              {PEOPLE.map((item) => (
-                <NavItem key={item.to} {...item} onClick={close} />
-              ))}
-              {access.messenger && (
-                <NavItem to="/messenger" icon={FiMessageSquare} title="Messenger" onClick={close} />
+          {SECTIONS.filter((section) => access[section.access]).map((section) => (
+            <Section
+              key={section.id}
+              title={section.title}
+              defaultOpen={section.items.some((item) =>
+                item.to ? location.pathname.startsWith(item.to.split('?')[0]) : item.children?.some((child) => location.pathname.startsWith(child.to.split('?')[0]))
+              )}
+            >
+              {section.items.map((item) =>
+                item.children ? (
+                  <Section
+                    key={item.title}
+                    title={item.title}
+                    defaultOpen={item.children.some((child) => location.pathname.startsWith(child.to.split('?')[0]))}
+                  >
+                    {item.children.map((child) => (
+                      <NavItem key={child.to} {...child} onClick={close} />
+                    ))}
+                  </Section>
+                ) : (
+                  <NavItem key={item.to} {...item} onClick={close} />
+                )
               )}
             </Section>
-          )}
+          ))}
         </nav>
       </aside>
     </>

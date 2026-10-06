@@ -66,6 +66,116 @@ export async function runAgentOrchestrator(userInput, userRole, tenantId, client
   const userEmail = clientContext?.userEmail || 'System';
   const activeModule = clientContext?.module || 'General';
 
+  // ──── Step 0: HYBRID ROUTING CLASSIFIER ────
+  const classificationPrompt = `
+You are the Routing Classifier for Vastora, an enterprise HRM+CRM assistant.
+The user is currently viewing: ${clientContext?.path || clientContext?.page || 'unknown'} (${activeModule}).
+Prefer tools for that module when the request is ambiguous.
+Classify the user request into exactly one of these categories:
+- CHAT: General greetings, jokes, casual talk, non-HRM/CRM questions ("Hello", "What is AI?", "How are you?", "Tell me a joke", "Explain GST").
+- RAG: Questions about company policies, handbooks, office rules, timings, or uploaded files ("What is the leave policy?", "Tell me about company holiday list").
+- TOOL: Actions requiring database interaction or system execution ("Show employees", "Open Rahul", "Create invoice", "Approve leave").
+
+User Request: "${sanitizeUntrustedText(userInput)}"
+
+Return JSON ONLY:
+{
+  "classification": "CHAT | RAG | TOOL",
+  "reason": "brief explanation"
+}
+`;
+
+  let classification = 'CHAT';
+  try {
+    const classResult = await callLLM(classificationPrompt, { jsonMode: true, provider: 'groq', module: 'Classifier' });
+    classification = classResult.classification || 'CHAT';
+  } catch (err) {
+    console.error('[Classifier error, falling back to CHAT]', err.message);
+  }
+
+  // Retrieve RAG Context if relevant
+  let ragContext = "";
+  try {
+    const docs = await KnowledgeDoc.find({ tenantId });
+    const allChunks = [];
+    docs.forEach(doc => {
+      doc.chunks.forEach(chunk => {
+        allChunks.push({
+          id: chunk._id.toString(),
+          title: doc.title,
+          text: chunk.text,
+          embedding: chunk.embedding,
+          pageNumber: chunk.pageNumber,
+          metadata: chunk.metadata
+        });
+      });
+    });
+
+    if (allChunks.length > 0) {
+      const matches = await vectorService.searchVectorDatabase(userInput, allChunks, 3);
+      if (matches && matches.length > 0) {
+        ragContext = matches.map(m => `[Document: ${m.title}, Page: ${m.pageNumber || 1}] ${m.text}`).join('\n---\n');
+      }
+    }
+  } catch (ragErr) {
+    console.error('[RAG command injection error]', ragErr.message);
+  }
+
+  // Handle direct CHAT path
+  if (classification === 'CHAT') {
+    const chatPrompt = `
+You are Vastora, a warm, professional, helpful, and highly intelligent AI assistant for an enterprise HRM+CRM platform.
+Keep your response conversational, friendly, concise, and natural (like ChatGPT). Avoid robotic structures or menu templates.
+
+Previous conversation context:
+${JSON.stringify((prevLogsArg || []).slice(0, 3).map(l => ({ q: l.query, r: l.response })))}
+
+User Message: "${sanitizeUntrustedText(userInput)}"
+`;
+    const reply = await callLLM(chatPrompt, { provider: 'gemini', module: 'Chat' });
+    metrics.latency = Date.now() - orchestratorStart;
+    return {
+      userInput,
+      isValid: true,
+      reasoning: "Classified as CHAT. Answered directly via LLM.",
+      actions: [],
+      summary: reply,
+      chatReply: reply,
+      chatResponse: reply,
+      confidence: 1.0,
+      sources: [],
+      metrics
+    };
+  }
+
+  // Handle direct RAG path
+  if (classification === 'RAG') {
+    const ragPrompt = `
+You are the Company Knowledge Assistant for Vastora.
+Answer the user's question concisely and professionally, strictly using the document context below.
+If the information is not present or cannot be answered from the document, reply with: "I couldn't find this information in the uploaded company knowledge."
+
+Uploaded Company Knowledge:
+${ragContext || 'No documents uploaded yet.'}
+
+Question: "${sanitizeUntrustedText(userInput)}"
+`;
+    const reply = await callLLM(ragPrompt, { provider: 'gemini', module: 'Knowledge' });
+    metrics.latency = Date.now() - orchestratorStart;
+    return {
+      userInput,
+      isValid: true,
+      reasoning: "Classified as RAG. Answered using local documents context.",
+      actions: [],
+      summary: reply,
+      chatReply: reply,
+      chatResponse: reply,
+      confidence: 1.0,
+      sources: (ragContext ? [{ name: 'Company Knowledge Base', type: 'RAG' }] : []),
+      metrics
+    };
+  }
+
   // 1. Context Engine: Retrieve cached tenant
   const tenant = await contextEngine.loadCachedTenant(tenantId, metrics);
 
@@ -95,7 +205,9 @@ Tenant ID: ${tenantId}
 Company Name: ${tenant?.companyName || 'Vastora Tech'}
 User: ${userEmail} (Role: ${userRole})
 Current Page: ${clientContext?.page || 'Dashboard'}
+Current Path: ${clientContext?.path || 'unknown'}
 Active Module: ${activeModule}
+Context instruction: ${clientContext?.instruction || 'None'}
 Active Employee ID: ${clientContext?.selectedEmployeeId || 'None'}
 Active Lead ID: ${clientContext?.selectedLeadId || 'None'}
 Active Deal ID: ${clientContext?.selectedDealId || 'None'}
@@ -141,8 +253,12 @@ ${JSON.stringify(TOOLS_SCHEMA, null, 2)}
 SYSTEM CONTEXT:
 ${contextSummary}
 
+CRITICAL RULE FOR COMPANY KNOWLEDGE / POLICY QUESTIONS:
+- If the user query is about company policies, office rules, timings, documents, or company facts (e.g. GST info), you MUST answer strictly using the 'UPLOADED COMPANY KNOWLEDGE BASE CONTEXT' if present in the SYSTEM CONTEXT.
+- If the required information is NOT found in that context, you MUST plan to output exactly: "I couldn't find this information in the uploaded company knowledge." and do NOT hallucinate or make up any details.
+
 User Request:
-${buildSafeUserPrompt(userInput)}
+${sanitizeUntrustedText(userInput)}
 
 You must create a plan containing list of steps. For each step, specify the target business Agent, a clear instruction, and optionally a Tool to call with its parsed arguments.
 Return JSON ONLY in this format:
@@ -254,6 +370,7 @@ Validate:
 3. Is there any hallucinated data? If yes, correct it.
 4. Does the summary explain the Problem, Cause, Risk, Recommendation, Priority, and Impact where applicable?
 5. If the request was successful, provide exact executable action objects in the "actions" array matching the TOOLS_SCHEMA so the frontend can display action buttons.
+6. CRITICAL: If the query is about company policy or knowledge base, verify that the answer is sourced strictly from the 'UPLOADED COMPANY KNOWLEDGE BASE CONTEXT' if present. If it is NOT present or cannot be answered from it, you MUST output exactly: "I couldn't find this information in the uploaded company knowledge." as the summary. Never hallucinate.
 
 Return strictly in this JSON structure:
 {

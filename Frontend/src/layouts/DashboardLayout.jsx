@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import CommandPalette from '../components/CommandPalette';
 import Receptionist from '../components/Receptionist';
+import WfhTracker from '../components/WfhTracker';
 
 const DashboardLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -13,10 +14,11 @@ const DashboardLayout = () => {
       <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col md:ml-[220px]">
         <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-        <main className="flex-1 overflow-x-hidden bg-canvas p-6 lg:p-8">
+        <main className="flex-1 overflow-x-hidden bg-canvas px-4 py-5 sm:px-6 sm:py-6">
           <Outlet />
         </main>
       </div>
+      <WfhTracker />
       <CommandPalette />
       <Receptionist />
     </div>

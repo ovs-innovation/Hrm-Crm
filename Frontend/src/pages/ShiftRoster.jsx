@@ -22,7 +22,7 @@ const ShiftRoster = () => {
   return (
     <PageShell
       title="My shifts"
-      description="Your assigned shift schedule"
+      description="Shift 10:15 AM – 6:30 PM. Lunch 1:30 PM – 2:15 PM is not counted as work."
       count={items.length}
       actions={
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="app-input h-8 text-[13px]" />

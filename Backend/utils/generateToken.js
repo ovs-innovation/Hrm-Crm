@@ -5,15 +5,43 @@ import RefreshToken from '../models/RefreshToken.js';
 const ACCESS_TTL = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_DAYS || 14);
 
+const ACCESS_COOKIE_NAMES = ['admin_jwt', 'jwt'];
+const REFRESH_COOKIE_NAMES = ['admin_refreshToken', 'refreshToken'];
+
 const cookieOpts = (maxAgeMs) => {
   const isProd = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
     secure: isProd || process.env.COOKIE_SECURE === 'true',
-    sameSite: isProd ? 'strict' : 'lax',
+    sameSite: process.env.COOKIE_SAMESITE || (isProd ? 'lax' : 'lax'),
     path: '/',
     maxAge: maxAgeMs,
   };
+};
+
+const authCookieNames = (userType) =>
+  userType === 'Employee'
+    ? { access: 'jwt', refresh: 'refreshToken' }
+    : { access: 'admin_jwt', refresh: 'admin_refreshToken' };
+
+export const readAccessToken = (req) => {
+  for (const name of ACCESS_COOKIE_NAMES) {
+    if (req.cookies?.[name]) return req.cookies[name];
+  }
+  return null;
+};
+
+export const readRefreshToken = (req) => {
+  for (const name of REFRESH_COOKIE_NAMES) {
+    if (req.cookies?.[name]) return req.cookies[name];
+  }
+  return null;
+};
+
+const setAuthCookies = (res, { accessToken, refreshRaw, userType }) => {
+  const names = authCookieNames(userType);
+  res.cookie(names.access, accessToken, cookieOpts(parseDurationMs(ACCESS_TTL, 15 * 60 * 1000)));
+  res.cookie(names.refresh, refreshRaw, cookieOpts(REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000));
 };
 
 const parseDurationMs = (expiresIn, fallbackMs) => {
@@ -44,6 +72,7 @@ export const createRefreshSession = async ({
   familyId = crypto.randomUUID(),
   deviceId,
   deviceLabel,
+  tokenVersion = 0,
 }) => {
   const raw = crypto.randomBytes(48).toString('hex');
   const tokenHash = hashToken(raw);
@@ -67,10 +96,10 @@ export const createRefreshSession = async ({
     userId,
     tenantId,
     userType,
+    tokenVersion,
   });
 
-  res.cookie('jwt', accessToken, cookieOpts(parseDurationMs(ACCESS_TTL, 15 * 60 * 1000)));
-  res.cookie('refreshToken', raw, cookieOpts(REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000));
+  setAuthCookies(res, { accessToken, refreshRaw: raw, userType });
 
   return { accessToken, refreshToken: raw, familyId, deviceId: resolvedDeviceId };
 };
@@ -140,8 +169,7 @@ export const rotateRefreshToken = async ({ rawRefreshToken, req, res }) => {
     userType: existing.userType,
   });
 
-  res.cookie('jwt', accessToken, cookieOpts(parseDurationMs(ACCESS_TTL, 15 * 60 * 1000)));
-  res.cookie('refreshToken', newRaw, cookieOpts(REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000));
+  setAuthCookies(res, { accessToken, refreshRaw: newRaw, userType: existing.userType });
 
   return {
     accessToken,
@@ -178,12 +206,13 @@ export const clearAuthCookies = (res) => {
   const base = {
     httpOnly: true,
     secure: isProd || process.env.COOKIE_SECURE === 'true',
-    sameSite: isProd ? 'strict' : 'lax',
+    sameSite: process.env.COOKIE_SAMESITE || (isProd ? 'lax' : 'lax'),
     path: '/',
     expires: new Date(0),
   };
-  res.cookie('jwt', '', base);
-  res.cookie('refreshToken', '', base);
+  for (const name of [...ACCESS_COOKIE_NAMES, ...REFRESH_COOKIE_NAMES]) {
+    res.cookie(name, '', base);
+  }
 };
 
 /** @deprecated use createRefreshSession — kept for gradual migration call sites */

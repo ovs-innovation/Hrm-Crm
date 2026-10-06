@@ -6,6 +6,7 @@ import generateToken, {
   revokeAllUserSessions,
   listUserSessions,
   clearAuthCookies,
+  readRefreshToken,
 } from '../utils/generateToken.js';
 import { emailFilter, normalizeEmail } from '../utils/normalizeEmail.js';
 import { withoutTenantScope } from '../plugins/tenantScope.plugin.js';
@@ -115,6 +116,7 @@ export const adminLogin = async (req, res) => {
         userId: admin._id,
         tenantId,
         userType: 'Admin',
+        tokenVersion: admin.tokenVersion || 0,
       });
 
       res.json({
@@ -134,7 +136,7 @@ export const adminLogin = async (req, res) => {
 
 export const adminLogout = async (req, res) => {
   try {
-    const raw = req.cookies?.refreshToken;
+    const raw = readRefreshToken(req);
     await revokeRefreshToken(raw);
     clearAuthCookies(res);
     res.status(200).json({ message: 'Logged out successfully' });
@@ -145,7 +147,7 @@ export const adminLogout = async (req, res) => {
 
 export const refreshAccessToken = async (req, res) => {
   try {
-    const raw = req.cookies?.refreshToken || req.body?.refreshToken;
+    const raw = readRefreshToken(req) || req.body?.refreshToken;
     const rotated = await rotateRefreshToken({ rawRefreshToken: raw, req, res });
     res.json({
       message: 'Token refreshed',

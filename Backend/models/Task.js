@@ -9,7 +9,7 @@ const taskSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
+      default: '',
     },
     projectName: {
       type: String,
@@ -29,6 +29,17 @@ const taskSchema = new mongoose.Schema(
       type: String,
       enum: ['Pending', 'In Progress', 'Completed'],
       default: 'Pending',
+    },
+    priority: {
+      type: String,
+      enum: ['Low', 'Medium', 'High', 'Urgent'],
+      default: 'Medium',
+    },
+    progress: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
     },
     employeeComment: {
       type: String,

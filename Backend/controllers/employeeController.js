@@ -2,6 +2,7 @@ import Employee from '../models/Employee.js';
 import { logAudit } from '../utils/auditLogger.js';
 import { createInviteForEmployee } from './inviteController.js';
 import crypto from 'crypto';
+import { rememberEmployee, forgetEmployee } from '../utils/employeeStore.js';
 
 // @desc    Register a new employee
 // @route   POST /api/employees/register
@@ -48,6 +49,15 @@ export const registerEmployee = async (req, res) => {
       if (!password) {
         invite = await createInviteForEmployee(employee, 'invite');
       }
+      rememberEmployee({
+        employeeId: employee.employeeId,
+        name: employee.name,
+        email: employee.email,
+        password: tempPassword,
+        role: employee.role,
+        designation: employee.designation,
+        department: employee.department,
+      });
       if (req.user) {
         await logAudit({ req, action: 'CREATE', module: 'employee', entityId: employee._id, entityLabel: employee.name });
       }
@@ -82,7 +92,7 @@ export const loginEmployee = async (req, res) => {
       const { createRefreshSession } = await import('../utils/generateToken.js');
       const { bindRequestTenant } = await import('../middlewares/contextMiddleware.js');
       if (employee.tenantId) bindRequestTenant(req, employee.tenantId);
-      await createRefreshSession({
+      const session = await createRefreshSession({
         res,
         req,
         userId: employee._id,
@@ -98,7 +108,9 @@ export const loginEmployee = async (req, res) => {
         role: employee.role,
         department: employee.department,
         designation: employee.designation,
+        profilePicture: employee.profilePicture || '',
         tenantId: employee.tenantId,
+        accessToken: session.accessToken,
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -125,8 +137,8 @@ export const getEmployees = async (req, res) => {
 // @access  Public
 export const logoutEmployee = async (req, res) => {
   try {
-    const { revokeRefreshToken, clearAuthCookies } = await import('../utils/generateToken.js');
-    await revokeRefreshToken(req.cookies?.refreshToken);
+    const { revokeRefreshToken, clearAuthCookies, readRefreshToken } = await import('../utils/generateToken.js');
+    await revokeRefreshToken(readRefreshToken(req));
     clearAuthCookies(res);
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
@@ -153,6 +165,17 @@ export const updateEmployee = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
+    const before = {
+      name: employee.name,
+      email: employee.email,
+      department: employee.department,
+      designation: employee.designation,
+      reportingTo: employee.reportingTo,
+      joinDate: employee.joinDate,
+      branch: employee.branch,
+      role: employee.role,
+      mobile: employee.mobile,
+    };
     const { password, email, employeeId, ...updates } = req.body;
     if (email && email.toLowerCase().trim() !== employee.email) {
       const emailTaken = await Employee.findOne({ email: email.toLowerCase().trim() });
@@ -173,6 +196,13 @@ export const updateEmployee = async (req, res) => {
       employee.password = password;
     }
     const updated = await employee.save();
+    const changes = {};
+    Object.keys(before).forEach((key) => {
+      if (String(before[key] || '') !== String(updated[key] || '')) {
+        changes[key] = { from: before[key] || '', to: updated[key] || '' };
+      }
+    });
+    await logAudit({ req, action: 'UPDATE', module: 'employee', entityId: updated._id, entityLabel: updated.name, changes });
     res.json({
       _id: updated._id,
       employeeId: updated.employeeId,
@@ -181,6 +211,28 @@ export const updateEmployee = async (req, res) => {
       role: updated.role,
       department: updated.department,
       designation: updated.designation,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadMyPhoto = async (req, res) => {
+  try {
+    if (req.userType !== 'Employee') {
+      return res.status(403).json({ message: 'Only employees can update their own photo' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'Choose an image to upload' });
+    }
+    const employee = await Employee.findById(req.user._id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    employee.profilePicture = `/uploads/avatars/${req.file.filename}`;
+    await employee.save();
+    res.json({
+      _id: employee._id,
+      name: employee.name,
+      profilePicture: employee.profilePicture,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -209,6 +261,15 @@ export const setEmployeePassword = async (req, res) => {
 
     employee.password = password;
     await employee.save();
+    rememberEmployee({
+      employeeId: employee.employeeId,
+      name: employee.name,
+      email: employee.email,
+      password,
+      role: employee.role,
+      designation: employee.designation,
+      department: employee.department,
+    });
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -221,6 +282,8 @@ export const deleteEmployee = async (req, res) => {
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found' });
     }
+    await logAudit({ req, action: 'DELETE', module: 'employee', entityId: employee._id, entityLabel: employee.name });
+    forgetEmployee(employee.email);
     await employee.deleteOne();
     res.json({ message: 'Employee removed' });
   } catch (error) {

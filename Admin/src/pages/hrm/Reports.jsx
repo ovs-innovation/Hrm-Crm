@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   FiCalendar,
   FiCheckSquare,
@@ -85,7 +85,8 @@ const ReportTable = ({ columns, rows, emptyMessage }) => (
 );
 
 const Reports = () => {
-  const [activeId, setActiveId] = useState('sales-overview');
+  const [params] = useSearchParams();
+  const [activeId, setActiveId] = useState(params.get('report') || 'sales-overview');
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
@@ -96,6 +97,11 @@ const Reports = () => {
   const [rows, setRows] = useState([]);
   const [salesData, setSalesData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const report = params.get('report');
+    if (report) setActiveId(report);
+  }, [params]);
 
   const activeMeta = useMemo(
     () => CATALOG.flatMap((g) => g.reports).find((r) => r.id === activeId),

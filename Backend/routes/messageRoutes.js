@@ -32,7 +32,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = new Set([
       'image/jpeg',
@@ -44,6 +44,13 @@ const upload = multer({
       'text/csv',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'audio/webm',
+      'audio/mpeg',
+      'audio/mp4',
+      'audio/ogg',
+      'audio/wav',
+      'video/mp4',
+      'video/webm',
     ]);
     if (!allowed.has(file.mimetype)) {
       return cb(new Error('Unsupported file type'));

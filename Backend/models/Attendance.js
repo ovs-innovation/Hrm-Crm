@@ -32,6 +32,7 @@ const attendanceSchema = new mongoose.Schema({
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },
   distanceFromOffice: { type: Number, default: null },
+  workedMinutes: { type: Number, default: null },
 }, {
   timestamps: true
 });
