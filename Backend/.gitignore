@@ -8,6 +8,9 @@ node_modules/
 # Local MongoMemoryServer data
 .mongo-data/
 
+# Uploaded files
+uploads/*
+!uploads/.gitkeep
 
 # Logs
 logs/

@@ -7,6 +7,8 @@ services:
     restart: always
     ports:
       - "127.0.0.1:3072:5000"
+    volumes:
+      - uploads_data:/app/uploads
     env_file:
       - ./Backend/.env
     environment:
@@ -59,3 +61,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  uploads_data:
