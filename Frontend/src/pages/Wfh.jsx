@@ -63,22 +63,31 @@ const Wfh = () => {
       <div className="mb-6 border border-line bg-surface px-3 py-3">
         <p className="mb-1 text-sm text-ink">Laptop activity</p>
         <p className="mb-3 text-sm text-muted">
-          This page only sees the browser. Download the laptop agent once, then double-click VastoraAgent.cmd. It starts in the background, starts again every time you sign in to Windows, and keeps retrying if the network drops. It sends the app name, idle time, click count, and a screenshot. It does not send the keys you type. Sign-in lasts 30 days; download it again after that.
+          Install the agent once on this PC. After that, check in and close this site. The laptop keeps tracking in the background until checkout. You do not need this tab open. Phones cannot run the agent. It does not send the keys you type. Download it again after 30 days.
         </p>
         <p className="mb-3 text-sm text-ink">{session?.laptop ? 'Laptop agent is connected.' : 'Laptop agent is not running.'}</p>
-        <button type="button" className="border border-line bg-canvas px-3 py-2 text-sm text-ink" onClick={async () => {
-          try {
-            const { data } = await api.get('/wfh/agent.cmd', { responseType: 'blob' });
-            const url = URL.createObjectURL(data);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'VastoraAgent.cmd';
-            link.click();
-            URL.revokeObjectURL(url);
-          } catch (err) {
-            toast.error(err.response?.data?.message || 'Could not download the laptop agent');
-          }
-        }}>Download laptop agent</button>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ['/wfh/agent.cmd', 'VastoraAgent.cmd', 'Windows'],
+            ['/wfh/agent-mac.sh', 'VastoraAgent-mac.sh', 'Mac'],
+            ['/wfh/agent-linux.sh', 'VastoraAgent-linux.sh', 'Linux'],
+          ].map(([path, filename, label]) => (
+            <button key={path} type="button" className="border border-line bg-canvas px-3 py-2 text-sm text-ink" onClick={async () => {
+              try {
+                const { data } = await api.get(path, { responseType: 'blob' });
+                const url = URL.createObjectURL(data);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Could not download the laptop agent');
+              }
+            }}>{label}</button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">Windows: double-click once. A short message means it is installed; no window has to stay open. Mac or Linux: run the file once in Terminal.</p>
         <p className="mb-2 mt-4 text-sm text-ink">Apps</p>
         {(session?.apps || []).length === 0 && <p className="text-sm text-muted">No app time yet. It appears after the agent sends a pulse.</p>}
         {(session?.apps || []).map((p) => (

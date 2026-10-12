@@ -133,6 +133,10 @@ export const agentPulse = async (req, res) => {
     return res.status(403).json({ message: 'The desktop agent signs in as the employee.' });
   }
   const date = localDate();
+  const attendance = await Attendance.findOne({ employeeId: req.user._id, date });
+  if (!attendance?.checkIn || attendance.checkOut) {
+    return res.json({ status: 'waiting', tracking: false, activeMinutes: 0, idleMinutes: 0, breakMinutes: 0, productivity: 0 });
+  }
   const elapsed = Math.min(60, Math.max(1, Number(req.body.elapsed) || 30));
   const idleFor = Math.max(0, Number(req.body.idleSeconds) || 0);
   const requested = ['break', 'meeting'].includes(req.body.status) ? req.body.status : 'working';
@@ -214,7 +218,10 @@ export const agentPulse = async (req, res) => {
   });
 };
 
-const agentScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'agent', 'windows', 'Start-VastoraAgent.ps1');
+const agentScriptPath = [
+  path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'agent', 'Start-VastoraAgent.ps1'),
+  path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'agent', 'windows', 'Start-VastoraAgent.ps1'),
+].find((candidate) => fs.existsSync(candidate));
 
 const agentTokenFor = (user) => jwt.sign({
   userId: user._id.toString(),
@@ -234,13 +241,40 @@ export const downloadAgent = async (req, res) => {
   if (req.userType !== 'Employee') {
     return res.status(403).json({ message: 'Employees download the laptop agent.' });
   }
-  const token = agentTokenFor(req.user);
-  const script = fs.readFileSync(agentScriptPath, 'utf8');
-  const header = `$env:VASTORA_TOKEN = '${token}'\r\n$env:VASTORA_API = '${apiBase()}'\r\n`;
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.ps1"');
-  res.send(header + script.replace(/\r?\n/g, '\r\n'));
+  try {
+    if (!agentScriptPath) {
+      return res.status(500).json({ message: 'Laptop agent file is missing on the server.' });
+    }
+    const token = agentTokenFor(req.user);
+    const script = fs.readFileSync(agentScriptPath, 'utf8');
+    const header = `$env:VASTORA_TOKEN = '${token}'\r\n$env:VASTORA_API = '${apiBase()}'\r\n`;
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.ps1"');
+    res.send(header + script.replace(/\r?\n/g, '\r\n'));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
+
+const sendUnixAgent = (filename) => async (req, res) => {
+  if (req.userType !== 'Employee') {
+    return res.status(403).json({ message: 'Employees download the laptop agent.' });
+  }
+  try {
+    const scriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'agent', filename);
+    const token = agentTokenFor(req.user);
+    const script = fs.readFileSync(scriptPath, 'utf8');
+    const header = `VASTORA_TOKEN='${token}'\nVASTORA_API='${apiBase()}'\nexport VASTORA_TOKEN VASTORA_API\n`;
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(header + script.replace(/\r\n/g, '\n'));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const downloadMacAgent = sendUnixAgent('vastora-agent-mac.sh');
+export const downloadLinuxAgent = sendUnixAgent('vastora-agent-linux.sh');
 
 export const downloadAgentLauncher = async (req, res) => {
   if (req.userType !== 'Employee') {
@@ -253,9 +287,12 @@ export const downloadAgentLauncher = async (req, res) => {
     'setlocal',
     'set "DEST=%LOCALAPPDATA%\\Vastora"',
     'mkdir "%DEST%" 2>nul',
-    `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $h=@{Authorization='Bearer ${token}'}; Invoke-WebRequest -Uri '${api}/api/wfh/agent.ps1' -Headers $h -OutFile ([Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1'); Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',([Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1')"`,
-    'echo Vastora laptop tracking is starting. You can close this window.',
-    'pause',
+    `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $h=@{Authorization='Bearer ${token}'}; Invoke-WebRequest -Uri '${api}/api/wfh/agent.ps1' -Headers $h -OutFile ([Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1'); $dest=[Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1'; if (-not (Test-Path $dest)) { exit 1 }; Start-Process powershell.exe -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',$dest; Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Installed. Check in once, then close the site. This PC keeps tracking in the background.','Vastora')"`,
+    'if errorlevel 1 (',
+    '  echo Could not install. Download this file again after the site is updated.',
+    '  pause',
+    '  exit /b 1',
+    ')',
   ].join('\r\n');
   res.setHeader('Content-Type', 'application/octet-stream');
   res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.cmd"');
