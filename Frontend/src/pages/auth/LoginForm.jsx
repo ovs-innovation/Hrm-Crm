@@ -27,7 +27,8 @@ const LoginForm = () => {
       dispatch(setCredentials({ user, token: accessToken }));
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      const message = err.response?.data?.message;
+      setError(typeof message === 'string' ? message : 'Sign-in is unavailable right now. Try again in a minute.');
     } finally {
       setLoading(false);
     }
