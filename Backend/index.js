@@ -95,9 +95,9 @@ app.use(cors({
       originHost = origin;
     }
 
-    const isProd = process.env.NODE_ENV === 'production';
-    const isAllowed = allowedOrigins.includes(origin) ||
-      (!isProd && (originHost === 'localhost' || originHost === '127.0.0.1'));
+    const localHost = originHost === 'localhost' || originHost === '127.0.0.1' ||
+      /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(originHost);
+    const isAllowed = allowedOrigins.includes(origin) || localHost;
 
     if (isAllowed) {
       callback(null, true);

@@ -1,0 +1,40 @@
+[
+  {
+    "employeeId": "64a200000000000000000001",
+    "date": "2026-10-12",
+    "status": "working",
+    "lastPulseAt": "2026-10-12T07:35:30.228Z",
+    "activeSeconds": 30,
+    "idleSeconds": 0,
+    "breakSeconds": 0,
+    "inputCount": 3,
+    "mouseClicks": 1,
+    "keyCount": 2,
+    "breakCount": 0,
+    "pages": [],
+    "apps": [
+      {
+        "path": "Code",
+        "seconds": 30
+      }
+    ],
+    "sites": [],
+    "projects": [],
+    "files": [],
+    "shots": [],
+    "lastShotAt": null,
+    "alerts": {
+      "idle": false,
+      "quiet": false,
+      "low": false,
+      "breaks": false,
+      "late": false
+    },
+    "log": {
+      "completed": "",
+      "pending": "",
+      "tomorrow": "",
+      "remarks": ""
+    }
+  }
+]

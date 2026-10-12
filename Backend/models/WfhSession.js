@@ -22,6 +22,8 @@ const wfhSessionSchema = new mongoose.Schema({
   date: { type: String, required: true },
   status: { type: String, enum: ['online', 'working', 'away', 'break', 'meeting', 'logged_out'], default: 'online' },
   lastPulseAt: { type: Date, default: null },
+  agentSeenAt: { type: Date, default: null },
+  manualBreak: { type: Boolean, default: false },
   activeSeconds: { type: Number, default: 0 },
   idleSeconds: { type: Number, default: 0 },
   breakSeconds: { type: Number, default: 0 },

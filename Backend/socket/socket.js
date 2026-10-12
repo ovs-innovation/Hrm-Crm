@@ -37,11 +37,11 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const isProd = process.env.NODE_ENV === 'production';
       let host = '';
       try { host = new URL(origin).hostname; } catch { host = origin; }
-      const ok = allowedOrigins.includes(origin) ||
-        (!isProd && (host === 'localhost' || host === '127.0.0.1'));
+      const localHost = host === 'localhost' || host === '127.0.0.1' ||
+        /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
+      const ok = allowedOrigins.includes(origin) || localHost;
       callback(ok ? null : new Error('CORS blocked'), ok);
     },
     methods: ['GET', 'POST'],

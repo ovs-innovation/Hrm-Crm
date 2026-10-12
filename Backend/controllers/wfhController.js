@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import jwt from 'jsonwebtoken';
+import { fileURLToPath } from 'url';
 import Attendance from '../models/Attendance.js';
 import WfhSession from '../models/WfhSession.js';
 import Employee from '../models/Employee.js';
@@ -40,9 +42,9 @@ const snapshot = (row) => ({
 });
 
 const liveStatus = (row) => {
-  if (!row?.lastPulseAt) return 'logged_out';
+  if (!row?.lastPulseAt) return 'offline';
   const age = Date.now() - new Date(row.lastPulseAt).getTime();
-  if (age > 90 * 1000) return 'logged_out';
+  if (age > 3 * 60 * 1000) return 'offline';
   return row.status || 'online';
 };
 
@@ -70,11 +72,15 @@ export const pulse = async (req, res) => {
   if (!row) {
     row = new WfhSession({ employeeId: req.user._id, tenantId: req.user.tenantId, date });
   }
-  if (status === 'break') row.breakSeconds += elapsed;
-  else if (status === 'away') row.idleSeconds += elapsed;
-  else row.activeSeconds += elapsed;
-  row.status = status;
-  row.lastPulseAt = new Date();
+  row.manualBreak = requested === 'break';
+  const agentFresh = row.agentSeenAt && Date.now() - new Date(row.agentSeenAt).getTime() < 2 * 60 * 1000;
+  if (!agentFresh) {
+    if (status === 'break') row.breakSeconds += elapsed;
+    else if (status === 'away') row.idleSeconds += elapsed;
+    else row.activeSeconds += elapsed;
+    row.status = status;
+    row.lastPulseAt = new Date();
+  }
   row.inputCount += inputs;
   const pages = row.pages || [];
   const hit = pages.find((p) => p.path === page);
@@ -110,7 +116,7 @@ const saveJpeg = (employeeId, bytes, prefix) => {
 const jpegBytes = (dataUrl) => {
   const raw = String(dataUrl || '');
   if (!raw.startsWith('data:image/jpeg;base64,')) return null;
-  if (raw.length > 700_000) return null;
+  if (raw.length > 1_500_000) return null;
   return Buffer.from(raw.split(',')[1], 'base64');
 };
 
@@ -137,10 +143,10 @@ export const agentPulse = async (req, res) => {
   const clicks = Math.min(5000, Math.max(0, Number(req.body.clicks) || 0));
   const keys = Math.min(5000, Math.max(0, Number(req.body.keys) || 0));
   const meetingApp = MEETING_APPS.some((name) => appName.toLowerCase().includes(name));
-  const resolved = meetingApp ? 'meeting' : status;
 
   let row = await WfhSession.findOne({ employeeId: req.user._id, date });
   if (!row) row = new WfhSession({ employeeId: req.user._id, tenantId: req.user.tenantId, date });
+  const resolved = row.manualBreak ? 'break' : meetingApp ? 'meeting' : status;
   const wasBreak = row.status === 'break';
   if (resolved === 'break') row.breakSeconds += elapsed;
   else if (resolved === 'away') row.idleSeconds += elapsed;
@@ -148,6 +154,7 @@ export const agentPulse = async (req, res) => {
   if (resolved === 'break' && !wasBreak) row.breakCount = (row.breakCount || 0) + 1;
   row.status = resolved;
   row.lastPulseAt = new Date();
+  row.agentSeenAt = new Date();
   row.inputCount += inputs + clicks + keys;
   row.mouseClicks = (row.mouseClicks || 0) + clicks;
   row.keyCount = (row.keyCount || 0) + keys;
@@ -207,6 +214,54 @@ export const agentPulse = async (req, res) => {
   });
 };
 
+const agentScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'agent', 'windows', 'Start-VastoraAgent.ps1');
+
+const agentTokenFor = (user) => jwt.sign({
+  userId: user._id.toString(),
+  tenantId: user.tenantId?.toString?.() || user.tenantId,
+  userType: 'Employee',
+  tokenVersion: user.tokenVersion || 0,
+  typ: 'access',
+}, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+const apiBase = () => {
+  const configured = process.env.WFH_AGENT_API || (process.env.NODE_ENV === 'production' ? process.env.EMPLOYEE_PORTAL_URL : '');
+  if (configured) return configured.replace(/\/$/, '');
+  return `http://localhost:${process.env.PORT || 5000}`;
+};
+
+export const downloadAgent = async (req, res) => {
+  if (req.userType !== 'Employee') {
+    return res.status(403).json({ message: 'Employees download the laptop agent.' });
+  }
+  const token = agentTokenFor(req.user);
+  const script = fs.readFileSync(agentScriptPath, 'utf8');
+  const header = `$env:VASTORA_TOKEN = '${token}'\r\n$env:VASTORA_API = '${apiBase()}'\r\n`;
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.ps1"');
+  res.send(header + script.replace(/\r?\n/g, '\r\n'));
+};
+
+export const downloadAgentLauncher = async (req, res) => {
+  if (req.userType !== 'Employee') {
+    return res.status(403).json({ message: 'Employees download the laptop agent.' });
+  }
+  const token = agentTokenFor(req.user);
+  const api = apiBase();
+  const cmd = [
+    '@echo off',
+    'setlocal',
+    'set "DEST=%LOCALAPPDATA%\\Vastora"',
+    'mkdir "%DEST%" 2>nul',
+    `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $h=@{Authorization='Bearer ${token}'}; Invoke-WebRequest -Uri '${api}/api/wfh/agent.ps1' -Headers $h -OutFile ([Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1'); Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',([Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1')"`,
+    'echo Vastora laptop tracking is starting. You can close this window.',
+    'pause',
+  ].join('\r\n');
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.cmd"');
+  res.send(cmd);
+};
+
 export const mySession = async (req, res) => {
   const date = req.query.date || localDate();
   const employeeId = req.userType === 'Employee' ? req.user._id : req.query.employeeId;
@@ -222,6 +277,7 @@ export const mySession = async (req, res) => {
     checkOut: attendance?.checkOut || null,
     attendanceStatus: attendance?.status || null,
     tracking: Boolean(attendance?.workMode === 'Home' && !attendance?.checkOut),
+    laptop: Boolean(session?.agentSeenAt && Date.now() - new Date(session.agentSeenAt).getTime() < 2 * 60 * 1000),
     status: liveStatus(session),
     activeMinutes: mins(session?.activeSeconds),
     idleMinutes: mins(session?.idleSeconds),
@@ -335,7 +391,7 @@ export const board = async (req, res) => {
       meeting: count('meeting'),
       away: count('away'),
       break: count('break'),
-      offline: count('logged_out'),
+      offline: count('logged_out') + count('offline'),
       late,
       activeMinutes: people.reduce((n, p) => n + p.activeMinutes, 0),
       idleMinutes: people.reduce((n, p) => n + p.idleMinutes, 0),
