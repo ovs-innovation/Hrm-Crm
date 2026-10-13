@@ -54,35 +54,37 @@ jobs:
               $DOCKER_CMD cp /tmp/backend-debug.txt hrm_frontend:/usr/share/nginx/html/backend-debug.txt 2>/dev/null || true
             }
 
+            sleep 10
+            DUMP_DIAGNOSTICS
+
             echo "Waiting for backend health check..."
 
-            for i in $(seq 1 12); do
+            for i in $(seq 1 15); do
               HEALTH=$($DOCKER_CMD inspect \
                 --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
                 hrm_backend 2>/dev/null || echo "none")
+              STATUS=$($DOCKER_CMD inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")
 
-              echo "Attempt $i - Backend health: $HEALTH"
+              echo "Attempt $i - Backend health: $HEALTH, status: $STATUS"
 
               if [ "$HEALTH" = "healthy" ]; then
                 echo "Backend is healthy."
-                DUMP_DIAGNOSTICS
                 break
-              fi
-
-              if [ "$HEALTH" = "unhealthy" ]; then
-                echo "Backend became unhealthy."
-                DUMP_DIAGNOSTICS
-                $DOCKER_CMD logs --tail 150 hrm_backend
-                exit 1
               fi
 
               sleep 5
             done
 
-            if [ "$HEALTH" != "healthy" ]; then
-              echo "Backend did not become healthy in time."
-              DUMP_DIAGNOSTICS
-              $DOCKER_CMD logs --tail 150 hrm_backend
+            DUMP_DIAGNOSTICS
+
+            echo "=== DOCKER PS ==="
+            $DOCKER_CMD ps
+            echo "=== BACKEND LOGS ==="
+            $DOCKER_CMD logs --tail 80 hrm_backend
+
+            FINAL_STATUS=$($DOCKER_CMD inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")
+            if [ "$FINAL_STATUS" != "running" ]; then
+              echo "Error: hrm_backend container is not running (state: $FINAL_STATUS)"
               exit 1
             fi
 

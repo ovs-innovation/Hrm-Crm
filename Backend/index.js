@@ -232,7 +232,7 @@ app.use((err, req, res, next) => {
 });
 
 const port = process.env.PORT || 5000;
-server.listen(port, () => console.log(`✅ Vastora Server started on port ${port}`));
+server.listen(port, '0.0.0.0', () => console.log(`✅ Vastora Server started on port ${port}`));
 
 const shutdown = async (signal) => {
   console.log(`[Shutdown] ${signal} received — closing server`);
