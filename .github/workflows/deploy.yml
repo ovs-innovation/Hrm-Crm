@@ -29,9 +29,11 @@ jobs:
             git reset --hard origin/main
 
             DOCKER_CMD="docker compose"
-            if ! docker compose ps >/dev/null 2>&1; then
-              if command -v sudo >/dev/null 2>&1 && sudo docker compose ps >/dev/null 2>&1; then
+            DOCKER_BIN="docker"
+            if ! docker ps >/dev/null 2>&1; then
+              if command -v sudo >/dev/null 2>&1 && sudo docker ps >/dev/null 2>&1; then
                 DOCKER_CMD="sudo docker compose"
+                DOCKER_BIN="sudo docker"
               fi
             fi
 
@@ -44,14 +46,14 @@ jobs:
               echo "--- DOCKER PS ---" >> /tmp/backend-debug.txt
               $DOCKER_CMD ps >> /tmp/backend-debug.txt 2>&1 || true
               echo "--- DOCKER HEALTH INSPECT ---" >> /tmp/backend-debug.txt
-              $DOCKER_CMD inspect --format='{{json .State.Health}}' hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
+              $DOCKER_BIN inspect --format='{{json .State.Health}}' hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
               echo "--- HOST CURL 3072 HEALTH ---" >> /tmp/backend-debug.txt
               curl -i --max-time 3 http://127.0.0.1:3072/health >> /tmp/backend-debug.txt 2>&1 || true
               echo "--- HOST CURL 3072 READY ---" >> /tmp/backend-debug.txt
               curl -i --max-time 3 http://127.0.0.1:3072/ready >> /tmp/backend-debug.txt 2>&1 || true
               echo "--- BACKEND LOGS ---" >> /tmp/backend-debug.txt
-              $DOCKER_CMD logs --tail 100 hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
-              $DOCKER_CMD cp /tmp/backend-debug.txt hrm_frontend:/usr/share/nginx/html/backend-debug.txt 2>/dev/null || true
+              $DOCKER_BIN logs --tail 100 hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
+              $DOCKER_BIN cp /tmp/backend-debug.txt hrm_frontend:/usr/share/nginx/html/backend-debug.txt 2>/dev/null || true
               cp /tmp/backend-debug.txt /var/www/Hrm-Crm/Frontend/dist/test-log.txt 2>/dev/null || true
               cp /tmp/backend-debug.txt /var/www/Hrm-Crm/Frontend/dist/backend-debug.txt 2>/dev/null || true
             }
@@ -62,10 +64,10 @@ jobs:
             echo "Waiting for backend health check..."
 
             for i in $(seq 1 15); do
-              HEALTH=$($DOCKER_CMD inspect \
+              HEALTH=$($DOCKER_BIN inspect \
                 --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
                 hrm_backend 2>/dev/null || echo "none")
-              STATUS=$($DOCKER_CMD inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")
+              STATUS=$($DOCKER_BIN inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")
 
               echo "Attempt $i - Backend health: $HEALTH, status: $STATUS"
 
@@ -82,9 +84,9 @@ jobs:
             echo "=== DOCKER PS ==="
             $DOCKER_CMD ps
             echo "=== BACKEND LOGS ==="
-            $DOCKER_CMD logs --tail 80 hrm_backend
+            $DOCKER_BIN logs --tail 80 hrm_backend
 
-            FINAL_STATUS=$($DOCKER_CMD inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")
+            FINAL_STATUS=$($DOCKER_BIN inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")
             if [ "$FINAL_STATUS" != "running" ]; then
               echo "Error: hrm_backend container is not running (state: $FINAL_STATUS)"
               exit 1

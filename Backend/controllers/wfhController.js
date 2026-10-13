@@ -204,7 +204,6 @@ export const agentPulse = async (req, res) => {
   if ((row.breakCount || 0) >= 4 || row.breakSeconds >= 90 * 60) {
     await warn('breaks', 'Long WFH breaks', `${req.user.name} has taken repeated or long breaks.`);
   }
-  const attendance = await Attendance.findOne({ employeeId: req.user._id, date });
   if (String(attendance?.status || '').toLowerCase().includes('late')) {
     await warn('late', 'Late WFH login', `${req.user.name} checked in late.`);
   }
