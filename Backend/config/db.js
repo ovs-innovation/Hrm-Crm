@@ -47,7 +47,7 @@ async function ensureDevAdmin() {
 
 async function connectUri(uri, label) {
   const conn = await mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 4000,
+    serverSelectionTimeoutMS: 15000,
   });
   console.log(`MongoDB Connected (${label}): ${conn.connection.host}`);
   if (process.env.NODE_ENV !== 'production') {
@@ -75,7 +75,7 @@ const connectDB = async () => {
   const uri = process.env.MONGO_URI;
   if (!uri) {
     console.error('MONGO_URI is missing in Backend/.env');
-    if (process.env.NODE_ENV === 'production') return undefined;
+    if (process.env.NODE_ENV === 'production') return null;
     return connectMemoryFallback();
   }
 
@@ -84,7 +84,17 @@ const connectDB = async () => {
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
     if (process.env.NODE_ENV === 'production') {
-      process.exit(1);
+      console.log('Mongoose will retry connecting to MongoDB in the background...');
+      const retryInterval = setInterval(async () => {
+        try {
+          await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
+          console.log('✅ Background MongoDB connection established!');
+          clearInterval(retryInterval);
+        } catch (err) {
+          console.error('Background MongoDB connect attempt failed:', err.message);
+        }
+      }, 5000);
+      return null;
     }
     console.log('Starting local MongoDB fallback so login can work...');
     return connectMemoryFallback();

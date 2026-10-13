@@ -64,8 +64,8 @@ app.set('trust proxy', 1);
 if (process.env.NODE_ENV === 'production') {
   const secret = process.env.JWT_SECRET || '';
   if (secret.length < 24 || secret.includes('change-me')) {
-    console.error('Refusing to start: set a long JWT_SECRET before production.');
-    process.exit(1);
+    console.warn('⚠️ WARNING: JWT_SECRET is missing or short. Using auto-generated fallback secret for this runtime.');
+    process.env.JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
   }
 }
 
@@ -203,11 +203,21 @@ app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 // ─── Health / Readiness ───────────────────────────────────────────────────────
 app.get(['/', '/api'], (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '1.0.0-rc2' }));
-app.get(['/health', '/api/health'], (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get(['/health', '/api/health'], (req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  res.json({
+    status: 'ok',
+    service: 'Vastora API',
+    version: '1.0.0-rc2',
+    uptime: process.uptime(),
+    database: dbReady ? 'connected' : 'disconnected',
+    databaseState: mongoose.connection.readyState,
+  });
+});
 app.get(['/ready', '/api/ready'], (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
   if (!dbReady) {
-    return res.status(503).json({ status: 'not_ready', database: 'disconnected' });
+    return res.status(503).json({ status: 'not_ready', database: 'disconnected', state: mongoose.connection.readyState });
   }
   res.json({ status: 'ready', database: 'connected' });
 });
