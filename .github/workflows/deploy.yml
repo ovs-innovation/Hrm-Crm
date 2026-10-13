@@ -19,23 +19,31 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
 
           script: |
-            set -e
+            set -xe
 
             cd /var/www/Hrm-Crm
 
+            git config --global --add safe.directory /var/www/Hrm-Crm || true
             git fetch origin main
             git checkout main
-            git pull --ff-only origin main
+            git reset --hard origin/main
 
-            docker compose build backend frontend admin
-            docker compose up -d --force-recreate backend frontend admin
+            DOCKER_CMD="docker compose"
+            if ! docker compose ps >/dev/null 2>&1; then
+              if command -v sudo >/dev/null 2>&1 && sudo docker compose ps >/dev/null 2>&1; then
+                DOCKER_CMD="sudo docker compose"
+              fi
+            fi
+
+            $DOCKER_CMD build backend frontend admin
+            $DOCKER_CMD up -d --force-recreate backend frontend admin
 
             echo "Waiting for backend health check..."
 
             for i in $(seq 1 12); do
-              HEALTH=$(docker inspect \
+              HEALTH=$($DOCKER_CMD inspect \
                 --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
-                hrm_backend || echo "none")
+                hrm_backend 2>/dev/null || echo "none")
 
               echo "Attempt $i - Backend health: $HEALTH"
 
@@ -46,7 +54,7 @@ jobs:
 
               if [ "$HEALTH" = "unhealthy" ]; then
                 echo "Backend became unhealthy."
-                docker logs --tail 150 hrm_backend
+                $DOCKER_CMD logs --tail 150 hrm_backend
                 exit 1
               fi
 
@@ -55,7 +63,7 @@ jobs:
 
             if [ "$HEALTH" != "healthy" ]; then
               echo "Backend did not become healthy in time."
-              docker logs --tail 150 hrm_backend
+              $DOCKER_CMD logs --tail 150 hrm_backend
               exit 1
             fi
 
