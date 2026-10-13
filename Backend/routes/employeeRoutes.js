@@ -17,7 +17,11 @@ import { protect } from '../middlewares/authMiddleware.js';
 import { requireAdmin } from '../middlewares/roleMiddleware.js';
 
 const avatarDir = path.join(path.resolve(), 'uploads', 'avatars');
-if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+try {
+  if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+} catch (err) {
+  console.warn('[Storage] Could not create avatarDir:', err.message);
+}
 
 const avatarUpload = multer({
   storage: multer.diskStorage({

@@ -30,16 +30,31 @@ jobs:
             docker compose build backend frontend admin
             docker compose up -d --force-recreate backend frontend admin
 
-            sleep 15
-            docker compose ps
+            echo "Waiting for backend health check..."
 
-            HEALTH=$(docker inspect \
-              --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
-              hrm_backend)
+            for i in $(seq 1 12); do
+              HEALTH=$(docker inspect \
+                --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
+                hrm_backend || echo "none")
 
-            echo "Backend health: $HEALTH"
+              echo "Attempt $i - Backend health: $HEALTH"
+
+              if [ "$HEALTH" = "healthy" ]; then
+                echo "Backend is healthy."
+                break
+              fi
+
+              if [ "$HEALTH" = "unhealthy" ]; then
+                echo "Backend became unhealthy."
+                docker logs --tail 150 hrm_backend
+                exit 1
+              fi
+
+              sleep 5
+            done
 
             if [ "$HEALTH" != "healthy" ]; then
+              echo "Backend did not become healthy in time."
               docker logs --tail 150 hrm_backend
               exit 1
             fi

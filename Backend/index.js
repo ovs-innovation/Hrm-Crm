@@ -202,9 +202,9 @@ app.use('/uploads/wfh', protect, express.static(path.join(__dirname, '/uploads/w
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 // ─── Health / Readiness ───────────────────────────────────────────────────────
-app.get('/', (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '1.0.0-rc2' }));
-app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
-app.get('/ready', (req, res) => {
+app.get(['/', '/api'], (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '1.0.0-rc2' }));
+app.get(['/health', '/api/health'], (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get(['/ready', '/api/ready'], (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
   if (!dbReady) {
     return res.status(503).json({ status: 'not_ready', database: 'disconnected' });
