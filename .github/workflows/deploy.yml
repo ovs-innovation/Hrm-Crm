@@ -38,6 +38,22 @@ jobs:
             $DOCKER_CMD build backend frontend admin
             $DOCKER_CMD up -d --force-recreate backend frontend admin
 
+            DUMP_DIAGNOSTICS() {
+              echo "--- TIME ---" > /tmp/backend-debug.txt
+              date >> /tmp/backend-debug.txt
+              echo "--- DOCKER PS ---" >> /tmp/backend-debug.txt
+              $DOCKER_CMD ps >> /tmp/backend-debug.txt 2>&1 || true
+              echo "--- DOCKER HEALTH INSPECT ---" >> /tmp/backend-debug.txt
+              $DOCKER_CMD inspect --format='{{json .State.Health}}' hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
+              echo "--- HOST CURL 3072 HEALTH ---" >> /tmp/backend-debug.txt
+              curl -i --max-time 3 http://127.0.0.1:3072/health >> /tmp/backend-debug.txt 2>&1 || true
+              echo "--- HOST CURL 3072 READY ---" >> /tmp/backend-debug.txt
+              curl -i --max-time 3 http://127.0.0.1:3072/ready >> /tmp/backend-debug.txt 2>&1 || true
+              echo "--- BACKEND LOGS ---" >> /tmp/backend-debug.txt
+              $DOCKER_CMD logs --tail 100 hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
+              $DOCKER_CMD cp /tmp/backend-debug.txt hrm_frontend:/usr/share/nginx/html/backend-debug.txt 2>/dev/null || true
+            }
+
             echo "Waiting for backend health check..."
 
             for i in $(seq 1 12); do
@@ -49,11 +65,13 @@ jobs:
 
               if [ "$HEALTH" = "healthy" ]; then
                 echo "Backend is healthy."
+                DUMP_DIAGNOSTICS
                 break
               fi
 
               if [ "$HEALTH" = "unhealthy" ]; then
                 echo "Backend became unhealthy."
+                DUMP_DIAGNOSTICS
                 $DOCKER_CMD logs --tail 150 hrm_backend
                 exit 1
               fi
@@ -63,6 +81,7 @@ jobs:
 
             if [ "$HEALTH" != "healthy" ]; then
               echo "Backend did not become healthy in time."
+              DUMP_DIAGNOSTICS
               $DOCKER_CMD logs --tail 150 hrm_backend
               exit 1
             fi
