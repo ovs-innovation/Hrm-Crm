@@ -56,7 +56,14 @@ import { resolveTenant } from './middlewares/tenantMiddleware.js';
 import { protect } from './middlewares/authMiddleware.js';
 import { contextMiddleware } from './middlewares/contextMiddleware.js';
 
-await connectDB();
+process.on('uncaughtException', (err) => {
+  console.error('🔥 [Uncaught Exception]', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ [Unhandled Rejection]', reason);
+});
+
+connectDB().catch((err) => console.error('[Database Connect Error]', err.message));
 
 const __dirname = path.resolve();
 app.set('trust proxy', 1);
