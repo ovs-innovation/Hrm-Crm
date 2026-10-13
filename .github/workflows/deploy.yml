@@ -52,6 +52,8 @@ jobs:
               echo "--- BACKEND LOGS ---" >> /tmp/backend-debug.txt
               $DOCKER_CMD logs --tail 100 hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
               $DOCKER_CMD cp /tmp/backend-debug.txt hrm_frontend:/usr/share/nginx/html/backend-debug.txt 2>/dev/null || true
+              cp /tmp/backend-debug.txt /var/www/Hrm-Crm/Frontend/dist/test-log.txt 2>/dev/null || true
+              cp /tmp/backend-debug.txt /var/www/Hrm-Crm/Frontend/dist/backend-debug.txt 2>/dev/null || true
             }
 
             sleep 10
