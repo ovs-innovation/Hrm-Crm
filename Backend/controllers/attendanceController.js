@@ -2,9 +2,9 @@ import Attendance from '../models/Attendance.js';
 import { rememberAttendance } from '../utils/attendanceStore.js';
 import DailyReport from '../models/DailyReport.js';
 
-const OFFICE_LAT = 28.579126;
-const OFFICE_LON = 77.363649;
-const OFFICE_RADIUS_METERS = 300;
+const OFFICE_LAT = Number(process.env.OFFICE_LAT) || 28.580869;
+const OFFICE_LON = Number(process.env.OFFICE_LON) || 77.365023;
+const OFFICE_RADIUS_METERS = Number(process.env.OFFICE_RADIUS_METERS) || 300;
 const SHIFT_START = 10 * 60 + 15;
 const SHIFT_END = 18 * 60 + 30;
 const LUNCH_START = 13 * 60 + 30;
@@ -198,4 +198,12 @@ export const checkOut = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const getOfficeConfig = (req, res) => {
+  res.json({
+    officeLat: OFFICE_LAT,
+    officeLon: OFFICE_LON,
+    allowedRadiusMeters: OFFICE_RADIUS_METERS,
+  });
 };

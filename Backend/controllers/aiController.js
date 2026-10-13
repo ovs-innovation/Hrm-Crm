@@ -316,10 +316,9 @@ export const detectAttendanceFraud = async (req, res) => {
     const alerts = [];
 
     // Office central coordinates check
-    // 2nd Floor, JS Acade, 203, above PNB, Sharma Market, Hoshiyarpur, Sector 51, Noida 201301
-const OFFICE_LAT = 28.579126;
-const OFFICE_LON = 77.363649;
-    const MAX_ALLOWED_DISTANCE = 300; // meters
+    const OFFICE_LAT = Number(process.env.OFFICE_LAT) || 28.580869;
+    const OFFICE_LON = Number(process.env.OFFICE_LON) || 77.365023;
+    const MAX_ALLOWED_DISTANCE = Number(process.env.OFFICE_RADIUS_METERS) || 300; // meters
 
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371e3;

@@ -5,10 +5,10 @@ import { FiClock, FiLogOut, FiBriefcase, FiHome, FiMapPin, FiX } from 'react-ico
 import api from '../services/api';
 import { useSelector } from 'react-redux';
 
-// Gali Number 2, Punjab National Bank, Hoshiyarpur, Sector 51, Noida
-const OFFICE_LAT = 28.579126;
-const OFFICE_LON = 77.363649;
-const ALLOWED_RADIUS_METERS = 300;
+// Gali No 1, Hoshiyarpur, Sector 51, Noida (28.580869, 77.365023)
+const DEFAULT_OFFICE_LAT = 28.580869;
+const DEFAULT_OFFICE_LON = 77.365023;
+const DEFAULT_ALLOWED_RADIUS_METERS = 300;
 
 const localToday = () => {
   const d = new Date();
@@ -37,6 +37,11 @@ const Dashboard = () => {
   const [hasCompletedShift, setHasCompletedShift] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [officeConfig, setOfficeConfig] = useState({
+    lat: DEFAULT_OFFICE_LAT,
+    lon: DEFAULT_OFFICE_LON,
+    radius: DEFAULT_ALLOWED_RADIUS_METERS,
+  });
   const [modeModalOpen, setModeModalOpen] = useState(false);
   const [reportPrompt, setReportPrompt] = useState(false);
   const user = useSelector((state) => state.auth.user || {});
@@ -47,6 +52,20 @@ const Dashboard = () => {
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    api.get('/attendance/office-config')
+      .then((res) => {
+        if (res.data) {
+          setOfficeConfig({
+            lat: Number(res.data.officeLat) || DEFAULT_OFFICE_LAT,
+            lon: Number(res.data.officeLon) || DEFAULT_OFFICE_LON,
+            radius: Number(res.data.allowedRadiusMeters) || DEFAULT_ALLOWED_RADIUS_METERS,
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -174,15 +193,15 @@ const Dashboard = () => {
         setIsLocating(false);
         const { latitude: lat, longitude: lon, accuracy } = pos.coords;
         if (mode === 'Office') {
-          const d = calculateDistance(OFFICE_LAT, OFFICE_LON, lat, lon);
-          if (!Number.isFinite(accuracy) || accuracy > ALLOWED_RADIUS_METERS) {
+          const d = calculateDistance(officeConfig.lat, officeConfig.lon, lat, lon);
+          if (!Number.isFinite(accuracy) || accuracy > officeConfig.radius) {
             const message = `GPS is only accurate to about ${Math.round(accuracy || 0)}m. Stand near a window and try Office check-in again.`;
             setLocationError(message);
             toast.error(message);
             return;
           }
-          if (d > ALLOWED_RADIUS_METERS) {
-            const message = `You are ${Math.round(d)}m from the office. Office check-in works only within ${ALLOWED_RADIUS_METERS}m. Use Home or Field if you are away.`;
+          if (d > officeConfig.radius) {
+            const message = `You are ${Math.round(d)}m from the office. Office check-in works only within ${officeConfig.radius}m. Use Home or Field if you are away.`;
             setLocationError(message);
             toast.error(message);
             return;
@@ -414,7 +433,7 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { mode: 'Office', icon: FiBriefcase, sub: 'Within 300m' },
+                { mode: 'Office', icon: FiBriefcase, sub: `Within ${officeConfig.radius >= 1000 ? `${(officeConfig.radius / 1000).toFixed(0)}km` : `${officeConfig.radius}m`}` },
                 { mode: 'Home', icon: FiHome, sub: 'Remote' },
                 { mode: 'Field', icon: FiMapPin, sub: 'On site' },
               ].map(({ mode, icon: Icon, sub }) => (
