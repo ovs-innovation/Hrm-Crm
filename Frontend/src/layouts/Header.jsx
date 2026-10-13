@@ -1,13 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { FiMenu } from 'react-icons/fi';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import NotificationBell from '../components/NotificationBell';
-import { getFileUrl } from '../services/api';
+import api, { getFileUrl } from '../services/api';
+import { patchUser } from '../store/slices/authSlice';
 
 const Header = ({ toggleMobileMenu }) => {
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user || { name: 'Employee', designation: 'Staff' });
   const initials = (user.name || 'E').split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
   const [greeting, setGreeting] = useState('Good morning');
+
+  useEffect(() => {
+    if (user?._id) {
+      api.get(`/employees/${user._id}`)
+        .then((res) => {
+          if (res.data?.name && res.data.name !== user.name) {
+            dispatch(patchUser({
+              name: res.data.name,
+              designation: res.data.designation || user.designation,
+              profilePicture: res.data.profilePicture || user.profilePicture,
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?._id, user?.name, dispatch]);
 
   useEffect(() => {
     const update = () => {
