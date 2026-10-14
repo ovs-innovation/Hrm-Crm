@@ -21,6 +21,11 @@ const Profile = () => {
 
   const initials = (employee.name || 'E').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const photo = employee.profilePicture ? getFileUrl(employee.profilePicture) : '';
+  const [photoError, setPhotoError] = useState(false);
+
+  useEffect(() => {
+    setPhotoError(false);
+  }, [photo]);
 
   const onFile = async (event) => {
     const file = event.target.files?.[0];
@@ -69,8 +74,8 @@ const Profile = () => {
             className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-brand text-white"
             aria-label="Change profile photo"
           >
-            {photo ? (
-              <img src={photo} alt="" className="h-full w-full object-cover" />
+            {photo && !photoError ? (
+              <img src={photo} alt="" className="h-full w-full object-cover" onError={() => setPhotoError(true)} />
             ) : (
               <span className="flex h-full w-full items-center justify-center text-lg font-semibold">{initials}</span>
             )}

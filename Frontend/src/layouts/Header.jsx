@@ -39,6 +39,12 @@ const Header = ({ toggleMobileMenu }) => {
     return () => clearInterval(t);
   }, []);
 
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [user?.profilePicture]);
+
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-surface px-4 sm:px-6">
       <div className="flex items-center gap-2">
@@ -55,8 +61,13 @@ const Header = ({ toggleMobileMenu }) => {
             <p className="text-[13px] font-medium text-ink">{user.name}</p>
             <p className="text-[11px] text-muted">{user.designation || user.department || 'Employee'}</p>
           </div>
-          {user.profilePicture ? (
-            <img src={getFileUrl(user.profilePicture)} alt="" className="h-8 w-8 rounded object-cover" />
+          {user.profilePicture && !imgError ? (
+            <img
+              src={getFileUrl(user.profilePicture)}
+              alt=""
+              className="h-8 w-8 rounded object-cover"
+              onError={() => setImgError(true)}
+            />
           ) : (
             <span className="flex h-8 w-8 items-center justify-center rounded bg-brand text-[10px] font-semibold text-white">{initials}</span>
           )}

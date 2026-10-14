@@ -150,10 +150,15 @@ const Projects = () => {
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-2">
                       {project.team.slice(0, 4).map((emp, i) => (
-                        <div key={i} className="w-8 h-8 rounded-full bg-white/90 bg-white/10 border-2 border-white border-line flex items-center justify-center text-xs font-bold text-muted text-muted" title={emp.name}>
+                        <div key={i} className="w-8 h-8 rounded-full bg-white/10 border-2 border-line flex items-center justify-center text-xs font-bold text-muted" title={emp.name}>
                           {emp.profilePicture ? (
-                            <img src={getFileUrl(emp.profilePicture)} alt={emp.name} className="w-full h-full rounded-full object-cover" />
-                          ) : emp.name.charAt(0)}
+                            <img
+                              src={getFileUrl(emp.profilePicture)}
+                              alt={emp.name}
+                              className="w-full h-full rounded-full object-cover"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          ) : emp.name?.charAt(0) || 'U'}
                         </div>
                       ))}
                       {project.team.length > 4 && (
