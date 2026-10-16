@@ -10,11 +10,12 @@ import Admin from '../models/Admin.js';
 import { rememberWfh } from '../utils/wfhStore.js';
 import { notifyMany } from '../utils/notify.js';
 
-const localDate = () => {
-  const now = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-};
+const localDate = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Kolkata',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(new Date());
 
 const mins = (seconds) => Math.round((seconds || 0) / 60);
 
@@ -134,8 +135,14 @@ export const agentPulse = async (req, res) => {
   }
   const date = localDate();
   const attendance = await Attendance.findOne({ employeeId: req.user._id, date });
-  if (!attendance?.checkIn || attendance.checkOut) {
-    return res.json({ status: 'waiting', tracking: false, activeMinutes: 0, idleMinutes: 0, breakMinutes: 0, productivity: 0 });
+  const homeOpen = Boolean(attendance?.checkIn && !attendance.checkOut && attendance.workMode === 'Home');
+  if (!homeOpen) {
+    let waiting = await WfhSession.findOne({ employeeId: req.user._id, date });
+    if (!waiting) waiting = new WfhSession({ employeeId: req.user._id, tenantId: req.user.tenantId, date });
+    waiting.agentSeenAt = new Date();
+    waiting.status = 'waiting';
+    await waiting.save();
+    return res.json({ status: 'waiting', tracking: false, laptop: true, activeMinutes: mins(waiting.activeSeconds), idleMinutes: mins(waiting.idleSeconds), breakMinutes: mins(waiting.breakSeconds), productivity: 0 });
   }
   const elapsed = Math.min(60, Math.max(1, Number(req.body.elapsed) || 30));
   const idleFor = Math.max(0, Number(req.body.idleSeconds) || 0);
@@ -282,23 +289,47 @@ export const downloadAgentLauncher = async (req, res) => {
   if (req.userType !== 'Employee') {
     return res.status(403).json({ message: 'Employees download the laptop agent.' });
   }
-  const token = agentTokenFor(req.user);
-  const api = apiBase();
-  const cmd = [
-    '@echo off',
-    'setlocal',
-    'set "DEST=%LOCALAPPDATA%\\Vastora"',
-    'mkdir "%DEST%" 2>nul',
-    `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $h=@{Authorization='Bearer ${token}'}; Invoke-WebRequest -Uri '${api}/api/wfh/agent.ps1' -Headers $h -OutFile ([Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1'); $dest=[Environment]::GetFolderPath('LocalApplicationData')+'\\Vastora\\agent.ps1'; if (-not (Test-Path $dest)) { exit 1 }; Start-Process powershell.exe -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',$dest; Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Installed. Check in once, then close the site. This PC keeps tracking in the background.','Vastora')"`,
-    'if errorlevel 1 (',
-    '  echo Could not install. Download this file again after the site is updated.',
-    '  pause',
-    '  exit /b 1',
-    ')',
-  ].join('\r\n');
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.cmd"');
-  res.send(cmd);
+  try {
+    if (!agentScriptPath) {
+      return res.status(500).json({ message: 'Laptop agent file is missing on the server.' });
+    }
+    const token = agentTokenFor(req.user);
+    const api = apiBase();
+    const script = fs.readFileSync(agentScriptPath, 'utf8');
+    const full = `$env:VASTORA_TOKEN = '${token}'\r\n$env:VASTORA_API = '${api}'\r\n${script.replace(/\r?\n/g, '\r\n')}`;
+    const payload = Buffer.from(full, 'utf8').toString('base64');
+    const cmd = [
+      '@echo off',
+      'setlocal',
+      'set "DEST=%LOCALAPPDATA%\\Vastora"',
+      'set "CMDFILE=%~f0"',
+      'mkdir "%DEST%" 2>nul',
+      'echo Installing Vastora agent...',
+      'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$t=[IO.File]::ReadAllText($env:CMDFILE); $i=$t.LastIndexOf(\'---PAYLOAD---\'); if ($i -lt 0) { exit 1 }; $b=($t.Substring($i+14) -replace \'\\s\',\'\'); [IO.File]::WriteAllText((Join-Path $env:DEST \'agent.ps1\'), [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b)))"',
+      'if errorlevel 1 (',
+      '  echo Could not write the agent. Right-click this file and choose Run as your user, not as administrator.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq \'powershell.exe\' -and $_.CommandLine -like \'*Vastora*agent.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"',
+      'timeout /t 1 /nobreak >nul',
+      'start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%DEST%\\agent.ps1"',
+      'echo.',
+      'echo Installed. This PC now sends activity to the Vastora website.',
+      'echo Check in with Home, then refresh Work from home. It can take up to 1 minute.',
+      'echo Log: %DEST%\\agent.log',
+      'pause',
+      'exit /b 0',
+      '---PAYLOAD---',
+      payload,
+      '',
+    ].join('\r\n');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'attachment; filename="VastoraAgent.cmd"');
+    res.send(cmd);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 export const mySession = async (req, res) => {

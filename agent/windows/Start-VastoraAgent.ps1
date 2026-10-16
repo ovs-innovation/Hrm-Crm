@@ -4,7 +4,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$api = if ($env:VASTORA_API) { $env:VASTORA_API.TrimEnd('/') } else { 'http://localhost:5000' }
+$api = if ($env:VASTORA_API) { $env:VASTORA_API.TrimEnd('/') } else { 'https://hrm.vastoratech.com' }
 $token = $env:VASTORA_TOKEN
 if (-not $token) {
   Write-Host 'This agent file has no login. Download it again from Work from home.'

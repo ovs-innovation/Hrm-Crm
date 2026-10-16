@@ -4,7 +4,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$api = if ($env:VASTORA_API) { $env:VASTORA_API.TrimEnd('/') } else { 'http://localhost:5000' }
+$api = if ($env:VASTORA_API) { $env:VASTORA_API.TrimEnd('/') } else { 'https://hrm.vastoratech.com' }
 $token = $env:VASTORA_TOKEN
 if (-not $token) {
   Write-Host 'This agent file has no login. Download it again from Work from home.'
@@ -27,6 +27,8 @@ function Write-Log([string]$line) {
   Write-Host $stamp
   try { Add-Content -Path $logFile -Value $stamp -ErrorAction SilentlyContinue } catch {}
 }
+
+Write-Log "Vastora agent started. Sending to $api"
 
 if ($PSCommandPath) {
   $task = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`""

@@ -39,13 +39,13 @@ const Wfh = () => {
     }
   };
 
-  const statusLabel = { online: 'Online', away: 'Away', break: 'Break', logged_out: 'Logged out' };
+  const statusLabel = { online: 'Online', away: 'Away', break: 'Break', waiting: 'Waiting for Home check-in', logged_out: 'Logged out', offline: 'Offline' };
 
   return (
     <PageShell title="Work from home" description="Same shift as office. Time is tracked inside this portal after a Home check-in.">
       {!session?.tracking && (
         <p className="mb-4 border border-line bg-surface px-3 py-2 text-sm text-ink">
-          Tracking starts after you check in with Home, and stops at checkout.
+          Download does not start tracking. On the dashboard, check in and choose Home. Time stops at checkout.
         </p>
       )}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -69,7 +69,11 @@ const Wfh = () => {
         <p className="mb-3 text-sm text-muted">
           Install the agent once on this PC. After that, check in and close this site. The laptop keeps tracking in the background until checkout. You do not need this tab open. Phones cannot run the agent. It does not send the keys you type. Download it again after 30 days.
         </p>
-        <p className="mb-3 text-sm text-ink">{session?.laptop ? 'Laptop agent is connected.' : 'Laptop agent is not running.'}</p>
+        <p className="mb-3 text-sm text-ink">
+          {session?.laptop
+            ? (session?.tracking ? 'Laptop agent is connected.' : 'Laptop agent is connected. Check in with Home to start counting time.')
+            : 'Laptop agent is not running. The site has not received a signal from this PC in the last 2 minutes. Download Windows, double-click the file, and leave it installed. Then refresh this page.'}
+        </p>
         <div className="flex flex-wrap gap-2">
           {[
             ['/wfh/agent.cmd', 'VastoraAgent.cmd', 'Windows'],
@@ -91,7 +95,7 @@ const Wfh = () => {
             }}>{label}</button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">Windows: double-click once. A short message means it is installed; no window has to stay open. Mac or Linux: run the file once in Terminal.</p>
+        <p className="mt-2 text-xs text-muted">Windows: double-click VastoraAgent.cmd and wait until the window says Installed. Do not close it before that. Mac or Linux: run the file once in Terminal.</p>
         <p className="mb-2 mt-4 text-sm text-ink">Apps</p>
         {(session?.apps || []).length === 0 && <p className="text-sm text-muted">No app time yet. It appears after the agent sends a pulse.</p>}
         {(session?.apps || []).map((p) => (
