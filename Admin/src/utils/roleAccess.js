@@ -1,6 +1,19 @@
-/** Admin portal nav visibility by role. Flags follow the previous role split. */
+/** Admin portal nav visibility by role. Unknown roles fail closed. */
+
+const emptyAccess = {
+  dashboard: true,
+  crm: false,
+  hrms: false,
+  work: false,
+  workspace: true,
+  support: false,
+  ai: false,
+  reports: false,
+  administration: false,
+};
+
 export const getNavAccess = (role) => {
-  const r = (role || 'admin').toLowerCase();
+  const r = String(role || '').toLowerCase().trim();
 
   const full = {
     dashboard: true,
@@ -13,6 +26,8 @@ export const getNavAccess = (role) => {
     reports: true,
     administration: true,
   };
+
+  if (!r) return emptyAccess;
 
   if (['admin', 'founder', 'owner'].includes(r)) return full;
 
@@ -28,7 +43,8 @@ export const getNavAccess = (role) => {
     return { ...full, administration: false };
   }
 
-  return full;
+  // Unknown role — do not grant full portal
+  return emptyAccess;
 };
 
 export const canAccessRoute = (role, path) => {
@@ -42,5 +58,6 @@ export const canAccessRoute = (role, path) => {
   if (path.startsWith('/ai') || path.startsWith('/ai-hub')) return access.ai;
   if (path.startsWith('/reports') || path.startsWith('/analytics')) return access.reports;
   if (path.startsWith('/settings') || path.startsWith('/setup-wizard')) return access.administration;
-  return true;
+  // Fail closed for unmapped paths
+  return false;
 };

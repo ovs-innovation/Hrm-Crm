@@ -3,6 +3,7 @@ import { FiBell } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAppSocket } from '../context/SocketContext';
+import { safeAppPath } from '../utils/safeAppPath';
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false);
@@ -60,7 +61,8 @@ const NotificationBell = () => {
     } catch { /* noop */ }
     setOpen(false);
     load();
-    if (link) navigate(link);
+    const next = safeAppPath(link);
+    if (next) navigate(next);
   };
 
   const markAll = async () => {

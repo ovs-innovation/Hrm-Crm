@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
+import { requireAdmin, requireStaff } from '../middlewares/roleMiddleware.js';
 
 /** Coerce query values to primitives — rejects Mongo operator objects. */
 export function sanitizeQueryValue(value) {
@@ -7,6 +8,12 @@ export function sanitizeQueryValue(value) {
   if (typeof value === 'object') return undefined;
   return String(value);
 }
+
+const writeGate = (mutate) => {
+  if (mutate === 'admin') return requireAdmin;
+  if (mutate === 'staff') return requireStaff;
+  return (_req, _res, next) => next();
+};
 
 export function createCrudHandlers(Model, options = {}) {
   const {
@@ -74,10 +81,16 @@ export function createCrudHandlers(Model, options = {}) {
   return { list, getOne, create, update, remove };
 }
 
-export function createCrudRouter(handlers) {
+/**
+ * @param handlers - from createCrudHandlers
+ * @param {{ mutate?: null | 'admin' | 'staff' }} options
+ *   mutate: who may POST/PUT/DELETE (GET stays any authenticated user)
+ */
+export function createCrudRouter(handlers, options = {}) {
+  const gate = writeGate(options.mutate);
   const router = express.Router();
   router.use(protect);
-  router.route('/').get(handlers.list).post(handlers.create);
-  router.route('/:id').get(handlers.getOne).put(handlers.update).delete(handlers.remove);
+  router.route('/').get(handlers.list).post(gate, handlers.create);
+  router.route('/:id').get(handlers.getOne).put(gate, handlers.update).delete(gate, handlers.remove);
   return router;
 }

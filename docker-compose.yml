@@ -9,10 +9,12 @@ services:
       - "127.0.0.1:3072:5000"
     volumes:
       - uploads_data:/app/uploads
+      - backend_data:/app/data
     env_file:
       - ./Backend/.env
     environment:
       NODE_ENV: production
+      WFH_AGENT_API: https://hrm.vastoratech.com
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/health"]
       interval: 15s
@@ -62,3 +64,4 @@ volumes:
   caddy_data:
   caddy_config:
   uploads_data:
+  backend_data:

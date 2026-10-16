@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FiBell } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { safeAppPath } from '../utils/safeAppPath';
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false);
@@ -39,7 +40,8 @@ const NotificationBell = () => {
     try { await api.patch(`/notifications/${id}/read`); } catch { /* noop */ }
     setOpen(false);
     load();
-    if (link) navigate(link);
+    const next = safeAppPath(link);
+    if (next) navigate(next);
   };
 
   return (

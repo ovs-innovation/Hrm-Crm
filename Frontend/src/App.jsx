@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -12,7 +12,6 @@ import Login from './pages/auth/Login';
 import DailyReports from './pages/DailyReports';
 import Wfh from './pages/Wfh';
 
-// Management Pages
 import ManageEmployees from './pages/ManageEmployees';
 import ManageAttendance from './pages/ManageAttendance';
 import ManageLeaves from './pages/ManageLeaves';
@@ -30,25 +29,29 @@ import Appreciation from './pages/Appreciation';
 import ShiftRoster from './pages/ShiftRoster';
 import ManageAppreciation from './pages/ManageAppreciation';
 import ManageShiftRoster from './pages/ManageShiftRoster';
-import ExecutiveCommandCenter from './pages/ExecutiveCommandCenter';
-import BusinessHealth from './pages/BusinessHealth';
-import WorkflowBuilder from './pages/WorkflowBuilder';
-import CostSimulator from './pages/CostSimulator';
+import { canAccessEmployeeRoute } from './utils/roleAccess';
 
 const ProtectedRoute = ({ children }) => {
   const user = useSelector((state) => state.auth.user);
+  const location = useLocation();
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  if (!canAccessEmployeeRoute(user.role, location.pathname)) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
 function App() {
   return (
     <>
-      <Toaster 
-        position="top-right" 
-        toastOptions={{ 
+      <Toaster
+        position="top-right"
+        toastOptions={{
           duration: 3000,
           style: {
             background: '#FFFFFF',
@@ -71,54 +74,55 @@ function App() {
               secondary: '#FFFFFF',
             },
           },
-        }} 
+        }}
       />
       <BrowserRouter>
         <Routes>
-        {/* Public Authentication Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/set-password" element={<SetPassword />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/set-password" element={<SetPassword />} />
 
-        {/* Private Employee Dashboard Routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="attendance" element={<Attendance />} />
-          <Route path="leaves" element={<Leaves />} />
-          <Route path="tasks" element={<Tasks />} />
-          <Route path="daily-reports" element={<DailyReports />} />
-          <Route path="wfh" element={<Wfh />} />
-          <Route path="messenger" element={<Messenger />} />
-          <Route path="policies" element={<Policies />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="payslips" element={<Payslips />} />
-          <Route path="tickets" element={<Tickets />} />
-          <Route path="careers" element={<Careers />} />
-          <Route path="appreciation" element={<Appreciation />} />
-          <Route path="roster" element={<ShiftRoster />} />
-          <Route path="executive/command-center" element={<ExecutiveCommandCenter />} />
-          <Route path="executive/health" element={<BusinessHealth />} />
-          <Route path="executive/workflows" element={<WorkflowBuilder />} />
-          <Route path="executive/simulator" element={<CostSimulator />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="leaves" element={<Leaves />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="daily-reports" element={<DailyReports />} />
+            <Route path="wfh" element={<Wfh />} />
+            <Route path="messenger" element={<Messenger />} />
+            <Route path="policies" element={<Policies />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="payslips" element={<Payslips />} />
+            <Route path="tickets" element={<Tickets />} />
+            <Route path="careers" element={<Careers />} />
+            <Route path="appreciation" element={<Appreciation />} />
+            <Route path="roster" element={<ShiftRoster />} />
 
-          <Route path="manage/employees" element={<ManageEmployees />} />
-          <Route path="manage/attendance" element={<ManageAttendance />} />
-          <Route path="manage/leaves" element={<ManageLeaves />} />
-          <Route path="manage/tasks" element={<ManageTasks />} />
-          <Route path="manage/holidays" element={<ManageHolidays />} />
-          <Route path="manage/announcements" element={<ManageAnnouncements />} />
-          <Route path="manage/appreciation" element={<ManageAppreciation />} />
-          <Route path="manage/roster" element={<ManageShiftRoster />} />
-          <Route path="manage/projects" element={<ManageProjects />} />
-          <Route path="manage/reports" element={<ManageReports />} />
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            {/* Team management — role-gated via ProtectedRoute + canAccessEmployeeRoute */}
+            <Route path="manage/employees" element={<ManageEmployees />} />
+            <Route path="manage/attendance" element={<ManageAttendance />} />
+            <Route path="manage/leaves" element={<ManageLeaves />} />
+            <Route path="manage/tasks" element={<ManageTasks />} />
+            <Route path="manage/holidays" element={<ManageHolidays />} />
+            <Route path="manage/announcements" element={<ManageAnnouncements />} />
+            <Route path="manage/appreciation" element={<ManageAppreciation />} />
+            <Route path="manage/roster" element={<ManageShiftRoster />} />
+            <Route path="manage/projects" element={<ManageProjects />} />
+            <Route path="manage/reports" element={<ManageReports />} />
+
+            {/* Executive tools are Admin-portal only */}
+            <Route path="executive/*" element={<Navigate to="/" replace />} />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }

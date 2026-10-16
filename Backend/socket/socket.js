@@ -3,12 +3,15 @@ import http from 'http';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Message from '../models/Message.js';
+import Admin from '../models/Admin.js';
+import Employee from '../models/Employee.js';
+import WorkspaceChannel from '../models/WorkspaceChannel.js';
 import {
   handleConnect,
   handleDisconnect,
   setPresence,
   emitPresenceChange,
-  getOnlineUserIds,
+  getOnlineUserIdsForTenant,
 } from '../services/presence.service.js';
 import { SOCKET_EVENTS, userRoom, tenantRoom, channelRoom } from './events.js';
 
@@ -39,8 +42,9 @@ const io = new Server(server, {
       if (!origin) return callback(null, true);
       let host = '';
       try { host = new URL(origin).hostname; } catch { host = origin; }
-      const localHost = host === 'localhost' || host === '127.0.0.1' ||
-        /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
+      const isLoopback = host === 'localhost' || host === '127.0.0.1';
+      const isPrivateLan = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
+      const localHost = isLoopback || (process.env.NODE_ENV !== 'production' && isPrivateLan);
       const ok = allowedOrigins.includes(origin) || localHost;
       callback(ok ? null : new Error('CORS blocked'), ok);
     },
@@ -55,7 +59,7 @@ export const getReceiverSocketId = (receiverId) => {
   return ids[0];
 };
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   try {
     const authHeader = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
     let token = null;
@@ -72,10 +76,23 @@ io.use((socket, next) => {
       return next(new Error('Unauthorized'));
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = (decoded.userId || decoded.id || decoded._id)?.toString();
+    if (decoded.typ && decoded.typ !== 'access') {
+      return next(new Error('Unauthorized'));
+    }
+    const userId = (decoded.userId || decoded.id || decoded._id)?.toString();
+    if (!userId) return next(new Error('Unauthorized'));
+
+    if (typeof decoded.tokenVersion === 'number') {
+      const Model = decoded.userType === 'Employee' ? Employee : Admin;
+      const user = await Model.findById(userId).select('tokenVersion').setOptions({ skipTenantScope: true });
+      if (!user || Number(user.tokenVersion || 0) !== decoded.tokenVersion) {
+        return next(new Error('Unauthorized'));
+      }
+    }
+
+    socket.userId = userId;
     socket.tenantId = decoded.tenantId?.toString() || null;
     socket.userType = decoded.userType || 'Admin';
-    if (!socket.userId) return next(new Error('Unauthorized'));
     next();
   } catch (err) {
     next(new Error('Unauthorized'));
@@ -91,9 +108,19 @@ io.on('connection', (socket) => {
 
   handleConnect({ io, socket, userId, tenantId }).catch((err) => console.error(err));
 
-  socket.on(SOCKET_EVENTS.CHANNEL_JOIN, (channelId) => {
+  socket.on(SOCKET_EVENTS.CHANNEL_JOIN, async (channelId) => {
     if (!channelId) return;
-    socket.join(channelRoom(channelId));
+    try {
+      const member = await WorkspaceChannel.findOne({
+        _id: channelId,
+        'members.userId': userId,
+        deletedAt: null,
+      }).select('_id').setOptions({ skipTenantScope: true });
+      if (!member) return;
+      socket.join(channelRoom(channelId));
+    } catch (err) {
+      console.error('[socket] CHANNEL_JOIN', err.message);
+    }
   });
 
   socket.on(SOCKET_EVENTS.CHANNEL_LEAVE, (channelId) => {
@@ -121,10 +148,9 @@ io.on('connection', (socket) => {
   socket.on('markSeen', async ({ senderId, receiverId }) => {
     try {
       if (receiverId?.toString() !== userId) return;
-      await Message.updateMany(
-        { senderId, receiverId, status: { $ne: 'seen' } },
-        { $set: { status: 'seen' } }
-      );
+      const filter = { senderId, receiverId, status: { $ne: 'seen' } };
+      if (tenantId) filter.tenantId = tenantId;
+      await Message.updateMany(filter, { $set: { status: 'seen' } });
       const senderSocket = getReceiverSocketId(senderId);
       if (senderSocket) {
         io.to(senderSocket).emit(SOCKET_EVENTS.MESSAGES_SEEN, receiverId);
@@ -134,7 +160,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  io.emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIds());
+  if (tenantId) {
+    io.to(tenantRoom(tenantId)).emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIdsForTenant(tenantId));
+  }
 
   socket.on('disconnect', () => {
     handleDisconnect({ io, socket, userId, tenantId }).catch((err) => console.error(err));

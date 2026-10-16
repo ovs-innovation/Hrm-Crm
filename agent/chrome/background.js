@@ -2,7 +2,7 @@ let since = Date.now();
 let last = { url: '', title: '' };
 
 async function settings() {
-  return chrome.storage.local.get({ api: 'http://localhost:5000', token: '' });
+  return chrome.storage.local.get({ api: 'https://hrm.vastoratech.com', token: '' });
 }
 
 async function send(url, title, elapsed) {

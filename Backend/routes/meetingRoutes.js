@@ -11,4 +11,4 @@ const handlers = createCrudHandlers(Meeting, {
   },
 });
 
-export default createCrudRouter(handlers);
+export default createCrudRouter(handlers, { mutate: 'staff' });

@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 
 const Select = forwardRef(({
   label,
@@ -9,7 +9,8 @@ const Select = forwardRef(({
   placeholder = 'Select an option',
   ...props
 }, ref) => {
-  const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+  const autoId = useId();
+  const selectId = id || autoId;
 
   return (
     <div className={`flex flex-col w-full ${className}`}>
@@ -22,7 +23,7 @@ const Select = forwardRef(({
         id={selectId}
         ref={ref}
         className={`app-input appearance-none ${
-          error ? 'border-brand ring-2 ring-brand/20' : ''
+          error ? 'border-danger ring-2 ring-danger/20' : ''
         }`}
         {...props}
       >
@@ -35,7 +36,7 @@ const Select = forwardRef(({
           </option>
         ))}
       </select>
-      {error && <span className="mt-1 text-sm text-brand">{error}</span>}
+      {error && <span className="mt-1 text-sm text-danger">{error}</span>}
     </div>
   );
 });

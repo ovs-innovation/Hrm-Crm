@@ -1,6 +1,6 @@
 const api = document.getElementById('api');
 const token = document.getElementById('token');
-chrome.storage.local.get({ api: 'http://localhost:5000', token: '' }, (saved) => {
+chrome.storage.local.get({ api: 'https://hrm.vastoratech.com', token: '' }, (saved) => {
   api.value = saved.api;
   token.value = saved.token;
 });

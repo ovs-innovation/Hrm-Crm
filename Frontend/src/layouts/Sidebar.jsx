@@ -21,6 +21,7 @@ import {
   FiLifeBuoy,
   FiBriefcase,
 } from 'react-icons/fi';
+import { canManageTeam } from '../utils/roleAccess';
 
 const NavItem = ({ to, icon: Icon, title, end, onClick }) => (
   <NavLink
@@ -49,8 +50,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user || {});
-  const role = (user.role || '').toLowerCase().trim();
-  const isManager = role === 'hr' || role === 'manager';
+  const isManager = canManageTeam(user.role);
 
   const handleLogout = async () => {
     try {
@@ -101,13 +101,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavItem to="/careers" icon={FiBriefcase} title="Careers" onClick={() => setIsOpen(false)} />
             <NavItem to="/profile" icon={FiUser} title="Profile" onClick={() => setIsOpen(false)} />
           </div>
-
-          <Section title="Vastora OS">
-            <NavItem to="/executive/command-center" icon={FiHome} title="Command Center" onClick={() => setIsOpen(false)} />
-            <NavItem to="/executive/health" icon={FiAward} title="Business Health" onClick={() => setIsOpen(false)} />
-            <NavItem to="/executive/workflows" icon={FiCheckSquare} title="Process Builder" onClick={() => setIsOpen(false)} />
-            <NavItem to="/executive/simulator" icon={FiDollarSign} title="Cost Simulator" onClick={() => setIsOpen(false)} />
-          </Section>
 
           {isManager && (
             <Section title="Team management">

@@ -27,7 +27,7 @@ export default function InvoiceBuilderDashboard({ invoices = [], onNewInvoice, o
         </div>
         <button
           onClick={onNewInvoice}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand/90"
         >
           <FiPlus className="h-4 w-4" /> Create Invoice
         </button>
@@ -38,7 +38,7 @@ export default function InvoiceBuilderDashboard({ invoices = [], onNewInvoice, o
           { title: 'Total Revenue', value: formatINR(totalRevenue), icon: FiTrendingUp, color: 'text-emerald-600 bg-emerald-50' },
           { title: 'Pending Amount', value: formatINR(pendingAmount), icon: FiClock, color: 'text-amber-600 bg-amber-50' },
           { title: 'Overdue Amount', value: formatINR(overdueAmount), icon: FiAlertTriangle, color: 'text-rose-600 bg-rose-50' },
-          { title: 'Paid Invoices', value: paidCount, icon: FiCheckCircle, color: 'text-blue-600 bg-blue-50' }
+          { title: 'Paid Invoices', value: paidCount, icon: FiCheckCircle, color: 'text-brand bg-brand/10' }
         ].map((stat, idx) => (
           <motion.div
             key={stat.title}
@@ -148,7 +148,7 @@ export default function InvoiceBuilderDashboard({ invoices = [], onNewInvoice, o
                   <span>{formatINR(cust.value)}</span>
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600" style={{ width: cust.pct }} />
+                  <div className="h-full bg-brand" style={{ width: cust.pct }} />
                 </div>
               </div>
             ))}

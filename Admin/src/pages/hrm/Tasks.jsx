@@ -57,8 +57,6 @@ const Tasks = () => {
     try {
       await api.post('/tasks', {
         ...formData,
-        assignedBy: adminInfo.name || 'Admin',
-        assignerRole: adminInfo.role || 'Admin'
       });
       setIsModalOpen(false);
       setFormData({ title: '', description: '', projectName: '', assignedTo: [], dueDate: '', priority: 'Medium' });
@@ -120,10 +118,10 @@ const Tasks = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Completed': return 'bg-brand/10 text-brand';
-      case 'In Progress': return 'bg-brand/10 text-brand bg-brand/15 text-brand';
-      case 'Pending': return 'bg-brand/10 text-brand';
-      default: return 'bg-white text-ink bg-surface text-muted';
+      case 'Completed': return 'bg-success/10 text-success';
+      case 'In Progress': return 'bg-brand/10 text-brand';
+      case 'Pending': return 'bg-warning/10 text-warning';
+      default: return 'bg-soft text-muted';
     }
   };
 

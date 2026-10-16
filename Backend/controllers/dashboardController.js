@@ -57,13 +57,13 @@ export const getReportsAnalytics = async (req, res) => {
       tasksDue,
       tasksOpen,
     ] = await Promise.all([
-      Deal.find({}),
-      Deal.find({ createdAt: { $gte: since } }),
-      Client.find({}),
-      Client.find({ createdAt: { $gte: since } }),
-      Employee.find({}).select('department designation role'),
-      LeaveRequest.find({}),
-      Ticket.find({}),
+      Deal.find({}).select('stage amount createdAt title clientName').lean(),
+      Deal.find({ createdAt: { $gte: since } }).select('stage amount createdAt').lean(),
+      Client.find({}).select('status createdAt').lean(),
+      Client.find({ createdAt: { $gte: since } }).select('status createdAt').lean(),
+      Employee.find({}).select('department designation role').lean(),
+      LeaveRequest.find({}).select('status').lean(),
+      Ticket.find({}).select('status').lean(),
       Task.countDocuments({
         status: { $ne: 'Completed' },
         dueDate: { $lte: today },
@@ -127,21 +127,23 @@ export const getReportsAnalytics = async (req, res) => {
     }
     const maxWeeklyLeads = Math.max(...weeklyLeads.map((w) => w.count), 1);
 
-    const attendanceTrend = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const present = await Attendance.countDocuments({
-        date: dateStr,
-        checkIn: { $exists: true, $ne: null },
-      });
-      attendanceTrend.push({
-        date: dateStr,
-        label: d.toLocaleDateString('en-IN', { weekday: 'short' }),
-        present,
-      });
-    }
+    const attendanceTrend = await Promise.all(
+      Array.from({ length: 7 }, async (_, index) => {
+        const i = 6 - index;
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const present = await Attendance.countDocuments({
+          date: dateStr,
+          checkIn: { $exists: true, $ne: null },
+        });
+        return {
+          date: dateStr,
+          label: d.toLocaleDateString('en-IN', { weekday: 'short' }),
+          present,
+        };
+      })
+    );
     const maxAttendance = Math.max(...attendanceTrend.map((a) => a.present), employees.length, 1);
 
     const deptMap = {};

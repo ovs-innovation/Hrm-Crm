@@ -28,25 +28,46 @@ const Messenger = () => {
   
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState(null);
 
   const userInfo = useSelector((state) => state.auth.user || {});
   const loggedInUserId = userInfo._id || userInfo.employeeId;
 
+  useEffect(() => {
+    if (!selectedFile || !selectedFile.type?.startsWith('image/')) {
+      setFilePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return undefined;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setFilePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+
   // Initialize Socket
   useEffect(() => {
-    if (loggedInUserId) {
-      const socketInstance = io(getFileUrl(''), {
-        withCredentials: true,
-      });
+    if (!loggedInUserId) return;
 
-      setSocket(socketInstance);
+    const token = localStorage.getItem('employeeToken');
+    if (!token || token === 'session') return;
 
-      socketInstance.on('getOnlineUsers', (users) => {
-        setOnlineUsers(users);
-      });
+    const socketInstance = io(getFileUrl(''), {
+      withCredentials: true,
+      auth: { token },
+    });
 
-      return () => socketInstance.close();
-    }
+    setSocket(socketInstance);
+
+    socketInstance.on('getOnlineUsers', (users) => {
+      setOnlineUsers(users);
+    });
+
+    return () => socketInstance.close();
   }, [loggedInUserId]);
 
   // Fetch Contacts
@@ -218,13 +239,13 @@ const Messenger = () => {
               >
                 <div className="relative flex-shrink-0">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand to-brand flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    {contact.name[0].toUpperCase()}
+                    {(contact.name || '?')[0].toUpperCase()}
                   </div>
                   <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-line ${isOnline(contact._id) ? 'bg-brand shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-white/30'}`}></span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="truncate text-[13px] font-medium text-ink">{contact.name}</h3>
+                    <h3 className="truncate text-[13px] font-medium text-ink">{contact.name || 'Unknown'}</h3>
                   </div>
                   <p className="text-sm text-muted truncate pr-2">{contact.role}</p>
                 </div>
@@ -353,8 +374,8 @@ const Messenger = () => {
               <div className="px-6 py-3 bg-surface/80 border-t border-line flex items-center justify-between backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-brand/20 text-brand rounded-lg">
-                    {selectedFile.type.startsWith('image/') ? (
-                      <img src={URL.createObjectURL(selectedFile)} alt="preview" className="w-6 h-6 object-cover rounded" />
+                    {filePreviewUrl ? (
+                      <img src={filePreviewUrl} alt="preview" className="w-6 h-6 object-cover rounded" />
                     ) : (
                       <FiFileText className="w-6 h-6" />
                     )}
@@ -366,7 +387,7 @@ const Messenger = () => {
                 </div>
                 <button 
                   onClick={removeSelectedFile}
-                  className="p-1.5 text-muted hover:text-brand hover:bg-brand/100/20 rounded-lg transition-colors"
+                  className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors"
                 >
                   <FiX className="w-5 h-5" />
                 </button>

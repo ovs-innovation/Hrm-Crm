@@ -259,14 +259,14 @@ export default function Invoices() {
                       onClick={() => setModalSelectedTemplate(tpl.id)}
                       className={`border rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md ${
                         modalSelectedTemplate === tpl.id 
-                          ? 'border-blue-600 bg-blue-50/10 ring-1 ring-blue-600' 
+                          ? 'border-blue-600 bg-brand/10 ring-1 ring-blue-600' 
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-xs text-slate-800">{tpl.title}</span>
                         {tpl.label && (
-                          <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                          <span className="text-[9px] font-bold text-brand bg-brand/10 px-1.5 py-0.5 rounded">
                             {tpl.label}
                           </span>
                         )}
@@ -297,7 +297,7 @@ export default function Invoices() {
                       setShowTemplateModal(false);
                       setView('builder');
                     }}
-                    className="rounded-lg bg-blue-600 px-5 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                    className="rounded-lg bg-brand px-5 py-2 text-xs font-semibold text-white hover:bg-brand/90"
                   >
                     Continue
                   </button>
@@ -353,7 +353,7 @@ export default function Invoices() {
               <button onClick={() => {
                 setShareLink(`${window.location.origin}/invoice/${invoiceData.invoiceNumber}`);
                 setShowShareModal(true);
-              }} className="flex items-center gap-1 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-700">
+              }} className="flex items-center gap-1 rounded-lg bg-brand px-3.5 py-1.5 text-xs font-bold text-white hover:bg-brand/90">
                 <FiShare2 className="h-3.5 w-3.5" /> Share
               </button>
             </div>
@@ -377,7 +377,7 @@ export default function Invoices() {
                   onClick={() => setOpenSidebarTab(tab.id)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
                     openSidebarTab === tab.id 
-                      ? 'bg-blue-50 text-blue-700' 
+                      ? 'bg-brand/10 text-brand' 
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -412,7 +412,7 @@ export default function Invoices() {
                           type="text" 
                           value={invoiceData.companyName}
                           onChange={(e) => updateState({ ...invoiceData, companyName: e.target.value })}
-                          className="mt-1 w-full rounded-lg border border-slate-200 p-2 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          className="mt-1 w-full rounded-lg border border-slate-200 p-2 focus:ring-1 focus:ring-brand/30 focus:outline-none"
                         />
                       </div>
                       <div>
@@ -570,7 +570,7 @@ export default function Invoices() {
 
                       <button 
                         onClick={handleAddItemRow}
-                        className="flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-2.5 font-semibold text-slate-500 hover:border-blue-600 hover:text-blue-600"
+                        className="flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 py-2.5 font-semibold text-slate-500 hover:border-blue-600 hover:text-brand"
                       >
                         <FiPlusCircle className="h-4 w-4" /> Add Row
                       </button>

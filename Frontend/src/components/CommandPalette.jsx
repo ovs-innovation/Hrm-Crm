@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiCommand, FiSearch, FiCpu, FiCornerDownLeft, FiX } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { safeAppPath } from '../utils/safeAppPath';
 
 const CommandPalette = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,9 +62,10 @@ const CommandPalette = () => {
       toast.success('AI executed action!');
       
       // Auto redirect if returned by agent
-      if (res.data.redirectUrl) {
+      const nextPath = safeAppPath(res.data.redirectUrl);
+      if (nextPath) {
         setTimeout(() => {
-          navigate(res.data.redirectUrl);
+          navigate(nextPath);
           setIsOpen(false);
         }, 1500);
       }

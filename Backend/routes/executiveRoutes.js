@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
+import { requireAdmin } from '../middlewares/roleMiddleware.js';
 import {
   getBusinessHealthScore,
   getExecutiveBrief,
@@ -18,21 +19,23 @@ import {
 
 const router = express.Router();
 
-router.get('/health-score', protect, getBusinessHealthScore);
-router.get('/daily-brief', protect, getExecutiveBrief);
-router.post('/simulate-cost', protect, simulateWorkforceCost);
-router.post('/command', protect, executeExecutiveCommand);
-router.post('/run-tool', protect, runMcpToolDirectly);
-router.get('/dashboard/metrics', protect, getExecutiveDashboardMetrics);
-router.get('/dashboard/ai-summary', protect, getExecutiveDashboardAiSummary);
+// Executive / MCP surfaces are Admin-portal only (never trust employee sessions).
+router.use(protect, requireAdmin);
 
-// Workflow Builder APIs
-router.get('/workflows', protect, getWorkflows);
-router.post('/workflows/save', protect, saveWorkflow);
-router.post('/workflows/test', protect, executeWorkflowTest);
-router.get('/workflows/:id/history', protect, getWorkflowHistory);
-router.post('/workflows/history/:logId/retry', protect, retryWorkflowExecution);
-router.post('/workflows/ai-generate', protect, aiGenerateWorkflow);
+router.get('/health-score', getBusinessHealthScore);
+router.get('/daily-brief', getExecutiveBrief);
+router.post('/simulate-cost', simulateWorkforceCost);
+router.post('/command', executeExecutiveCommand);
+router.post('/run-tool', runMcpToolDirectly);
+router.get('/dashboard/metrics', getExecutiveDashboardMetrics);
+router.get('/dashboard/ai-summary', getExecutiveDashboardAiSummary);
+
+router.get('/workflows', getWorkflows);
+router.post('/workflows/save', saveWorkflow);
+router.post('/workflows/test', executeWorkflowTest);
+router.get('/workflows/:id/history', getWorkflowHistory);
+router.post('/workflows/history/:logId/retry', retryWorkflowExecution);
+router.post('/workflows/ai-generate', aiGenerateWorkflow);
 
 export default router;
 

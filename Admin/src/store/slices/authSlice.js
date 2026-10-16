@@ -1,7 +1,16 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+const safeParse = (raw) => {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
 const initialState = {
-  adminInfo: localStorage.getItem('adminInfo') ? JSON.parse(localStorage.getItem('adminInfo')) : null,
+  adminInfo: safeParse(localStorage.getItem('adminInfo')),
 };
 
 const authSlice = createSlice({

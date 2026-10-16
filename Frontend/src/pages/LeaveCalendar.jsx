@@ -58,7 +58,7 @@ const LeaveCalendar = () => {
             const dateString = curr.toISOString().split('T')[0];
             newEvents[dateString] = {
               title: leave.type,
-              type: leave.status.toLowerCase(),
+              type: (leave.status || 'pending').toLowerCase(),
               reason: leave.reason
             };
             curr.setDate(curr.getDate() + 1);
@@ -159,13 +159,13 @@ const LeaveCalendar = () => {
 
   const getEventStyles = (type) => {
     switch (type) {
-      case 'holiday': return 'bg-brand/10/80 text-purple-700 border-l-2 border-purple-500';
-      case 'approved': return 'bg-brand/10/80 text-brand border-l-2 border-emerald-500';
-      case 'pending': return 'bg-brand/10/80 text-brand border-l-2 border-amber-500';
-      case 'rejected': return 'bg-brand/10/80 text-red-700 border-l-2 border-brand line-through decoration-red-400';
-      case 'present': return 'bg-brand/10/80 text-brand border-l-2 border-blue-400';
-      case 'pre-joining': return 'bg-surface0 text-muted bg-surface/50 text-muted';
-      case 'weekend': return 'bg-transparent text-muted text-muted';
+      case 'holiday': return 'bg-violet-500/10 text-violet-700 border-l-2 border-violet-500';
+      case 'approved': return 'bg-success/10 text-success border-l-2 border-success';
+      case 'pending': return 'bg-warning/10 text-warning border-l-2 border-warning';
+      case 'rejected': return 'bg-danger/10 text-danger border-l-2 border-danger line-through decoration-danger/40';
+      case 'present': return 'bg-brand/10 text-brand border-l-2 border-brand';
+      case 'pre-joining': return 'bg-soft text-muted';
+      case 'weekend': return 'bg-transparent text-muted';
       default: return 'bg-transparent';
     }
   };
@@ -279,7 +279,7 @@ const LeaveCalendar = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 border-b border-line bg-surface0 bg-surface/20">
+          <div className="grid grid-cols-7 border-b border-line bg-surface/20">
             {daysOfWeek.map((day) => (
               <div key={day} className="py-4 text-center text-xs font-bold text-muted uppercase tracking-widest">
                 {day}
@@ -299,7 +299,7 @@ const LeaveCalendar = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.2, delay: idx * 0.01 }}
                   className={`min-h-[120px] bg-surface p-3 transition-colors group relative
-                    ${!day.isCurrentMonth ? 'bg-surface0 bg-soft' : 'hover:bg-white hover:bg-surface/50'}
+                    ${!day.isCurrentMonth ? 'bg-soft' : 'hover:bg-surface/50'}
                   `}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -338,7 +338,7 @@ const LeaveCalendar = () => {
           <h4 className="text-sm font-black text-muted uppercase tracking-wider mb-6">Status Legend</h4>
           <ul className="space-y-4">
             {[
-              { label: 'Present', color: 'bg-brand shadow-brand/100' },
+              { label: 'Present', color: 'bg-brand shadow-brand/20' },
               { label: 'Approved Leave', color: 'bg-brand shadow-emerald-500/50' },
               { label: 'Pending Request', color: 'bg-brand shadow-amber-500/50' },
               { label: 'Rejected Leave', color: 'bg-brand shadow-red-500/50' },

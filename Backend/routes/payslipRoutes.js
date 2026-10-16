@@ -70,12 +70,30 @@ export const generateBulkPayslips = async (req, res) => {
   }
 };
 
+const getPayslipById = async (req, res) => {
+  try {
+    const doc = await Payslip.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: 'Not found' });
+
+    if (req.userType === 'Employee') {
+      const ownId = String(req.user?.employeeId || '');
+      if (!ownId || String(doc.employeeId) !== ownId) {
+        return res.status(403).json({ message: 'You can only view your own payslip.' });
+      }
+    }
+
+    res.json(doc);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const router = express.Router();
 router.use(protect);
 router.get('/', handlers.list);
 router.post('/generate', requireAdmin, generateBulkPayslips);
 router.post('/', requireAdmin, createPayslip);
-router.get('/:id', handlers.getOne);
+router.get('/:id', getPayslipById);
 router.put('/:id', requireAdmin, handlers.update);
 router.delete('/:id', requireAdmin, handlers.remove);
 

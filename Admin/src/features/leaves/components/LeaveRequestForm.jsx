@@ -3,6 +3,7 @@ import api from '../../../services/api';
 
 const LeaveRequestForm = ({ onCancel, onSubmit }) => {
   const [employees, setEmployees] = useState([]);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     employeeId: '', leaveType: 'Annual Leave', startDate: '', endDate: '', reason: '',
   });
@@ -13,11 +14,17 @@ const LeaveRequestForm = ({ onCancel, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.endDate && formData.startDate && formData.endDate < formData.startDate) {
+      setError('End date cannot be before the start date.');
+      return;
+    }
+    setError('');
     onSubmit?.(formData);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div>
         <label className="app-label mb-1 block text-[13px]">Employee</label>
         <select name="employeeId" required className="app-input h-9 text-[13px]" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}>

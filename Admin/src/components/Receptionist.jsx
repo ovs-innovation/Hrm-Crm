@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { FiMessageSquare, FiX, FiSend, FiCpu, FiMic, FiMicOff, FiVolume2, FiVolumeX, FiSquare } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { safeAppPath } from '../utils/safeAppPath';
 
 // Premium Animated Realistic Female Corporate Avatar Component
 const FemaleAvatar = ({ state }) => {
@@ -39,7 +40,7 @@ const FemaleAvatar = ({ state }) => {
       <div className={`relative w-28 h-28 rounded-full overflow-hidden border-2 shadow-2xl transition-all duration-500 ${
         isListening ? 'border-red-500 scale-105 ring-4 ring-red-500/20' :
         isSpeaking ? 'border-emerald-500 scale-105 ring-4 ring-emerald-500/20' :
-        isThinking ? 'border-blue-500 scale-100 ring-4 ring-blue-500/20' :
+        isThinking ? 'border-brand scale-100 ring-4 ring-brand/20' :
         'border-brand/40 hover:border-brand scale-100'
       } ${isSpeaking ? 'animate-bounce-subtle' : 'animate-float-subtle'}`}>
         <img
@@ -56,7 +57,7 @@ const FemaleAvatar = ({ state }) => {
       <div className={`absolute bottom-4 right-4 w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-lg z-20 transition-all duration-300 border border-white/20 ${
         isListening ? 'bg-red-500 text-white animate-pulse' :
         isSpeaking ? 'bg-emerald-500 text-white' :
-        isThinking ? 'bg-blue-500 text-white animate-spin-slow' :
+        isThinking ? 'bg-brand text-white animate-spin-slow' :
         'bg-brand text-white'
       }`}>
         {isListening && '🎤'}
@@ -348,10 +349,11 @@ const Receptionist = () => {
         restartRecognition();
       }
 
-      if (res.data.redirectUrl) {
-        toast.success(`Redirecting you to ${res.data.redirectUrl}...`);
+      const nextPath = safeAppPath(res.data.redirectUrl);
+      if (nextPath) {
+        toast.success(`Redirecting you to ${nextPath}...`);
         setTimeout(() => {
-          navigate(res.data.redirectUrl);
+          navigate(nextPath);
           setIsOpen(false);
           stopVoiceSession();
         }, 1200);
@@ -383,10 +385,11 @@ const Receptionist = () => {
         queueAndSpeakResponse(reply);
       }
 
-      if (res.data.redirectUrl) {
-        toast.success(`Redirecting you to ${res.data.redirectUrl}...`);
+      const nextPath = safeAppPath(res.data.redirectUrl);
+      if (nextPath) {
+        toast.success(`Redirecting you to ${nextPath}...`);
         setTimeout(() => {
-          navigate(res.data.redirectUrl);
+          navigate(nextPath);
           setIsOpen(false);
           stopVoiceSession();
         }, 1200);

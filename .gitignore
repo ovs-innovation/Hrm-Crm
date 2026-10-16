@@ -28,6 +28,13 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
+# Local runtime / scratch data
+Backend/.mongo-data/
+Backend/uploads/
+Backend/scratch/
+Backend/data/*.json
+Backend/data/.jwt-secret
+
 # Editor configurations
 .vscode/
 .idea/

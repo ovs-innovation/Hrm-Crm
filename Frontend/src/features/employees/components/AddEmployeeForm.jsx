@@ -131,12 +131,12 @@ const AddEmployeeForm = ({ onCancel, onSuccess }) => {
                 <div>
                   <InputLabel required>Employee Name</InputLabel>
                   <input {...register('name')} type="text" placeholder="e.g. John Doe" className="w-full px-3 py-2 bg-surface border border-line rounded-md text-sm text-ink text-ink" />
-                  {errors.name && <p className="text-brand text-xs mt-1">{errors.name.message}</p>}
+                  {errors.name && <p className="text-danger text-xs mt-1">{errors.name.message}</p>}
                 </div>
                 <div>
                   <InputLabel required>Employee Email</InputLabel>
                   <input {...register('email')} type="email" placeholder="e.g. john.doe@example.com" className="w-full px-3 py-2 bg-surface border border-line rounded-md text-sm text-ink text-ink" />
-                  {errors.email && <p className="text-brand text-xs mt-1">{errors.email.message}</p>}
+                  {errors.email && <p className="text-danger text-xs mt-1">{errors.email.message}</p>}
                 </div>
               </div>
 
@@ -151,7 +151,7 @@ const AddEmployeeForm = ({ onCancel, onSuccess }) => {
                     </button>
                   </div>
                   {errors.password ? (
-                    <p className="text-brand text-xs mt-1">{errors.password.message}</p>
+                    <p className="text-danger text-xs mt-1">{errors.password.message}</p>
                   ) : (
                     <p className="text-muted text-[10px] mt-1">Must have at least 8 characters</p>
                   )}
@@ -161,14 +161,14 @@ const AddEmployeeForm = ({ onCancel, onSuccess }) => {
                   <div className="flex gap-2">
                     <input {...register('designation')} type="text" placeholder="e.g. Manager" className="w-full px-3 py-2 bg-surface border border-line rounded-md text-sm text-ink text-ink" />
                   </div>
-                  {errors.designation && <p className="text-brand text-xs mt-1">{errors.designation.message}</p>}
+                  {errors.designation && <p className="text-danger text-xs mt-1">{errors.designation.message}</p>}
                 </div>
                 <div className="md:col-span-1">
                   <InputLabel required>Department</InputLabel>
                   <div className="flex gap-2">
                     <input {...register('department')} type="text" placeholder="e.g. Engineering" className="w-full px-3 py-2 bg-surface border border-line rounded-md text-sm text-ink text-ink" />
                   </div>
-                  {errors.department && <p className="text-brand text-xs mt-1">{errors.department.message}</p>}
+                  {errors.department && <p className="text-danger text-xs mt-1">{errors.department.message}</p>}
                 </div>
                 <div></div> {/* Empty 4th column */}
               </div>
@@ -201,7 +201,7 @@ const AddEmployeeForm = ({ onCancel, onSuccess }) => {
                 <div>
                   <InputLabel required>Joining Date</InputLabel>
                   <input {...register('joinDate')} type="date" className="w-full px-3 py-2 bg-surface border border-line rounded-md text-sm text-ink text-ink" />
-                  {errors.joinDate && <p className="text-brand text-xs mt-1">{errors.joinDate.message}</p>}
+                  {errors.joinDate && <p className="text-danger text-xs mt-1">{errors.joinDate.message}</p>}
                 </div>
               </div>
 

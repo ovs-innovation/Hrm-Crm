@@ -1,33 +1,11 @@
 import mongoose from 'mongoose';
-import { redisClient } from '../services/redis.service.js';
 import { getQueueStatus } from '../services/queue.service.js';
-import { getWhatsAppStatus } from '../services/whatsapp.service.js';
 import AILog from '../models/AILog.js';
 
 export const getSystemHealth = async (req, res) => {
-  const dbStatus = mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy';
-  const redisStatus = redisClient && redisClient.status === 'ready' ? 'healthy' : 'unhealthy';
-  const queueStatus = 'healthy'; // In-memory fallback is active
-  
-  let aiStatus = 'healthy';
-  try {
-    const { getWhatsAppStatus } = await import('../services/whatsapp.service.js');
-    aiStatus = getWhatsAppStatus().configured ? 'healthy' : 'unconfigured_fallback';
-  } catch (e) {
-    aiStatus = 'degraded';
-  }
-
-  res.json({
-    status: dbStatus === 'healthy' && redisStatus === 'healthy' ? 'healthy' : 'degraded',
-    services: {
-      mongodb: dbStatus,
-      redis: redisStatus,
-      queue: queueStatus,
-      aiProvider: aiStatus,
-      storage: 'healthy',
-      webhook: 'healthy'
-    }
-  });
+  const dbReady = mongoose.connection.readyState === 1;
+  // Public probe stays coarse — service internals are on the admin metrics route.
+  res.json({ status: dbReady ? 'healthy' : 'degraded' });
 };
 
 export const getSystemMetrics = async (req, res) => {

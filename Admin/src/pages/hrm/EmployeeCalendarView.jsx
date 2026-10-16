@@ -42,7 +42,7 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
 
             // Only show approved or rejected, or pending if you want to see all
             newEvents[dateString].push({
-              type: leave.status.toLowerCase(), // 'approved', 'rejected', 'pending'
+              type: (leave.status || 'pending').toLowerCase(),
               title: leave.type,
               reason: leave.reason
             });
@@ -88,12 +88,12 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
   // Helper to determine cell styling based on events
   const getEventStyles = (type) => {
     switch (type) {
-      case 'holiday': return 'bg-brand/10 text-purple-700 border-purple-200';
-      case 'approved': return 'bg-brand/10 text-brand border-brand/25';
-      case 'pending': return 'bg-brand/10 text-brand border-brand/25';
-      case 'rejected': return 'bg-brand/10 text-brand border-rose-200 line-through opacity-70';
-      case 'attendance': return 'bg-brand/10 bg-brand/15 text-brand border-brand/25';
-      default: return 'bg-surface text-ink text-muted';
+      case 'holiday': return 'bg-violet-500/10 text-violet-700 border-violet-200';
+      case 'approved': return 'bg-success/10 text-success border-success/25';
+      case 'pending': return 'bg-warning/10 text-warning border-warning/25';
+      case 'rejected': return 'bg-danger/10 text-danger border-danger/25 line-through opacity-70';
+      case 'attendance': return 'bg-brand/10 text-brand border-brand/25';
+      default: return 'bg-soft text-muted';
     }
   };
 

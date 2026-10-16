@@ -228,11 +228,14 @@ const agentTokenFor = (user) => jwt.sign({
   userType: 'Employee',
   tokenVersion: user.tokenVersion || 0,
   typ: 'access',
-}, process.env.JWT_SECRET, { expiresIn: '30d' });
+  purpose: 'wfh-agent',
+}, process.env.JWT_SECRET, { expiresIn: process.env.WFH_AGENT_TOKEN_TTL || '7d' });
 
 const apiBase = () => {
-  const configured = process.env.WFH_AGENT_API || (process.env.NODE_ENV === 'production' ? process.env.EMPLOYEE_PORTAL_URL : '');
-  if (configured) return configured.replace(/\/$/, '');
+  const configured = process.env.WFH_AGENT_API
+    || process.env.EMPLOYEE_PORTAL_URL
+    || (process.env.NODE_ENV === 'production' ? 'https://hrm.vastoratech.com' : '');
+  if (configured) return String(configured).replace(/\/$/, '');
   return `http://localhost:${process.env.PORT || 5000}`;
 };
 

@@ -11,7 +11,14 @@ import { logAudit } from '../utils/auditLogger.js';
 // @access  Public (Should be protected by Employee token later)
 export const createLeave = async (req, res) => {
   try {
-    const { employeeId, employeeName, type, startDate, endDate, reason } = req.body;
+    const { type, startDate, endDate, reason } = req.body;
+    const isAdmin = req.userType === 'Admin';
+    const employeeId = isAdmin && req.body.employeeId
+      ? req.body.employeeId
+      : req.user._id;
+    const employeeName = isAdmin && req.body.employeeName
+      ? req.body.employeeName
+      : (req.user.name || 'Employee');
 
     const leave = await LeaveRequest.create({
       employeeId,
@@ -39,16 +46,19 @@ export const createLeave = async (req, res) => {
   }
 };
 
-// @desc    Get all leave requests
+// @desc    Get leave requests (own for employees, all/filtered for admins)
 // @route   GET /api/leaves
-// @access  Public (Should be Admin only later)
+// @access  Private
 export const getAllLeaves = async (req, res) => {
   try {
+    const isAdmin = req.userType === 'Admin';
     const query = {};
-    if (req.query.employeeId) {
-      query.employeeId = req.query.employeeId;
+    if (isAdmin) {
+      if (req.query.employeeId) query.employeeId = req.query.employeeId;
+    } else {
+      query.employeeId = req.user._id;
     }
-    const leaves = await LeaveRequest.find(query).sort({ createdAt: -1 });
+    const leaves = await LeaveRequest.find(query).sort({ createdAt: -1 }).limit(500);
     // Transform to match frontend expectations if necessary
     const formattedLeaves = leaves.map(leave => ({
       id: leave._id.toString(),

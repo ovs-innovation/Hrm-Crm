@@ -52,7 +52,7 @@ const SignupForm = () => {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-brand/10 border border-brand/25 text-brand text-sm font-medium rounded-xl text-center">
+            <div className="mb-6 p-4 bg-danger/5 border border-danger/20 text-danger text-sm font-medium rounded-xl text-center">
               {error}
             </div>
           )}
@@ -71,7 +71,7 @@ const SignupForm = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-navy/12 rounded-xl text-navy placeholder-white/35 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-navy/12 rounded-xl text-navy placeholder:text-muted focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
                   placeholder="John Doe"
                   required
                 />
@@ -91,7 +91,7 @@ const SignupForm = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-navy/12 rounded-xl text-navy placeholder-white/35 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-navy/12 rounded-xl text-navy placeholder:text-muted focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
                   placeholder="admin@hrmpro.com"
                   required
                 />
@@ -112,7 +112,7 @@ const SignupForm = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-navy/12 rounded-xl text-navy placeholder-white/35 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-navy/12 rounded-xl text-navy placeholder:text-muted focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/30 transition-all"
                     placeholder="••••••••"
                     required
                   />

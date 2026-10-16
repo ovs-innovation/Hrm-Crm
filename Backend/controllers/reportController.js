@@ -52,9 +52,13 @@ export const getMyReports = async (req, res) => {
 // @access  Private (Admin)
 export const getAllReports = async (req, res) => {
   try {
+    if (req.userType !== 'Admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
     const reports = await DailyReport.find()
       .populate('employeeId', 'name designation department')
-      .sort({ date: -1 });
+      .sort({ date: -1 })
+      .limit(500);
     res.status(200).json(reports);
   } catch (error) {
     console.error('Error fetching all reports:', error.message);

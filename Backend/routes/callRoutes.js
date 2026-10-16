@@ -12,4 +12,4 @@ const handlers = createCrudHandlers(Call, {
   },
 });
 
-export default createCrudRouter(handlers);
+export default createCrudRouter(handlers, { mutate: 'staff' });

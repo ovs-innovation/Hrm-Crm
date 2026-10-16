@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Message from '../models/Message.js';
 import Client from '../models/Client.js';
 import Admin from '../models/Admin.js';
@@ -216,7 +217,7 @@ export const uploadFile = async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const fileUrl = `/uploads/${req.file.filename}`;
 
     const mimeType = req.file.mimetype;
     let fileType = 'file';
@@ -273,7 +274,22 @@ export const whatsappWebhookVerify = (req, res) => {
 
 export const whatsappWebhookInbound = async (req, res) => {
   try {
-    // Always 200 quickly for Meta
+    const appSecret = process.env.WHATSAPP_APP_SECRET || '';
+    if (appSecret) {
+      const signature = req.get('x-hub-signature-256') || '';
+      const raw = req.rawBody || Buffer.from(JSON.stringify(req.body || {}));
+      const expected = `sha256=${crypto.createHmac('sha256', appSecret).update(raw).digest('hex')}`;
+      const sigBuf = Buffer.from(signature);
+      const expBuf = Buffer.from(expected);
+      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+        return res.sendStatus(403);
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      console.error('[WhatsApp webhook] WHATSAPP_APP_SECRET missing — rejecting inbound in production');
+      return res.sendStatus(503);
+    }
+
+    // ACK quickly for Meta after signature check
     res.sendStatus(200);
 
     const entry = req.body?.entry?.[0];
@@ -306,5 +322,6 @@ export const whatsappWebhookInbound = async (req, res) => {
     }
   } catch (error) {
     console.error('[WhatsApp webhook]', error.message);
+    if (!res.headersSent) res.sendStatus(500);
   }
 };

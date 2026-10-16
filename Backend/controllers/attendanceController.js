@@ -59,12 +59,15 @@ const distanceMeters = (lat1, lon1, lat2, lon2) => {
 
 export const getAttendance = async (req, res) => {
   try {
-    const employeeId = typeof req.query.employeeId === 'string' ? req.query.employeeId : undefined;
+    const requestedId = typeof req.query.employeeId === 'string' ? req.query.employeeId : undefined;
     const month = typeof req.query.month === 'string' ? req.query.month : undefined;
-    
+    const isAdmin = req.userType === 'Admin';
+
     let query = {};
-    if (employeeId) {
-      query.employeeId = employeeId;
+    if (isAdmin) {
+      if (requestedId) query.employeeId = requestedId;
+    } else {
+      query.employeeId = req.user._id;
     }
     if (month && /^\d{4}-\d{2}$/.test(month)) {
       query.date = { $regex: `^${month}` };
@@ -93,11 +96,22 @@ export const getAttendance = async (req, res) => {
   }
 };
 
+const resolveAttendanceEmployeeId = (req, requestedId) => {
+  const isAdmin = req.userType === 'Admin';
+  if (isAdmin && requestedId) return String(requestedId);
+  return String(req.user._id);
+};
+
+const ALLOWED_WORK_MODES = new Set(['Office', 'Home', 'Field']);
+
 export const checkIn = async (req, res) => {
   try {
-    const { employeeId, date, checkIn, checkOut, status, workMode, latitude, longitude, accuracy } = req.body;
+    const { date, checkIn, checkOut, workMode: rawMode, latitude, longitude, accuracy } = req.body;
+    const employeeId = resolveAttendanceEmployeeId(req, req.body.employeeId);
+    const workMode = ALLOWED_WORK_MODES.has(rawMode) ? rawMode : 'Office';
 
     let distanceFromOffice = null;
+    // Office check-in always requires server-side geofence (never trust client alone).
     if (workMode === 'Office' && !checkOut) {
       const lat = Number(latitude);
       const lon = Number(longitude);
@@ -111,6 +125,15 @@ export const checkIn = async (req, res) => {
       distanceFromOffice = distanceMeters(OFFICE_LAT, OFFICE_LON, lat, lon);
       if (distanceFromOffice > OFFICE_RADIUS_METERS) {
         return res.status(400).json({ message: `Outside office. You are ${Math.round(distanceFromOffice)}m away. Limit is ${OFFICE_RADIUS_METERS}m.` });
+      }
+    }
+
+    // Field also needs GPS so "Field" cannot be used to spoof location-free Office bypass.
+    if (workMode === 'Field' && !checkOut) {
+      const lat = Number(latitude);
+      const lon = Number(longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return res.status(400).json({ message: 'Field check-in requires a GPS location.' });
       }
     }
     
@@ -167,7 +190,8 @@ export const checkIn = async (req, res) => {
 
 export const checkOut = async (req, res) => {
   try {
-    const { employeeId, date, checkOut } = req.body;
+    const { date, checkOut } = req.body;
+    const employeeId = resolveAttendanceEmployeeId(req, req.body.employeeId);
 
     if (!shiftHasEnded()) {
       return res.status(400).json({ message: 'Checkout opens only after the shift ends at 6:30 PM.' });

@@ -63,9 +63,9 @@ const Timesheet = () => {
                     <td className="py-4 text-muted text-muted">{row.date}</td>
                     <td className="py-4">
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold
-                        ${row.status === 'Present' ? 'bg-brand/10 text-brand bg-brand/10' : 
-                          row.status === 'Late' ? 'bg-brand/10 text-brand bg-brand/10' : 
-                          'bg-brand/10 text-brand bg-brand/10'}`}>
+                        ${row.status === 'Present' ? 'bg-success/10 text-success' : 
+                          row.status === 'Late' ? 'bg-warning/10 text-warning' : 
+                          'bg-danger/10 text-danger'}`}>
                         {row.status}
                       </span>
                     </td>

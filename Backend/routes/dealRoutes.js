@@ -1,10 +1,12 @@
 import express from 'express';
 import { createDeal, getDeals, updateDeal, deleteDeal } from '../controllers/dealController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { requireStaff } from '../middlewares/roleMiddleware.js';
 
 const router = express.Router();
 
-router.route('/').get(protect, getDeals).post(protect, createDeal);
-router.route('/:id').put(protect, updateDeal).delete(protect, deleteDeal);
+router.use(protect);
+router.route('/').get(getDeals).post(requireStaff, createDeal);
+router.route('/:id').put(requireStaff, updateDeal).delete(requireStaff, deleteDeal);
 
 export default router;

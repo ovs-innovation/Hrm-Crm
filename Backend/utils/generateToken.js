@@ -163,10 +163,26 @@ export const rotateRefreshToken = async ({ rawRefreshToken, req, res }) => {
     expiresAt,
   });
 
+  let tokenVersion = 0;
+  try {
+    if (existing.userType === 'Employee') {
+      const { default: Employee } = await import('../models/Employee.js');
+      const user = await Employee.findById(existing.userId).select('tokenVersion').setOptions({ skipTenantScope: true });
+      tokenVersion = user?.tokenVersion || 0;
+    } else {
+      const { default: Admin } = await import('../models/Admin.js');
+      const user = await Admin.findById(existing.userId).select('tokenVersion').setOptions({ skipTenantScope: true });
+      tokenVersion = user?.tokenVersion || 0;
+    }
+  } catch {
+    tokenVersion = 0;
+  }
+
   const accessToken = issueAccessToken({
     userId: existing.userId,
     tenantId: existing.tenantId,
     userType: existing.userType,
+    tokenVersion,
   });
 
   setAuthCookies(res, { accessToken, refreshRaw: newRaw, userType: existing.userType });

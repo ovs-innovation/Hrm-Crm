@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 
 const Input = forwardRef(({
   label,
@@ -8,7 +8,8 @@ const Input = forwardRef(({
   id,
   ...props
 }, ref) => {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const autoId = useId();
+  const inputId = id || autoId;
 
   return (
     <div className={`flex flex-col w-full ${className}`}>

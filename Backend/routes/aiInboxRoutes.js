@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
+import { requireStaff } from '../middlewares/roleMiddleware.js';
 import {
   getInboxMessages,
   createInboxMessage,
@@ -11,11 +12,12 @@ import {
 
 const router = express.Router();
 
-router.get('/', protect, getInboxMessages);
-router.post('/simulate', protect, createInboxMessage);
-router.post('/:id/reply', protect, sendReply);
-router.post('/:id/convert-lead', protect, convertToLead);
-router.post('/:id/convert-ticket', protect, convertToTicket);
-router.post('/:id/assign', protect, assignMessage);
+router.use(protect, requireStaff);
+router.get('/', getInboxMessages);
+router.post('/simulate', createInboxMessage);
+router.post('/:id/reply', sendReply);
+router.post('/:id/convert-lead', convertToLead);
+router.post('/:id/convert-ticket', convertToTicket);
+router.post('/:id/assign', assignMessage);
 
 export default router;

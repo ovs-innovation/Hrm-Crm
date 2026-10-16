@@ -18,6 +18,9 @@ import JobApplication from '../models/JobApplication.js';
 import { callLLM } from '../services/llm.service.js';
 import { runAgentOrchestrator } from '../services/aiAgents.service.js';
 import { executeTool } from '../services/mcp.service.js';
+import { sanitizeHtml } from '../utils/sanitizeHtml.js';
+
+const resolveMcpRole = (req) => (req.userType === 'Admin' ? 'Admin' : 'Employee');
 
 // ─── 1. AI Business Health Score ─────────────────────────────────────────────
 export const getBusinessHealthScore = async (req, res) => {
@@ -174,7 +177,7 @@ export const getExecutiveBrief = async (req, res) => {
     if (existingBrief) {
       return res.json({
         success: true,
-        briefHtml: existingBrief.briefHtml,
+        briefHtml: sanitizeHtml(existingBrief.briefHtml),
         createdAt: existingBrief.createdAt
       });
     }
@@ -222,7 +225,7 @@ export const getExecutiveBrief = async (req, res) => {
       4. Actionable recommendations with clear icons or checkboxes.
     `;
 
-    const briefHtml = await callLLM(briefPrompt, { provider: 'groq', module: 'Dashboard' });
+    const briefHtml = sanitizeHtml(await callLLM(briefPrompt, { provider: 'groq', module: 'Dashboard' }));
 
     const newBrief = new DailyBriefLog({
       tenantId,
@@ -556,9 +559,8 @@ export const executeExecutiveCommand = async (req, res) => {
       return res.status(400).json({ message: 'queryText is required' });
     }
 
-    // Call runAgentOrchestrator or directly process command
-    const userRole = 'Admin';
-    const userEmail = req.user?.email || 'ceo@vastoratech.com';
+    // Role must come from the authenticated session — never hardcode Admin.
+    const userRole = resolveMcpRole(req);
 
     const result = await runAgentOrchestrator(
       queryText,
@@ -593,7 +595,7 @@ export const executeExecutiveCommand = async (req, res) => {
 export const runMcpToolDirectly = async (req, res) => {
   try {
     const { toolName, arguments: toolArgs } = req.body;
-    const userRole = req.userType === 'Admin' ? 'Admin' : 'Employee';
+    const userRole = resolveMcpRole(req);
     const tenantId = req.tenantId;
 
     const result = await executeTool(toolName, toolArgs, userRole, tenantId);

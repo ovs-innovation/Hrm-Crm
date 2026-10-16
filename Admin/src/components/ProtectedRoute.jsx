@@ -11,8 +11,8 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!canAccessRoute(adminInfo.role, location.pathname)) {
-    const role = (adminInfo.role || 'admin').toLowerCase();
+  const role = String(adminInfo.role || '').toLowerCase().trim();
+  if (!canAccessRoute(role, location.pathname)) {
     const fallback = role === 'hr' ? '/hrm/employees' : role === 'sales' ? '/crm/leads' : '/';
     return <Navigate to={fallback} replace />;
   }

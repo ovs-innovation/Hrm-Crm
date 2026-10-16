@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { protect } from '../middlewares/authMiddleware.js';
+import { MIME_TO_EXT, safeUploadFilename } from '../utils/uploadSafe.js';
 import {
   getMessages,
   sendMessage,
@@ -29,8 +30,7 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, safeUploadFilename(file.fieldname || 'file', file.mimetype));
   },
 });
 
@@ -38,25 +38,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = new Set([
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/gif',
-      'application/pdf',
-      'text/plain',
-      'text/csv',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'audio/webm',
-      'audio/mpeg',
-      'audio/mp4',
-      'audio/ogg',
-      'audio/wav',
-      'video/mp4',
-      'video/webm',
-    ]);
-    if (!allowed.has(file.mimetype)) {
+    if (!MIME_TO_EXT[file.mimetype]) {
       return cb(new Error('Unsupported file type'));
     }
     cb(null, true);

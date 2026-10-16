@@ -15,4 +15,4 @@ const handlers = createCrudHandlers(ShiftRoster, {
   },
 });
 
-export default createCrudRouter(handlers);
+export default createCrudRouter(handlers, { mutate: 'staff' });

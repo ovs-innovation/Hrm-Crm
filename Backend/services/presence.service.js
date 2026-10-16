@@ -27,6 +27,15 @@ export function getOnlineUserIds() {
   return Array.from(socketsByUser.keys());
 }
 
+export function getOnlineUserIdsForTenant(tenantId) {
+  if (!tenantId) return [];
+  const tid = String(tenantId);
+  return Array.from(socketsByUser.keys()).filter((uid) => {
+    const live = liveStatus.get(uid);
+    return live?.tenantId === tid;
+  });
+}
+
 export async function setPresence({ userId, tenantId, status, device = '' }) {
   const key = String(userId);
   liveStatus.set(key, { status, lastSeen: new Date(), tenantId: tenantId ? String(tenantId) : null });
@@ -64,7 +73,9 @@ export async function handleConnect({ io, socket, userId, tenantId }) {
     const list = await listTenantPresence(tenantId);
     io.to(tenantRoom(tenantId)).emit(SOCKET_EVENTS.PRESENCE_LIST, list);
   }
-  io.emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIds());
+  if (tenantId) {
+    io.to(tenantRoom(tenantId)).emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIdsForTenant(tenantId));
+  }
 }
 
 export async function handleDisconnect({ io, socket, userId, tenantId }) {
@@ -74,13 +85,13 @@ export async function handleDisconnect({ io, socket, userId, tenantId }) {
   if (tenantId) {
     const list = await listTenantPresence(tenantId);
     io.to(tenantRoom(tenantId)).emit(SOCKET_EVENTS.PRESENCE_LIST, list);
+    io.to(tenantRoom(tenantId)).emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIdsForTenant(tenantId));
     io.to(tenantRoom(tenantId)).emit(SOCKET_EVENTS.PRESENCE_UPDATE, {
       userId: String(userId),
       status: 'offline',
       lastSeen: new Date(),
     });
   }
-  io.emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUserIds());
 }
 
 export async function emitPresenceChange(io, { userId, tenantId, status }) {

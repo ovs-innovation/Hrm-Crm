@@ -29,7 +29,6 @@ const replacements = [
   [/text-xl font-bold text-white/g, 'text-[15px] font-semibold text-ink'],
   [/text-lg font-bold text-white/g, 'text-[15px] font-semibold text-ink'],
   [/font-medium text-white(?![/\w])/g, 'font-medium text-ink'],
-  [/ dark:[^\s"']+/g, ''],
 ];
 
 function walk(dir, files = []) {

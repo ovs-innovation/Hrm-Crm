@@ -15,6 +15,7 @@ import {
 } from '../controllers/employeeController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { requireAdmin } from '../middlewares/roleMiddleware.js';
+import { safeUploadFilename } from '../utils/uploadSafe.js';
 
 const avatarDir = path.join(path.resolve(), 'uploads', 'avatars');
 try {
@@ -23,17 +24,18 @@ try {
   console.warn('[Storage] Could not create avatarDir:', err.message);
 }
 
+const AVATAR_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 const avatarUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, avatarDir),
     filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
-      cb(null, `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+      cb(null, safeUploadFilename('avatar', file.mimetype));
     },
   }),
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) cb(null, true);
+    if (AVATAR_MIME.has(file.mimetype)) cb(null, true);
     else cb(new Error('Only JPG, PNG, or WEBP images are allowed'));
   },
 });

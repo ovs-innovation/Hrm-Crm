@@ -1,15 +1,19 @@
 import express from 'express';
 import Document from '../models/Document.js';
-import { createCrudHandlers } from '../utils/crudFactory.js';
+import { createCrudHandlers, sanitizeQueryValue } from '../utils/crudFactory.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { requireStaff } from '../middlewares/roleMiddleware.js';
 import { evaluateDocument, auditDocument } from '../controllers/documentController.js';
 
 const handlers = createCrudHandlers(Document, {
   buildFilter: (req) => {
     const filter = {};
-    if (req.query.category) filter.category = req.query.category;
-    if (req.query.relatedTo) filter.relatedTo = req.query.relatedTo;
-    if (req.query.relatedId) filter.relatedId = req.query.relatedId;
+    const category = sanitizeQueryValue(req.query.category);
+    const relatedTo = sanitizeQueryValue(req.query.relatedTo);
+    const relatedId = sanitizeQueryValue(req.query.relatedId);
+    if (category) filter.category = category;
+    if (relatedTo) filter.relatedTo = relatedTo;
+    if (relatedId) filter.relatedId = relatedId;
     return filter;
   },
 });
@@ -17,11 +21,11 @@ const handlers = createCrudHandlers(Document, {
 const router = express.Router();
 router.use(protect);
 router.get('/', handlers.list);
-router.post('/', handlers.create);
+router.post('/', requireStaff, handlers.create);
 router.get('/:id', handlers.getOne);
-router.put('/:id', handlers.update);
-router.delete('/:id', handlers.remove);
-router.post('/:id/evaluate', evaluateDocument);
-router.post('/:id/audit', auditDocument);
+router.put('/:id', requireStaff, handlers.update);
+router.delete('/:id', requireStaff, handlers.remove);
+router.post('/:id/evaluate', requireStaff, evaluateDocument);
+router.post('/:id/audit', requireStaff, auditDocument);
 
 export default router;

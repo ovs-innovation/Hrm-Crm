@@ -134,7 +134,7 @@ const AICopilotCard = ({ title = 'AI Copilot Advisor', data, loading, onActionCo
               {dailyTrends.map((t, idx) => (
                 <div key={idx} className="flex flex-col items-center min-w-[32px] p-1 bg-surface border border-line rounded text-[9px]">
                   <span className="text-muted">{t.date.split('-')[2] || t.date}</span>
-                  <span className={`h-2.5 w-2.5 rounded-full mt-1 ${t.isGpsAnomaly ? 'bg-red-500 animate-pulse' : (t.status.includes('Late') ? 'bg-amber-400' : 'bg-green-500')}`} title={`${t.status}${t.isGpsAnomaly ? ' (GPS Outlier)' : ''}`} />
+                  <span className={`h-2.5 w-2.5 rounded-full mt-1 ${t.isGpsAnomaly ? 'bg-red-500 animate-pulse' : (String(t.status || '').includes('Late') ? 'bg-amber-400' : 'bg-green-500')}`} title={`${t.status || 'Present'}${t.isGpsAnomaly ? ' (GPS Outlier)' : ''}`} />
                 </div>
               ))}
             </div>

@@ -64,14 +64,11 @@ const ALLOWED_UPLOAD_TYPES = new Set([
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
-const ALLOWED_UPLOAD_EXT = /\.(pdf|txt|csv|docx|doc|jpe?g|png|webp)$/i;
-
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const name = file.originalname || '';
-    if (ALLOWED_UPLOAD_TYPES.has(file.mimetype) || ALLOWED_UPLOAD_EXT.test(name)) {
+    if (ALLOWED_UPLOAD_TYPES.has(file.mimetype)) {
       return cb(null, true);
     }
     cb(new Error('Unsupported file type. Use PDF, DOCX, TXT, CSV, or an image.'));

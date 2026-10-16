@@ -40,26 +40,8 @@ jobs:
             $DOCKER_CMD build backend frontend admin
             $DOCKER_CMD up -d --force-recreate backend frontend admin
 
-            DUMP_DIAGNOSTICS() {
-              echo "--- TIME ---" > /tmp/backend-debug.txt
-              date >> /tmp/backend-debug.txt
-              echo "--- DOCKER PS ---" >> /tmp/backend-debug.txt
-              $DOCKER_CMD ps >> /tmp/backend-debug.txt 2>&1 || true
-              echo "--- DOCKER HEALTH INSPECT ---" >> /tmp/backend-debug.txt
-              $DOCKER_BIN inspect --format='{{json .State.Health}}' hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
-              echo "--- HOST CURL 3072 HEALTH ---" >> /tmp/backend-debug.txt
-              curl -i --max-time 3 http://127.0.0.1:3072/health >> /tmp/backend-debug.txt 2>&1 || true
-              echo "--- HOST CURL 3072 READY ---" >> /tmp/backend-debug.txt
-              curl -i --max-time 3 http://127.0.0.1:3072/ready >> /tmp/backend-debug.txt 2>&1 || true
-              echo "--- BACKEND LOGS ---" >> /tmp/backend-debug.txt
-              $DOCKER_BIN logs --tail 100 hrm_backend >> /tmp/backend-debug.txt 2>&1 || true
-              $DOCKER_BIN cp /tmp/backend-debug.txt hrm_frontend:/usr/share/nginx/html/backend-debug.txt 2>/dev/null || true
-              cp /tmp/backend-debug.txt /var/www/Hrm-Crm/Frontend/dist/test-log.txt 2>/dev/null || true
-              cp /tmp/backend-debug.txt /var/www/Hrm-Crm/Frontend/dist/backend-debug.txt 2>/dev/null || true
-            }
-
+            # Diagnostics stay in the deploy job log only — never publish to nginx/public HTML.
             sleep 10
-            DUMP_DIAGNOSTICS
 
             echo "Waiting for backend health check..."
 
@@ -79,11 +61,9 @@ jobs:
               sleep 5
             done
 
-            DUMP_DIAGNOSTICS
-
             echo "=== DOCKER PS ==="
             $DOCKER_CMD ps
-            echo "=== BACKEND LOGS ==="
+            echo "=== BACKEND LOGS (CI only) ==="
             $DOCKER_BIN logs --tail 80 hrm_backend
 
             FINAL_STATUS=$($DOCKER_BIN inspect --format='{{.State.Status}}' hrm_backend 2>/dev/null || echo "none")

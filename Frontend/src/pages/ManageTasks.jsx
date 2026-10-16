@@ -48,8 +48,6 @@ const Tasks = () => {
     try {
       await api.post('/tasks', {
         ...formData,
-        assignedBy: adminInfo.name || 'Admin',
-        assignerRole: adminInfo.role || 'Admin'
       });
       setIsModalOpen(false);
       setFormData({ title: '', description: '', projectName: '', assignedTo: [], dueDate: '' });

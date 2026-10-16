@@ -42,7 +42,7 @@ const EmployeeCalendarView = ({ employeeId, monthStr }) => {
 
             // Only show approved or rejected, or pending if you want to see all
             newEvents[dateString].push({
-              type: leave.status.toLowerCase(), // 'approved', 'rejected', 'pending'
+              type: (leave.status || 'pending').toLowerCase(), // 'approved', 'rejected', 'pending'
               title: leave.type,
               reason: leave.reason
             });

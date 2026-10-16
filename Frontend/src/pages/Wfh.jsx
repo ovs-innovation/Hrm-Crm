@@ -11,10 +11,14 @@ const Wfh = () => {
   const [onBreak, setOnBreak] = useState(false);
 
   const load = async () => {
-    const { data } = await api.get('/wfh/me');
-    setSession(data);
-    setLog({ ...empty, ...(data.log || {}) });
-    setOnBreak(data.status === 'break');
+    try {
+      const { data } = await api.get('/wfh/me');
+      setSession(data);
+      setLog({ ...empty, ...(data.log || {}) });
+      setOnBreak(data.status === 'break');
+    } catch {
+      // Keep last known session; avoid unhandled rejection every 30s.
+    }
   };
 
   useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);

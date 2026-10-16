@@ -10,4 +10,4 @@ const handlers = createCrudHandlers(Campaign, {
   },
 });
 
-export default createCrudRouter(handlers);
+export default createCrudRouter(handlers, { mutate: 'staff' });

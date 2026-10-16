@@ -219,37 +219,57 @@ export const getProjects = async (req, res) => {
     const projects = await Project.find()
       .populate('clientId', 'name company email phone status')
       .sort({ createdAt: -1 })
+      .limit(200)
       .lean();
 
-    const enriched = await Promise.all(
-      projects.map(async (project) => {
-        let team = Array.isArray(project.team) ? [...project.team] : [];
+    const namesNeedingTeam = projects
+      .filter((project) => !Array.isArray(project.team) || project.team.length === 0)
+      .map((project) => project.name)
+      .filter(Boolean);
 
-        if (team.length === 0) {
-          const tasks = await Task.find({ projectName: project.name }).select('assignedTo').lean();
-          team = [...new Set(tasks.map((t) => t.assignedTo).filter(Boolean))];
-        }
+    const tasks = namesNeedingTeam.length
+      ? await Task.find({ projectName: { $in: namesNeedingTeam } }).select('projectName assignedTo').lean()
+      : [];
 
-        const objectIds = team.filter((id) => mongoose.isValidObjectId(id));
-        const codes = team.filter((id) => !mongoose.isValidObjectId(id));
+    const assigneesByProject = new Map();
+    for (const task of tasks) {
+      if (!task.assignedTo || !task.projectName) continue;
+      if (!assigneesByProject.has(task.projectName)) assigneesByProject.set(task.projectName, new Set());
+      assigneesByProject.get(task.projectName).add(String(task.assignedTo));
+    }
 
-        const members = await Employee.find({
-          $or: [
-            ...(codes.length ? [{ employeeId: { $in: codes } }] : []),
-            ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
-          ],
-        })
-          .select('name profilePicture designation employeeId')
-          .lean();
+    const allIds = new Set();
+    for (const project of projects) {
+      const team = Array.isArray(project.team) && project.team.length
+        ? project.team.map(String)
+        : [...(assigneesByProject.get(project.name) || [])];
+      project._resolvedTeam = team;
+      team.forEach((id) => allIds.add(id));
+    }
 
-        return shapeProject({
-          ...project,
-          team: members.length ? members : team,
-          teamMembers: members,
-          clientDoc: project.clientId || undefined,
-        });
-      })
-    );
+    const objectIds = [...allIds].filter((id) => mongoose.isValidObjectId(id));
+    const codes = [...allIds].filter((id) => !mongoose.isValidObjectId(id));
+    const or = [
+      ...(codes.length ? [{ employeeId: { $in: codes } }] : []),
+      ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
+    ];
+    const members = or.length
+      ? await Employee.find({ $or: or }).select('name profilePicture designation employeeId').lean()
+      : [];
+    const byId = new Map(members.map((member) => [String(member._id), member]));
+    const byCode = new Map(members.map((member) => [String(member.employeeId), member]));
+
+    const enriched = projects.map((project) => {
+      const team = project._resolvedTeam || [];
+      const resolved = team.map((id) => byId.get(id) || byCode.get(id)).filter(Boolean);
+      const { _resolvedTeam, ...rest } = project;
+      return shapeProject({
+        ...rest,
+        team: resolved.length ? resolved : team,
+        teamMembers: resolved,
+        clientDoc: project.clientId || undefined,
+      });
+    });
 
     res.json(enriched);
   } catch (error) {

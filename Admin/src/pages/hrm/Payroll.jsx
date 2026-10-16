@@ -58,23 +58,30 @@ const Payroll = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     const emp = employees.find((e) => e.employeeId === form.employeeId);
-    if (!emp) return;
+    if (!emp) {
+      toast.error('Select an employee before creating a payslip.');
+      return;
+    }
     const basic = Number(form.basicSalary) || 0;
     const allow = Number(form.allowances) || 0;
     const deduct = Number(form.deductions) || 0;
-    await api.post('/payslips', {
-      employeeId: emp.employeeId,
-      employeeName: emp.name,
-      month,
-      basicSalary: basic,
-      allowances: allow,
-      deductions: deduct,
-      netPay: basic + allow - deduct,
-      status: 'Draft',
-    });
-    toast.success('Payslip created');
-    setModalOpen(false);
-    fetchData();
+    try {
+      await api.post('/payslips', {
+        employeeId: emp.employeeId,
+        employeeName: emp.name,
+        month,
+        basicSalary: basic,
+        allowances: allow,
+        deductions: deduct,
+        netPay: basic + allow - deduct,
+        status: 'Draft',
+      });
+      toast.success('Payslip created');
+      setModalOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not create the payslip.');
+    }
   };
 
   const handleGenerate = async (e) => {

@@ -32,8 +32,8 @@ export const resolveTenant = async (req, res, next) => {
         tenant = await Tenant.findOne({ subdomain });
         if (tenant) {
           tenantId = tenant._id;
-        } else {
-          // Auto-provision on the fly to prevent E503 errors
+        } else if (process.env.ALLOW_TENANT_AUTOCREATE === 'true' && process.env.NODE_ENV !== 'production') {
+          // Dev-only opt-in. Unknown production hosts fall through to the default tenant.
           tenant = new Tenant({
             companyName: `${subdomain.toUpperCase()} Workspace`,
             subdomain: subdomain,

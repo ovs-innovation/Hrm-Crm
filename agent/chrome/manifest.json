@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "description": "Sends the active tab hostname and time to Vastora. Does not read page content.",
   "permissions": ["tabs", "storage"],
-  "host_permissions": ["http://localhost:5000/*"],
+  "host_permissions": [
+    "http://localhost:5000/*",
+    "https://hrm.vastoratech.com/*"
+  ],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html" }
 }

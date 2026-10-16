@@ -333,7 +333,7 @@ const AIInbox = () => {
                     <div className="mt-2.5 flex flex-wrap gap-1.5 items-center justify-between">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                         msg.channel === 'whatsapp' ? 'bg-green-500/10 text-green-500' :
-                        msg.channel === 'email' ? 'bg-blue-500/10 text-blue-500' :
+                        msg.channel === 'email' ? 'bg-brand/10 text-brand' :
                         'bg-purple-500/10 text-purple-500'
                       }`}>
                         {msg.channel}
@@ -392,7 +392,7 @@ const AIInbox = () => {
                       onClick={handleCreateTicket}
                       disabled={selectedMsg.linkedTicket}
                       className={`btn-outline h-8 px-3 text-xs inline-flex items-center gap-1.5 font-bold rounded-full ${
-                        selectedMsg.linkedTicket ? 'border-blue-500/20 text-blue-500 bg-blue-500/5' : ''
+                        selectedMsg.linkedTicket ? 'border-brand/20 text-brand bg-brand/5' : ''
                       }`}
                     >
                       <FiClipboard /> {selectedMsg.linkedTicket ? 'Linked Support Ticket' : 'Convert to Ticket'}

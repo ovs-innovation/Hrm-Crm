@@ -18,7 +18,11 @@ export const adminSignup = async (req, res) => {
     const bootstrapSecret = process.env.ADMIN_BOOTSTRAP_SECRET;
     const providedSecret = req.headers['x-bootstrap-secret'] || req.body?.bootstrapSecret;
 
-    const adminCount = await withoutTenantScope(() => Admin.countDocuments());
+    if (!req.tenantId) {
+      return res.status(503).json({ message: 'Tenant not resolved.' });
+    }
+
+    const adminCount = await withoutTenantScope(() => Admin.countDocuments({ tenantId: req.tenantId }));
 
     if (process.env.NODE_ENV === 'production' && !allowSignup) {
       return res.status(403).json({ message: 'Admin signup is disabled in production.' });
@@ -151,6 +155,7 @@ export const refreshAccessToken = async (req, res) => {
     const rotated = await rotateRefreshToken({ rawRefreshToken: raw, req, res });
     res.json({
       message: 'Token refreshed',
+      accessToken: rotated.accessToken,
       userId: rotated.userId,
       tenantId: rotated.tenantId,
       userType: rotated.userType,

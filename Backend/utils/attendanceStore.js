@@ -1,46 +1,56 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 
 const filePath = path.join(path.resolve(), 'data', 'attendance.json');
+let writeQueue = Promise.resolve();
 
-const readList = () => {
+const readList = async () => {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const raw = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(raw);
   } catch {
     return [];
   }
 };
 
-const writeList = (list) => {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(list, null, 2));
+const writeList = async (list) => {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(list, null, 2));
 };
 
+/** Fire-and-forget JSON mirror — never blocks the request path. */
 export const rememberAttendance = (record) => {
   const employeeId = String(record.employeeId || '');
   const date = String(record.date || '');
   if (!employeeId || !date) return;
-  const list = readList().filter((row) => !(String(row.employeeId) === employeeId && row.date === date));
-  list.push({
-    employeeId,
-    date,
-    checkIn: record.checkIn || null,
-    checkOut: record.checkOut || null,
-    status: record.status,
-    workMode: record.workMode,
-    workedMinutes: record.workedMinutes ?? null,
-    latitude: record.latitude ?? null,
-    longitude: record.longitude ?? null,
-    distanceFromOffice: record.distanceFromOffice ?? null,
-  });
-  writeList(list);
+
+  writeQueue = writeQueue
+    .then(async () => {
+      const list = (await readList()).filter(
+        (row) => !(String(row.employeeId) === employeeId && row.date === date)
+      );
+      list.push({
+        employeeId,
+        date,
+        checkIn: record.checkIn || null,
+        checkOut: record.checkOut || null,
+        status: record.status,
+        workMode: record.workMode,
+        workedMinutes: record.workedMinutes ?? null,
+        latitude: record.latitude ?? null,
+        longitude: record.longitude ?? null,
+        distanceFromOffice: record.distanceFromOffice ?? null,
+      });
+      await writeList(list);
+    })
+    .catch((err) => console.error('[attendanceStore]', err.message));
 };
 
 export const restoreSavedAttendance = async () => {
   const { default: Attendance } = await import('../models/Attendance.js');
   const { default: Employee } = await import('../models/Employee.js');
   const { withoutTenantScope } = await import('../plugins/tenantScope.plugin.js');
-  const saved = readList();
+  const saved = await readList();
   if (!saved.length) return;
 
   await withoutTenantScope(async () => {

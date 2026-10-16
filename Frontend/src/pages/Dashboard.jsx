@@ -83,7 +83,12 @@ const Dashboard = () => {
         ]);
 
         const pendingRaw = localStorage.getItem('pendingCheckIn');
-        const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+        let pending = null;
+        try {
+          pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+        } catch {
+          localStorage.removeItem('pendingCheckIn');
+        }
         const serverToday = (attRes.data || []).find((row) => row.date === today);
         if (serverToday?.checkIn) {
           localStorage.removeItem('pendingCheckIn');
@@ -227,9 +232,8 @@ const Dashboard = () => {
       return;
     }
     const today = localToday();
-    const pending = localStorage.getItem('pendingCheckIn');
-    if (!pending) return toast.error('Check in first. There is no open shift to close.');
-    const p = JSON.parse(pending);
+    const openShift = records.find((row) => row.date === today && row.checkIn && !row.checkOut);
+    if (!openShift) return toast.error('Check in first. There is no open shift to close.');
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     try {
       const reports = await api.get('/reports/my');
@@ -241,13 +245,13 @@ const Dashboard = () => {
       const res = await api.post('/attendance/checkin', {
         employeeId: userId,
         date: today,
-        checkIn: p.checkIn,
+        checkIn: openShift.checkIn,
         checkOut: timeStr,
-        workMode: p.workMode,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        accuracy: p.accuracy,
-        distanceFromOffice: p.distanceFromOffice,
+        workMode: openShift.workMode,
+        latitude: openShift.latitude,
+        longitude: openShift.longitude,
+        accuracy: openShift.accuracy,
+        distanceFromOffice: openShift.distanceFromOffice,
       });
       localStorage.removeItem('pendingCheckIn');
       setRecords(records.map((r) => (r.date === today ? res.data : r)));

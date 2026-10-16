@@ -7,13 +7,19 @@ import { rememberEmployee, forgetEmployee } from '../utils/employeeStore.js';
 // @desc    Register a new employee
 // @route   POST /api/employees/register
 // @access  Public (or Admin only later)
+const ALLOWED_EMPLOYEE_ROLES = new Set(['Employee', 'Manager', 'HR', 'Sales', 'Founder']);
+
 export const registerEmployee = async (req, res) => {
   try {
     const { 
       employeeId, name, password, branch, department, designation, joinDate, role,
       salutation, profilePicture, country, mobile, gender, dateOfBirth, reportingTo, language, address, about
     } = req.body;
+    if (!req.body.email || typeof req.body.email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
     const email = req.body.email.toLowerCase().trim();
+    const safeRole = ALLOWED_EMPLOYEE_ROLES.has(role) ? role : 'Employee';
 
     const employeeExists = await Employee.findOne({ $or: [{ email }, { employeeId }] });
 
@@ -31,7 +37,7 @@ export const registerEmployee = async (req, res) => {
       department,
       designation,
       joinDate,
-      role: role || 'Employee',
+      role: safeRole,
       salutation,
       profilePicture,
       country,
@@ -83,6 +89,9 @@ export const registerEmployee = async (req, res) => {
 export const loginEmployee = async (req, res) => {
   try {
     const { password } = req.body;
+    if (!req.body.email || typeof req.body.email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
     const email = req.body.email.toLowerCase().trim();
 
     const { withoutTenantScope } = await import('../plugins/tenantScope.plugin.js');
@@ -98,6 +107,7 @@ export const loginEmployee = async (req, res) => {
         userId: employee._id,
         tenantId: employee.tenantId || req.tenantId,
         userType: 'Employee',
+        tokenVersion: employee.tokenVersion || 0,
       });
 
       res.json({

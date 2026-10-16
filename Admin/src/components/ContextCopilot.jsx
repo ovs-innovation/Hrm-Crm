@@ -18,6 +18,7 @@ import {
 } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { safeAppPath } from '../utils/safeAppPath';
 
 const TABS = [
   { id: 'ask', label: 'Ask', icon: FiMessageSquare },
@@ -143,7 +144,13 @@ const ContextCopilot = () => {
       selectedDealId:
         sessionStorage.getItem('selectedDealId') ||
         (path.includes('/deals') && looksLikeId ? lastPart : null),
-      filters: JSON.parse(sessionStorage.getItem('activeFilters') || '{}'),
+      filters: (() => {
+        try {
+          return JSON.parse(sessionStorage.getItem('activeFilters') || '{}');
+        } catch {
+          return {};
+        }
+      })(),
       liveMetrics: briefing?.metrics || [],
       highlights: briefing?.highlights || [],
     };
@@ -167,9 +174,10 @@ const ContextCopilot = () => {
         redirectUrl: responseObj.redirectUrl,
       },
     ]);
-    if (responseObj.redirectUrl) {
-      toast.success(`Opening ${responseObj.redirectUrl}`);
-      setTimeout(() => navigate(responseObj.redirectUrl), 900);
+    const nextPath = safeAppPath(responseObj.redirectUrl);
+    if (nextPath) {
+      toast.success(`Opening ${nextPath}`);
+      setTimeout(() => navigate(nextPath), 900);
     }
   };
 

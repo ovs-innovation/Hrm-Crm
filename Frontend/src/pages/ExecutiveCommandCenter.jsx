@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlay, FiSend, FiCompass, FiZap, FiSmartphone, FiMail } from 'react-icons/fi';
+import { FiPlay, FiSend, FiCompass, FiZap } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const ExecutiveCommandCenter = () => {
   const [command, setCommand] = useState('');
@@ -21,7 +22,7 @@ const ExecutiveCommandCenter = () => {
     try {
       const { data } = await api.get('/executive/daily-brief');
       if (data.success) {
-        setBriefHtml(data.briefHtml);
+        setBriefHtml(sanitizeHtml(data.briefHtml || ''));
       }
     } catch (err) {
       toast.error('Failed to load Executive Daily Briefing');
@@ -84,7 +85,9 @@ const ExecutiveCommandCenter = () => {
         ) : (
           <div 
             className="prose prose-sm max-w-none text-ink text-sm overflow-y-auto"
-            dangerouslySetInnerHTML={{ __html: briefHtml || '<p className="text-muted text-xs">No active briefing calculated yet.</p>' }}
+            dangerouslySetInnerHTML={{
+              __html: briefHtml || '<p class="text-muted text-xs">No active briefing calculated yet.</p>',
+            }}
           />
         )}
       </div>

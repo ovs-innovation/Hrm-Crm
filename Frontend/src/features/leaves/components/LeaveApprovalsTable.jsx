@@ -119,7 +119,7 @@ const LeaveApprovalsTable = () => {
                           </button>
                           <button 
                             onClick={() => handleUpdateStatus(leave.id, 'Rejected')}
-                            className="text-brand hover:bg-brand/100/10 p-2 rounded-lg transition-colors border border-brand/30">
+                            className="text-brand hover:bg-brand/10 p-2 rounded-lg transition-colors border border-brand/30">
                             Reject
                           </button>
                         </>

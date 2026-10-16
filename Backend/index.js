@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const backendDir = path.dirname(fileURLToPath(import.meta.url));
@@ -68,11 +70,23 @@ connectDB().catch((err) => console.error('[Database Connect Error]', err.message
 const __dirname = path.resolve();
 app.set('trust proxy', 1);
 
-if (process.env.NODE_ENV === 'production') {
+{
   const secret = process.env.JWT_SECRET || '';
-  if (secret.length < 24 || secret.includes('change-me')) {
-    console.warn('⚠️ WARNING: JWT_SECRET is missing or short. Using auto-generated fallback secret for this runtime.');
-    process.env.JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+  const secretFile = path.join(backendDir, 'data', '.jwt-secret');
+  if (!secret || secret.length < 24 || secret.includes('change-me')) {
+    let generated = '';
+    try {
+      generated = fs.readFileSync(secretFile, 'utf8').trim();
+    } catch {
+      generated = '';
+    }
+    if (!generated || generated.length < 24) {
+      generated = crypto.randomBytes(32).toString('hex');
+      fs.mkdirSync(path.dirname(secretFile), { recursive: true });
+      fs.writeFileSync(secretFile, generated, { mode: 0o600 });
+    }
+    process.env.JWT_SECRET = generated;
+    console.warn('⚠️ WARNING: JWT_SECRET missing/weak — using a saved runtime secret. Set JWT_SECRET in .env so deploys do not sign employees out.');
   }
 }
 
@@ -102,8 +116,10 @@ app.use(cors({
       originHost = origin;
     }
 
-    const localHost = originHost === 'localhost' || originHost === '127.0.0.1' ||
-      /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(originHost);
+    const isLoopback = originHost === 'localhost' || originHost === '127.0.0.1';
+    const isPrivateLan = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(originHost);
+    // Private LAN origins only in non-production (dev/VPN testing).
+    const localHost = isLoopback || (process.env.NODE_ENV !== 'production' && isPrivateLan);
     const isAllowed = allowedOrigins.includes(origin) || localHost;
 
     if (isAllowed) {
@@ -141,7 +157,15 @@ const authLimiter = rateLimit({
 });
 
 // ─── Body Parsers ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({
+  limit: '5mb',
+  verify: (req, _res, buf) => {
+    // Preserve raw body for WhatsApp HMAC verification
+    if (req.originalUrl?.startsWith('/api/whatsapp/webhook')) {
+      req.rawBody = buf;
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 
@@ -204,9 +228,8 @@ app.use('/api/demo', (req, res, next) => {
 }, standardLimiter, demoRoutes);
 app.use('/api/executive', standardLimiter, executiveRoutes);
 
-// ─── Static Files ─────────────────────────────────────────────────────────────
-app.use('/uploads/wfh', protect, express.static(path.join(__dirname, '/uploads/wfh')));
-app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
+// ─── Static Files (auth required — cookies / Bearer) ───────────────────────────
+app.use('/uploads', protect, express.static(path.join(__dirname, '/uploads')));
 
 // ─── Health / Readiness ───────────────────────────────────────────────────────
 app.get(['/', '/api'], (req, res) => res.json({ status: 'ok', service: 'Vastora API', version: '1.0.0-rc2' }));

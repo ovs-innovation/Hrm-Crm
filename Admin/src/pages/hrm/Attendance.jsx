@@ -86,11 +86,11 @@ const Attendance = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Present': return 'bg-brand/20 text-brand border border-brand/25 shadow-[0_0_10px_rgba(16,185,129,0.2)]';
-      case 'Late': return 'bg-brand/20 text-brand border border-brand/25 shadow-[0_0_10px_rgba(245,158,11,0.2)]';
-      case 'Absent': return 'bg-brand/15 text-brand border border-rose-500/30 shadow-[0_0_10px_rgba(225,29,72,0.2)]';
-      case 'Active': return 'bg-brand/20 text-brand border border-brand/30 shadow-[0_0_10px_rgba(59,130,246,0.2)] animate-pulse';
-      default: return 'bg-white/30/20 text-muted border border-slate-500/30';
+      case 'Present': return 'bg-success/10 text-success border border-success/25';
+      case 'Late': return 'bg-warning/10 text-warning border border-warning/25';
+      case 'Absent': return 'bg-danger/10 text-danger border border-danger/25';
+      case 'Active': return 'bg-brand/10 text-brand border border-brand/30 animate-pulse';
+      default: return 'bg-soft text-muted border border-line';
     }
   };
 
@@ -116,8 +116,8 @@ const Attendance = () => {
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Days" value={attendanceRecords.length.toString()} subtitle="Recorded this month" icon={FiCalendar} colorClass="text-brand" bgGlow="bg-brand" />
-        <StatCard title="Present / Active" value={attendanceRecords.filter(r => r.status.includes('Present') || r.status.includes('Completed')).length.toString()} subtitle="Days present" icon={FiCheckCircle} colorClass="text-brand" bgGlow="bg-brand" />
-        <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => r.status.includes('Late')).length.toString()} subtitle="Arrived after 10:00 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
+        <StatCard title="Present / Active" value={attendanceRecords.filter(r => (r.status || '').includes('Present') || (r.status || '').includes('Completed')).length.toString()} subtitle="Days present" icon={FiCheckCircle} colorClass="text-brand" bgGlow="bg-brand" />
+        <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => (r.status || '').includes('Late')).length.toString()} subtitle="Arrived after 10:00 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
         <StatCard title="Absent" value={attendanceRecords.filter(r => r.status === 'Absent').length.toString()} subtitle="On leave or unnotified" icon={FiXCircle} colorClass="text-brand" bgGlow="bg-brand" />
       </div>
 
