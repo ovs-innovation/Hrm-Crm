@@ -1,5 +1,5 @@
 # Vastora laptop agent. Tracks the foreground app, idle time, click and key counts,
-# file saves, and a small screenshot. It does not record which keys were typed.
+# and file saves. It does not record which keys were typed, and it does not take screenshots.
 # Leave it installed. It starts again at the next Windows sign-in.
 
 $ErrorActionPreference = 'Stop'
@@ -54,9 +54,6 @@ public static class VastoraWin {
   [DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 "@
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
 $fileQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
 foreach ($folder in @([Environment]::GetFolderPath('Desktop')), ([Environment]::GetFolderPath('MyDocuments')), (Join-Path $env:USERPROFILE 'Downloads')) {
   if (-not (Test-Path $folder)) { continue }
@@ -105,30 +102,7 @@ function Get-Project([string]$app, [string]$title) {
   return ''
 }
 
-function Get-Shot {
-  $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-  $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
-  $g = [System.Drawing.Graphics]::FromImage($bmp)
-  $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-  $width = 480
-  $height = [Math]::Max(1, [int]($width * $bounds.Height / $bounds.Width))
-  $small = New-Object System.Drawing.Bitmap $width, $height
-  $sg = [System.Drawing.Graphics]::FromImage($small)
-  $sg.DrawImage($bmp, 0, 0, $width, $height)
-  $ms = New-Object System.IO.MemoryStream
-  $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
-  $ep = New-Object System.Drawing.Imaging.EncoderParameters 1
-  $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality, [long]35)
-  $small.Save($ms, $codec, $ep)
-  $g.Dispose(); $sg.Dispose(); $bmp.Dispose(); $small.Dispose()
-  $raw = [Convert]::ToBase64String($ms.ToArray())
-  $ms.Dispose()
-  if ($raw.Length -gt 900000) { return $null }
-  return 'data:image/jpeg;base64,' + $raw
-}
-
 Write-Log 'Vastora agent is running. Close this window to stop this session. Sign-in will start it again.'
-$lastShot = [DateTime]::MinValue
 $held = @{}
 
 while ($true) {
@@ -189,17 +163,6 @@ while ($true) {
       $bits = $item -split '\|', 2
       if ($bits.Count -eq 2) { $body.files += @{ action = $bits[0]; name = $bits[1] } }
       $taken++
-    }
-    if (((Get-Date) - $lastShot).TotalMinutes -ge 10) {
-      try {
-        $shot = Get-Shot
-        if ($shot) {
-          $body.screenshot = $shot
-          $lastShot = Get-Date
-        }
-      } catch {
-        Write-Log ("screenshot skipped: {0}" -f $_.Exception.Message)
-      }
     }
     $json = $body | ConvertTo-Json -Compress -Depth 6
     $res = Invoke-RestMethod -Method Post -Uri "$api/api/wfh/agent" -Headers @{ Authorization = "Bearer $token" } -ContentType 'application/json; charset=utf-8' -Body $json -TimeoutSec 25
