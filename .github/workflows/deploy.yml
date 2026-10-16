@@ -21,9 +21,9 @@ jobs:
           script: |
             set -xe
 
-            cd /var/www/Hrm-Crm
+            cd /var/www/hrm-crm
 
-            git config --global --add safe.directory /var/www/Hrm-Crm || true
+            git config --global --add safe.directory /var/www/hrm-crm || true
             git fetch origin main
             git checkout main
             git reset --hard origin/main
