@@ -16,6 +16,7 @@ import {
 import { protect } from '../middlewares/authMiddleware.js';
 import { requireAdmin } from '../middlewares/roleMiddleware.js';
 import { safeUploadFilename } from '../utils/uploadSafe.js';
+import { loginAttemptLimiter } from '../middlewares/loginRateLimit.js';
 
 const avatarDir = path.join(path.resolve(), 'uploads', 'avatars');
 try {
@@ -43,7 +44,7 @@ const avatarUpload = multer({
 const router = express.Router();
 
 router.post('/register', protect, requireAdmin, registerEmployee);
-router.post('/login', loginEmployee);
+router.post('/login', loginAttemptLimiter, loginEmployee);
 router.post('/logout', logoutEmployee);
 // Public set-password removed — use invite token flow or admin PATCH /:id/password
 router.post('/me/photo', protect, (req, res, next) => {

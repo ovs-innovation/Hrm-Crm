@@ -9,11 +9,12 @@ import {
 } from '../controllers/authController.js';
 import { validateInviteToken, setPasswordWithToken } from '../controllers/inviteController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { loginAttemptLimiter, signupLimiter } from '../middlewares/loginRateLimit.js';
 
 const router = express.Router();
 
-router.post('/admin/signup', adminSignup);
-router.post('/admin/login', adminLogin);
+router.post('/admin/signup', signupLimiter, adminSignup);
+router.post('/admin/login', loginAttemptLimiter, adminLogin);
 router.post('/admin/logout', adminLogout);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout-all', protect, logoutAllDevices);

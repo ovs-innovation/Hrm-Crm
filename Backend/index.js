@@ -138,6 +138,16 @@ const standardLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests. Please try again later.' },
+  skip: (req) => {
+    const path = String(req.originalUrl || '').split('?')[0];
+    return (
+      path.endsWith('/employees/login') ||
+      path.endsWith('/employees/logout') ||
+      path.endsWith('/auth/refresh') ||
+      path.endsWith('/auth/admin/login') ||
+      path.endsWith('/auth/admin/logout')
+    );
+  },
 });
 
 const aiLimiter = rateLimit({
@@ -146,14 +156,6 @@ const aiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'AI rate limit exceeded. Please wait before sending more AI requests.' },
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many authentication attempts. Please try again in 15 minutes.' },
 });
 
 // ─── Body Parsers ─────────────────────────────────────────────────────────────
@@ -174,7 +176,7 @@ app.use(resolveTenant);
 app.use(contextMiddleware);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/messages', standardLimiter, messageRoutes);
 app.use('/api/whatsapp/webhook', whatsappWebhookRouter);
 app.use('/api/users', standardLimiter, userRoutes);
