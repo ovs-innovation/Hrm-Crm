@@ -4,6 +4,7 @@ import Modal from '../../components/Modal';
 import PageShell from '../../components/PageShell';
 import AddHolidayForm from '../../features/holiday/components/AddHolidayForm';
 import api from '../../services/api';
+import toast from 'react-hot-toast';
 
 const Holiday = () => {
   const [holidays, setHolidays] = useState([]);
@@ -23,9 +24,10 @@ const Holiday = () => {
   useEffect(() => { fetchHolidays(); }, []);
 
   const handleAddHoliday = async (newHoliday) => {
-    await api.post('/holidays', newHoliday);
+    const res = await api.post('/holidays', newHoliday);
     setIsAddModalOpen(false);
     fetchHolidays();
+    toast.success(res.data?.emailNotice || 'Holiday added and announced.');
   };
 
   const handleDelete = async (id) => {
@@ -37,7 +39,7 @@ const Holiday = () => {
   return (
     <PageShell
       title="Holidays"
-      description="Company-wide public and optional holidays"
+      description="Adding a holiday also posts an announcement and emails employees"
       count={holidays.length}
       actions={
         <button type="button" onClick={() => setIsAddModalOpen(true)} className="btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-[13px]">

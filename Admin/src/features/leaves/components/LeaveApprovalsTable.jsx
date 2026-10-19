@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { leaveService } from '../services/leaveService';
-import Modal from '../../../components/Modal';
 import PageShell from '../../../components/PageShell';
-import LeaveRequestForm from './LeaveRequestForm';
-import api from '../../../services/api';
 
 const LeaveApprovalsTable = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchLeaves = async () => {
     setLoading(true);
@@ -26,31 +22,11 @@ const LeaveApprovalsTable = () => {
     fetchLeaves();
   };
 
-  const handleCreateLeave = async (formData) => {
-    const empRes = await api.get('/employees');
-    const employee = empRes.data.find((e) => e._id === formData.employeeId || e.employeeId === formData.employeeId);
-    await api.post('/leaves', {
-      employeeId: employee?._id || formData.employeeId,
-      employeeName: employee?.name || 'Unknown',
-      type: formData.leaveType,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      reason: formData.reason,
-    });
-    setIsModalOpen(false);
-    fetchLeaves();
-  };
-
   return (
     <PageShell
       title="Leave requests"
       description="Review and approve employee leave"
       count={leaves.length}
-      actions={
-        <button type="button" onClick={() => setIsModalOpen(true)} className="btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-[13px]">
-          Request leave
-        </button>
-      }
     >
       <div className="overflow-hidden rounded border border-line bg-surface">
         <table className="w-full min-w-[800px] text-left text-[13px]">
@@ -89,10 +65,6 @@ const LeaveApprovalsTable = () => {
           </tbody>
         </table>
       </div>
-
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Request leave">
-        <LeaveRequestForm onCancel={() => setIsModalOpen(false)} onSubmit={handleCreateLeave} />
-      </Modal>
     </PageShell>
   );
 };

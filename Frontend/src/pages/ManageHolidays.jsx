@@ -5,6 +5,7 @@ import Modal from '../components/Modal';
 import AddHolidayForm from '../features/holiday/components/AddHolidayForm';
 
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const Holiday = () => {
   const [holidays, setHolidays] = useState([]);
@@ -31,6 +32,7 @@ const Holiday = () => {
       const updated = [...holidays, res.data].sort((a, b) => new Date(a.date) - new Date(b.date));
       setHolidays(updated);
       setIsAddModalOpen(false);
+      toast.success(res.data?.emailNotice || 'Holiday added and announced.');
     } catch (error) {
       console.error('Error adding holiday', error);
       alert('Failed to add holiday');

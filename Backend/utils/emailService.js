@@ -52,6 +52,14 @@ export const leaveStatusEmailHtml = (name, status, dates) => `
     <p>Hi ${escapeHtml(name)}, your leave request (${escapeHtml(dates)}) has been <strong>${escapeHtml(String(status).toLowerCase())}</strong>.</p>
   </div>`;
 
+export const announcementEmailHtml = (title, description, type) => `
+  <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto">
+    <p style="color:#2E6DB4;font-size:12px;margin:0 0 8px">${escapeHtml(type || 'Announcement')}</p>
+    <h2 style="color:#1a1a1a;margin:0 0 12px">${escapeHtml(title)}</h2>
+    <p style="white-space:pre-wrap;color:#333;line-height:1.5;margin:0">${escapeHtml(description)}</p>
+    <p style="color:#666;font-size:13px;margin:16px 0 0">Sent from Vastora.</p>
+  </div>`;
+
 export const dealStageEmailHtml = (title, stage, owner) => `
   <div style="font-family:Inter,sans-serif">
     <h2 style="color:#2E6DB4">Deal updated</h2>

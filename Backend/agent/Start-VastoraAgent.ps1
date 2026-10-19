@@ -13,9 +13,13 @@ if (-not $token) {
 
 $createdNew = $false
 $mutex = New-Object System.Threading.Mutex($false, 'Local\VastoraWfhAgent', [ref]$createdNew)
-if (-not $mutex.WaitOne(0)) {
-  Write-Host 'Vastora agent is already running.'
-  exit 0
+try {
+  if (-not $mutex.WaitOne(0)) {
+    Write-Host 'Vastora agent is already running.'
+    exit 0
+  }
+} catch [System.Threading.AbandonedMutexException] {
+  Write-Host 'Previous agent had stopped. Starting again.'
 }
 
 $logDir = Join-Path $env:LOCALAPPDATA 'Vastora'
@@ -64,24 +68,28 @@ public static class VastoraWin {
 }
 "@
 $fileQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
-foreach ($folder in @([Environment]::GetFolderPath('Desktop')), ([Environment]::GetFolderPath('MyDocuments')), (Join-Path $env:USERPROFILE 'Downloads')) {
-  if (-not (Test-Path $folder)) { continue }
-  $watcher = New-Object System.IO.FileSystemWatcher $folder
-  $watcher.IncludeSubdirectories = $true
-  $watcher.EnableRaisingEvents = $true
-  $watcher.NotifyFilter = [IO.NotifyFilters]'FileName, LastWrite'
-  foreach ($eventName in @('Created', 'Changed', 'Deleted', 'Renamed')) {
-    Register-ObjectEvent -InputObject $watcher -EventName $eventName -MessageData $fileQueue -Action {
-      $path = $Event.SourceEventArgs.FullPath
-      if ($path -match '\\(node_modules|AppData|\.git)\\') { return }
-      $action = switch ($Event.SourceEventArgs.ChangeType.ToString()) {
-        'Created' { 'created' }
-        'Deleted' { 'deleted' }
-        default { 'modified' }
-      }
-      $Event.MessageData.Enqueue("$action|$([IO.Path]::GetFileName($path))")
-    } | Out-Null
+try {
+  foreach ($folder in @([Environment]::GetFolderPath('Desktop')), ([Environment]::GetFolderPath('MyDocuments')), (Join-Path $env:USERPROFILE 'Downloads')) {
+    if (-not (Test-Path $folder)) { continue }
+    $watcher = New-Object System.IO.FileSystemWatcher $folder
+    $watcher.IncludeSubdirectories = $true
+    $watcher.EnableRaisingEvents = $true
+    $watcher.NotifyFilter = [IO.NotifyFilters]'FileName, LastWrite'
+    foreach ($eventName in @('Created', 'Changed', 'Deleted', 'Renamed')) {
+      Register-ObjectEvent -InputObject $watcher -EventName $eventName -MessageData $fileQueue -Action {
+        $path = $Event.SourceEventArgs.FullPath
+        if ($path -match '\\(node_modules|AppData|\.git)\\') { return }
+        $action = switch ($Event.SourceEventArgs.ChangeType.ToString()) {
+          'Created' { 'created' }
+          'Deleted' { 'deleted' }
+          default { 'modified' }
+        }
+        $Event.MessageData.Enqueue("$action|$([IO.Path]::GetFileName($path))")
+      } | Out-Null
+    }
   }
+} catch {
+  Write-Log ("File watching is off: {0}" -f $_.Exception.Message)
 }
 
 function Get-IdleSeconds {
@@ -111,7 +119,36 @@ function Get-Project([string]$app, [string]$title) {
   return ''
 }
 
+function Send-Activity([int]$elapsed, [int]$clickCount, [int]$keyCount) {
+  $front = Get-Front
+  $status = 'working'
+  if ($front.App -match 'zoom|teams|webex|skype') { $status = 'meeting' }
+  $body = @{
+    elapsed = [Math]::Min(60, [Math]::Max(1, $elapsed))
+    idleSeconds = Get-IdleSeconds
+    app = $front.App
+    window = $front.Window
+    project = (Get-Project $front.App $front.Window)
+    status = $status
+    clicks = $clickCount
+    keys = $keyCount
+    files = @()
+  }
+  $item = $null
+  $taken = 0
+  while ($taken -lt 20 -and $fileQueue.TryDequeue([ref]$item)) {
+    $bits = $item -split '\|', 2
+    if ($bits.Count -eq 2) { $body.files += @{ action = $bits[0]; name = $bits[1] } }
+    $taken++
+  }
+  $json = $body | ConvertTo-Json -Compress -Depth 6
+  $res = Invoke-RestMethod -Method Post -Uri "$api/api/wfh/agent" -Headers @{ Authorization = "Bearer $token" } -ContentType 'application/json; charset=utf-8' -Body $json -TimeoutSec 25
+  Write-Log ("{0}  status={1}  clicks={2}  keys={3}  active={4}m" -f $front.App, $res.status, $clickCount, $keyCount, $res.activeMinutes)
+}
+
 Write-Log 'Vastora agent is running. Close this window to stop this session. Sign-in will start it again.'
+try { Send-Activity 1 0 0 } catch { Write-Log ("send failed, retrying: {0}" -f $_.Exception.Message) }
+try { Set-Content -Path (Join-Path $logDir 'agent.ok') -Value (Get-Date -Format o) -Encoding ASCII } catch {}
 $held = @{}
 
 while ($true) {
@@ -152,30 +189,7 @@ while ($true) {
 
   try {
     $elapsed = [Math]::Max(1, [int]((Get-Date) - $started).TotalSeconds)
-    $front = Get-Front
-    $status = 'working'
-    if ($front.App -match 'zoom|teams|webex|skype') { $status = 'meeting' }
-    $body = @{
-      elapsed = [Math]::Min(60, $elapsed)
-      idleSeconds = Get-IdleSeconds
-      app = $front.App
-      window = $front.Window
-      project = (Get-Project $front.App $front.Window)
-      status = $status
-      clicks = $clicks
-      keys = $keys
-      files = @()
-    }
-    $item = $null
-    $taken = 0
-    while ($taken -lt 20 -and $fileQueue.TryDequeue([ref]$item)) {
-      $bits = $item -split '\|', 2
-      if ($bits.Count -eq 2) { $body.files += @{ action = $bits[0]; name = $bits[1] } }
-      $taken++
-    }
-    $json = $body | ConvertTo-Json -Compress -Depth 6
-    $res = Invoke-RestMethod -Method Post -Uri "$api/api/wfh/agent" -Headers @{ Authorization = "Bearer $token" } -ContentType 'application/json; charset=utf-8' -Body $json -TimeoutSec 25
-    Write-Log ("{0}  status={1}  clicks={2}  keys={3}  active={4}m" -f $front.App, $res.status, $clicks, $keys, $res.activeMinutes)
+    Send-Activity $elapsed $clicks $keys
   } catch {
     Write-Log ("send failed, retrying: {0}" -f $_.Exception.Message)
     Start-Sleep -Seconds 10

@@ -5,10 +5,11 @@ import DailyReport from '../models/DailyReport.js';
 const OFFICE_LAT = Number(process.env.OFFICE_LAT) || 28.580869;
 const OFFICE_LON = Number(process.env.OFFICE_LON) || 77.365023;
 const OFFICE_RADIUS_METERS = Number(process.env.OFFICE_RADIUS_METERS) || 300;
-const SHIFT_START = 10 * 60 + 15;
-const SHIFT_END = 18 * 60 + 30;
-const LUNCH_START = 13 * 60 + 30;
-const LUNCH_END = 14 * 60 + 15;
+const SHIFT_START = 9 * 60;
+const LATE_AFTER = 9 * 60 + 15;
+const SHIFT_END = 17 * 60 + 30;
+const LUNCH_START = 13 * 60;
+const LUNCH_END = 13 * 60 + 45;
 
 const parseClock = (value) => {
   const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
@@ -25,16 +26,25 @@ const parseClock = (value) => {
 const overlapMinutes = (startA, endA, startB, endB) =>
   Math.max(0, Math.min(endA, endB) - Math.max(startA, startB));
 
-const shiftHasEnded = (at = new Date()) => {
-  const minutes = at.getHours() * 60 + at.getMinutes();
-  return minutes >= SHIFT_END;
+const indiaMinutesNow = (at = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(at);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value);
+  return hour * 60 + minute;
 };
+
+const shiftHasEnded = (at = new Date()) => indiaMinutesNow(at) >= SHIFT_END;
 
 export const evaluateShift = (checkIn, checkOut) => {
   const arrived = parseClock(checkIn);
   const left = parseClock(checkOut);
   if (arrived == null) return { status: 'Present (Active)', workedMinutes: null };
-  const late = arrived > SHIFT_START;
+  const late = arrived > LATE_AFTER;
   if (left == null) {
     return { status: late ? 'Late (Active)' : 'Present (Active)', workedMinutes: null };
   }
@@ -138,7 +148,7 @@ export const checkIn = async (req, res) => {
     }
     
     if (checkOut && !shiftHasEnded()) {
-      return res.status(400).json({ message: 'Checkout opens only after the shift ends at 6:30 PM.' });
+      return res.status(400).json({ message: 'Checkout opens only after the shift ends at 5:30 PM.' });
     }
 
     if (checkOut) {
@@ -194,7 +204,7 @@ export const checkOut = async (req, res) => {
     const employeeId = resolveAttendanceEmployeeId(req, req.body.employeeId);
 
     if (!shiftHasEnded()) {
-      return res.status(400).json({ message: 'Checkout opens only after the shift ends at 6:30 PM.' });
+      return res.status(400).json({ message: 'Checkout opens only after the shift ends at 5:30 PM.' });
     }
     
     // STRICT CHECKOUT FLOW: Verify daily report exists

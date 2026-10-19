@@ -4,15 +4,18 @@ import { FiPlus, FiBriefcase, FiTrash2, FiClock, FiCheckCircle } from 'react-ico
 import { Card, Button } from '../components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
+import { canAssignProjects, canManageTeam } from '../utils/roleAccess';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const user = useSelector(state => state.auth.user || {});
-  const role = (user.role || '').toLowerCase().trim();
-  const isManagement = role === 'founder' || role === 'manager' || role === 'hr';
-  const [formData, setFormData] = useState({
+  const canAssign = canAssignProjects(user);
+  const isManagement = canManageTeam(user.role);
+  const emptyForm = {
     name: '',
     description: '',
     client: '',
@@ -22,8 +25,10 @@ const Projects = () => {
     budget: '',
     status: 'Active',
     startDate: '',
-    endDate: ''
-  });
+    endDate: '',
+    team: [],
+  };
+  const [formData, setFormData] = useState(emptyForm);
 
   const fetchProjects = async () => {
     try {
@@ -38,17 +43,60 @@ const Projects = () => {
 
   useEffect(() => {
     fetchProjects();
+    api.get('/employees').then((res) => setEmployees(Array.isArray(res.data) ? res.data : [])).catch(() => setEmployees([]));
   }, []);
+
+  const memberIds = (project) => {
+    const rows = Array.isArray(project.team) ? project.team : [];
+    return rows.map((member) => String(member?.employeeId || member?._id || member));
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setFormData(emptyForm);
+    setIsModalOpen(true);
+  };
+
+  const openAssign = (project) => {
+    setEditingId(project._id);
+    setFormData({
+      ...emptyForm,
+      name: project.name || '',
+      description: project.description || '',
+      client: project.client || '',
+      technologies: project.technologies || '',
+      projectType: project.projectType || 'New Development',
+      priority: project.priority || 'Medium',
+      budget: project.budget ?? '',
+      status: project.status || 'Active',
+      startDate: project.startDate ? String(project.startDate).slice(0, 10) : '',
+      endDate: project.endDate ? String(project.endDate).slice(0, 10) : '',
+      team: memberIds(project),
+    });
+    setIsModalOpen(true);
+  };
+
+  const toggleMember = (employeeId) => {
+    setFormData((prev) => {
+      const team = prev.team.includes(employeeId)
+        ? prev.team.filter((id) => id !== employeeId)
+        : [...prev.team, employeeId];
+      return { ...prev, team };
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/projects', formData);
+      if (editingId) {
+        await api.put(`/projects/${editingId}`, formData);
+      } else {
+        await api.post('/projects', formData);
+      }
       fetchProjects();
       setIsModalOpen(false);
-      setFormData({
-        name: '', description: '', client: '', technologies: '', projectType: 'New Development', priority: 'Medium', budget: '', status: 'Active', startDate: '', endDate: ''
-      });
+      setEditingId(null);
+      setFormData(emptyForm);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || 'Error creating project');
@@ -87,8 +135,8 @@ const Projects = () => {
           </h1>
           <p className="text-muted text-sm mt-1">View company projects and active teams.</p>
         </div>
-        {isManagement && (
-          <Button onClick={() => setIsModalOpen(true)} className="bg-brand hover:bg-brand-hover text-white shadow-lg shadow-brand/15 flex items-center gap-2">
+        {canAssign && (
+          <Button onClick={openCreate} className="bg-brand hover:bg-brand-hover text-white shadow-lg shadow-brand/15 flex items-center gap-2">
             <FiPlus /> New Project
           </Button>
         )}
@@ -107,16 +155,25 @@ const Projects = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="bg-surface rounded-2xl border border-line shadow-sm hover:shadow-md transition-all p-6 group relative overflow-hidden"
             >
-              {isManagement && (
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-0 right-0 p-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {canAssign && (
+                  <button
+                    type="button"
+                    onClick={() => openAssign(project)}
+                    className="rounded-lg px-2 py-1 text-xs font-medium text-brand hover:bg-brand/10"
+                  >
+                    Assign team
+                  </button>
+                )}
+                {isManagement && (
                   <button
                     onClick={() => handleDelete(project._id)}
                     className="p-2 text-brand hover:text-brand hover:bg-brand/10 rounded-lg transition-colors"
                   >
                     <FiTrash2 className="w-4 h-4" />
                   </button>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="flex items-center gap-3 mb-4">
                 <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusStyle(project.status)}`}>
@@ -204,7 +261,7 @@ const Projects = () => {
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-[15px] font-semibold text-ink flex items-center gap-2">
                   <FiBriefcase className="text-brand" />
-                  Create New Project
+                  {editingId ? 'Assign project' : 'Create New Project'}
                 </h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-muted hover:text-muted bg-surface p-2 rounded-full">
                   ✕
@@ -311,10 +368,27 @@ const Projects = () => {
                     </select>
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-bold text-ink mb-1">Assign team</label>
+                  <div className="max-h-36 overflow-y-auto rounded-xl border border-line p-2 space-y-1">
+                    {employees.length === 0 ? (
+                      <p className="px-1 py-2 text-xs text-muted">No employees available.</p>
+                    ) : employees.map((emp) => {
+                      const id = String(emp.employeeId || emp._id);
+                      return (
+                        <label key={emp._id || id} className="flex items-center gap-2 px-1 py-1 text-sm text-ink">
+                          <input type="checkbox" checked={formData.team.includes(id)} onChange={() => toggleMember(id)} />
+                          <span>{emp.name}</span>
+                          <span className="text-xs text-muted">{emp.designation || emp.department}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="mt-6 pt-4 border-t border-line border-line flex justify-end gap-3">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-muted hover:text-ink font-bold">Cancel</button>
                   <Button type="submit" className="px-6 py-2.5 bg-brand hover:bg-brand-hover text-white rounded-xl font-bold shadow-lg shadow-brand/15">
-                    Create Project
+                    {editingId ? 'Save assignment' : 'Create Project'}
                   </Button>
                 </div>
               </form>

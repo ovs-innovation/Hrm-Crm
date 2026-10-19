@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import PageShell from '../components/PageShell';
+import VastoraLogo from '../components/VastoraLogo';
 import api from '../services/api';
 
 const formatINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
@@ -55,16 +56,22 @@ const Payslips = () => {
         <div className="rounded border border-line bg-surface p-5">
           {selected ? (
             <>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Vastora Tech</p>
-              <h3 className="mt-1 text-base font-semibold text-ink">Payslip · {selected.month}</h3>
+              <div className="flex items-center justify-between gap-3 border-b border-line pb-4">
+                <VastoraLogo />
+                <div className="text-right">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Salary slip</p>
+                  <p className="mt-1 text-[14px] font-semibold text-ink">{selected.month}</p>
+                </div>
+              </div>
               <table className="mt-4 w-full text-[13px]">
                 <tbody>
-                  <tr className="border-b border-line"><td className="py-2 text-muted">Basic</td><td className="py-2 text-right">{formatINR(selected.basicSalary)}</td></tr>
-                  <tr className="border-b border-line"><td className="py-2 text-muted">Allowances</td><td className="py-2 text-right text-green-700">+ {formatINR(selected.allowances)}</td></tr>
-                  <tr className="border-b border-line"><td className="py-2 text-muted">Deductions</td><td className="py-2 text-right text-red-600">− {formatINR(selected.deductions)}</td></tr>
-                  <tr><td className="py-2 font-semibold">Net pay</td><td className="py-2 text-right text-lg font-bold text-brand">{formatINR(selected.netPay)}</td></tr>
+                  <tr className="border-b border-line"><td className="py-2.5 text-muted">Basic</td><td className="py-2.5 text-right tabular-nums">{formatINR(selected.basicSalary)}</td></tr>
+                  <tr className="border-b border-line"><td className="py-2.5 text-muted">Allowances</td><td className="py-2.5 text-right tabular-nums text-green-700">+ {formatINR(selected.allowances)}</td></tr>
+                  <tr className="border-b border-line"><td className="py-2.5 text-muted">Deductions</td><td className="py-2.5 text-right tabular-nums text-red-600">− {formatINR(selected.deductions)}</td></tr>
+                  <tr><td className="py-3 font-semibold text-ink">Net pay</td><td className="py-3 text-right text-lg font-semibold tabular-nums text-brand">{formatINR(selected.netPay)}</td></tr>
                 </tbody>
               </table>
+              <p className="mt-4 text-center text-[11px] text-muted">Vastora Tech · Confidential</p>
             </>
           ) : (
             <p className="py-12 text-center text-[13px] text-muted">Select a payslip to view details.</p>

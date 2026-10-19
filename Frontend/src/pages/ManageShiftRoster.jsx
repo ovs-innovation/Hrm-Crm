@@ -12,7 +12,7 @@ const ManageShiftRoster = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [form, setForm] = useState({ employeeId: '', date: '', shiftType: 'General', startTime: '09:00', endTime: '18:00', notes: '' });
+  const [form, setForm] = useState({ employeeId: '', date: '', shiftType: 'General', startTime: '09:00', endTime: '17:30', notes: '' });
 
   const fetchItems = async () => {
     setLoading(true);
@@ -41,7 +41,7 @@ const ManageShiftRoster = () => {
       });
       toast.success('Shift assigned');
       setModalOpen(false);
-      setForm({ employeeId: '', date: '', shiftType: 'General', startTime: '09:00', endTime: '18:00', notes: '' });
+      setForm({ employeeId: '', date: '', shiftType: 'General', startTime: '09:00', endTime: '17:30', notes: '' });
       fetchItems();
     } catch {
       toast.error('Failed to assign shift');

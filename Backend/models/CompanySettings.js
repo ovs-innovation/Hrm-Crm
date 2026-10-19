@@ -23,7 +23,7 @@ const companySettingsSchema = new mongoose.Schema(
     },
     attendancePolicy: {
       workStart: { type: String, default: '09:00' },
-      workEnd: { type: String, default: '18:00' },
+      workEnd: { type: String, default: '17:30' },
       graceMinutes: { type: Number, default: 15 },
     },
     crmSettings: {

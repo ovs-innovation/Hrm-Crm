@@ -19,7 +19,7 @@ const Attendance = () => {
   const formatHours = (mins) => (Number.isFinite(mins) ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` : '—');
 
   return (
-    <PageShell title="Attendance" description="Shift 10:15 AM – 6:30 PM. Lunch is not counted. Leaving before 6:30 PM is a half day." count={records.length}>
+    <PageShell title="Attendance" description="Shift 9:00 AM – 5:30 PM. Check-in by 9:15 AM is on time. Lunch is not counted. Leaving before 5:30 PM is a half day." count={records.length}>
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           ['Total days', records.length],

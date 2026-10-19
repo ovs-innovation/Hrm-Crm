@@ -21,7 +21,7 @@ import {
   FiLifeBuoy,
   FiBriefcase,
 } from 'react-icons/fi';
-import { canManageTeam } from '../utils/roleAccess';
+import { canAssignProjects, canManageTeam } from '../utils/roleAccess';
 
 const NavItem = ({ to, icon: Icon, title, end, onClick }) => (
   <NavLink
@@ -51,6 +51,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user || {});
   const isManager = canManageTeam(user.role);
+  const canAssign = canAssignProjects(user);
 
   const handleLogout = async () => {
     try {
@@ -108,11 +109,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               <NavItem to="/manage/leaves" icon={FiCalendar} title="Leave approvals" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/attendance" icon={FiCalendar} title="Team attendance" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/tasks" icon={FiCheckSquare} title="Assign tasks" onClick={() => setIsOpen(false)} />
+              <NavItem to="/manage/projects" icon={FiBriefcase} title="Assign projects" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/holidays" icon={FiCalendar} title="Holidays" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/announcements" icon={FiBell} title="Broadcast" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/appreciation" icon={FiAward} title="Appreciation" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/roster" icon={FiClock} title="Shift roster" onClick={() => setIsOpen(false)} />
               <NavItem to="/manage/reports" icon={FiFileText} title="Daily reports" onClick={() => setIsOpen(false)} />
+            </Section>
+          )}
+
+          {canAssign && !isManager && (
+            <Section title="Team">
+              <NavItem to="/manage/projects" icon={FiBriefcase} title="Assign projects" onClick={() => setIsOpen(false)} />
             </Section>
           )}
         </nav>

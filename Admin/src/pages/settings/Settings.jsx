@@ -8,7 +8,7 @@ const Settings = () => {
     companyName: '', legalName: '', email: '', phone: '', website: '', address: '', city: '', country: 'India',
     currency: 'INR', timezone: 'Asia/Kolkata', fiscalYearStart: '04-01', taxId: '',
     leavePolicy: { annualQuota: 18, carryForward: true },
-    attendancePolicy: { workStart: '09:00', workEnd: '18:00', graceMinutes: 15 },
+    attendancePolicy: { workStart: '09:00', workEnd: '17:30', graceMinutes: 15 },
     brandColor: '#2563EB', logoUrl: ''
   });
   const [audit, setAudit] = useState([]);

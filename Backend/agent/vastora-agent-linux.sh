@@ -1,7 +1,7 @@
 #!/bin/sh
-# Vastora laptop agent for Linux desktops. Tracks the front app, idle time, and a screenshot.
-# It does not record which keys were typed.
-API="${VASTORA_API:-http://localhost:5000}"
+# Vastora laptop agent for Linux desktops. Tracks the front app and idle time.
+# It does not record which keys were typed, and it does not take screenshots.
+API="${VASTORA_API:-https://hrm.vastoratech.com}"
 API="${API%/}"
 if [ -z "$VASTORA_TOKEN" ]; then
   echo "This agent file has no login. Download it again from Work from home."
@@ -46,7 +46,6 @@ front_app() {
   echo unknown
 }
 
-last_shot=0
 echo "Vastora agent is running. Close this window to stop this session."
 while true; do
   title=$(front_app)
@@ -58,19 +57,6 @@ while true; do
   status="working"
   echo "$title" | grep -Eiq 'zoom|teams|webex' && status="meeting"
   body=$(printf '{"elapsed":30,"idleSeconds":%s,"app":"%s","window":"%s","status":"%s"}' "${idle:-0}" "$app" "$title" "$status")
-  now=$(date +%s)
-  if [ $((now - last_shot)) -ge 600 ]; then
-    file=$(mktemp /tmp/vastora-shot.XXXXXX.jpg)
-    shot=0
-    if command -v gnome-screenshot >/dev/null 2>&1; then gnome-screenshot -f "$file" && shot=1; fi
-    if [ "$shot" -eq 0 ] && command -v import >/dev/null 2>&1; then import -window root "$file" && shot=1; fi
-    if [ "$shot" -eq 1 ]; then
-      b64=$(base64 < "$file" | tr -d '\n')
-      body=$(printf '{"elapsed":30,"idleSeconds":%s,"app":"%s","window":"%s","status":"%s","screenshot":"data:image/jpeg;base64,%s"}' "${idle:-0}" "$app" "$title" "$status" "$b64")
-      last_shot=$now
-    fi
-    rm -f "$file"
-  fi
   curl -sS -m 25 -X POST "$API/api/wfh/agent" \
     -H "Authorization: Bearer $VASTORA_TOKEN" \
     -H "Content-Type: application/json" \

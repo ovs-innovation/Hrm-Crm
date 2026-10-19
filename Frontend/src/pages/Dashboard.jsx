@@ -142,7 +142,7 @@ const Dashboard = () => {
       return;
     }
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 15);
+    const isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 15);
     const pending = {
       id: `pending-${Date.now()}`,
       date: today,
@@ -169,8 +169,8 @@ const Dashboard = () => {
       setRecords([res.data, ...records.filter((row) => row.date !== today)]);
       setIsCheckedIn(true);
       toast.success(isLate
-        ? `Checked in at ${timeStr}. Saved. Checkout opens at 6:30 PM.`
-        : `Checked in at ${timeStr}. Saved. This shift stays open until 6:30 PM.`);
+        ? `Checked in at ${timeStr}. Saved. Checkout opens at 5:30 PM.`
+        : `Checked in at ${timeStr}. Saved. This shift stays open until 5:30 PM.`);
     } catch (error) {
       const unauthorized = error.response?.status === 401;
       if (unauthorized) {
@@ -224,11 +224,11 @@ const Dashboard = () => {
     );
   };
 
-  const shiftStillOpen = now.getHours() < 18 || (now.getHours() === 18 && now.getMinutes() < 30);
+  const shiftStillOpen = now.getHours() < 17 || (now.getHours() === 17 && now.getMinutes() < 30);
 
   const handleCheckOut = async () => {
     if (shiftStillOpen) {
-      toast.error('Checkout stays closed until 6:30 PM. One check-in covers the full shift.');
+      toast.error('Checkout stays closed until 5:30 PM. One check-in covers the full shift.');
       return;
     }
     const today = localToday();
@@ -260,9 +260,9 @@ const Dashboard = () => {
       const mins = res.data.workedMinutes;
       const hoursLabel = Number.isFinite(mins) ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` : '';
       const note = res.data.status === 'Half Day'
-        ? 'Marked Half Day because checkout is before 6:30 PM.'
+        ? 'Marked Half Day because checkout is before 5:30 PM.'
         : res.data.status === 'Late'
-          ? 'Marked Late. You stayed till the end, but checked in after 10:15 AM.'
+          ? 'Marked Late. You stayed till the end, but checked in after 9:15 AM.'
           : 'Full day recorded.';
       toast.success(`${res.data.status || 'Checked out'}${hoursLabel ? ` · ${hoursLabel}` : ''}. ${note}`);
     } catch (error) {
@@ -298,7 +298,7 @@ const Dashboard = () => {
           <p className="text-[13px] text-muted">{todayLabel}</p>
           <h1 className="mt-0.5 text-[18px] font-semibold text-ink">{hello}, {firstName}</h1>
           <p className="mt-1 text-[13px] text-muted">{statusLine}</p>
-          <p className="mt-1 text-[13px] text-muted">Shift 10:15 AM – 6:30 PM · Lunch 1:30 PM – 2:15 PM</p>
+          <p className="mt-1 text-[13px] text-muted">Shift 9:00 AM – 5:30 PM · On time until 9:15 AM · Lunch 1:00 PM – 1:45 PM</p>
         </div>
         <div className="flex items-center gap-3">
           <p className="font-mono text-[15px] tabular-nums text-ink">
@@ -311,7 +311,7 @@ const Dashboard = () => {
               <FiClock className="h-4 w-4" /> {isLocating ? 'Locating…' : 'Check in'}
             </button>
           ) : shiftStillOpen ? (
-            <span className="border border-line bg-soft px-3 py-2 text-[13px] text-ink">Checked in · out at 6:30 PM</span>
+            <span className="border border-line bg-soft px-3 py-2 text-[13px] text-ink">Checked in · out at 5:30 PM</span>
           ) : (
             <button type="button" onClick={handleCheckOut} className="btn-outline inline-flex h-9 items-center gap-2 px-4 text-[13px]">
               <FiLogOut className="h-4 w-4" /> Check out

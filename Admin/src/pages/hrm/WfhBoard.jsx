@@ -174,7 +174,7 @@ const WfhBoard = () => {
           </div>
           <div className="mt-4">
             <h3 className="text-[12px] font-medium uppercase tracking-wide text-muted">Screenshots</h3>
-            {(open.shots || []).length === 0 && <p className="mt-2 text-[13px] text-muted">No screenshots yet. The agent takes one about every 10 minutes.</p>}
+            {(open.shots || []).length === 0 && <p className="mt-2 text-[13px] text-muted">Screenshots are not collected. App, idle, and click tracking still run.</p>}
             <div className="mt-2 flex flex-wrap gap-2">
               {(open.shots || []).map((shot) => (
                 <a key={shot.path} href={getFileUrl(shot.path)} target="_blank" rel="noreferrer">

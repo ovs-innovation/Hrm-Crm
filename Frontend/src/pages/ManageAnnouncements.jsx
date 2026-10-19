@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 import { FiPlus, FiTrash2, FiMessageCircle, FiX } from 'react-icons/fi';
 import { Card, Button } from '../components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +31,8 @@ const AnnouncementsView = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/announcements', formData);
+      const { data } = await api.post('/announcements', formData);
+      toast.success(data.emailNotice || 'Published. Employees can see it on their dashboard.');
       fetchAnnouncements();
       setIsModalOpen(false);
       setFormData({
@@ -40,7 +42,7 @@ const AnnouncementsView = () => {
         date: new Date().toISOString().split('T')[0]
       });
     } catch (err) {
-      console.error(err);
+      toast.error(err.response?.data?.message || 'Could not publish the announcement.');
     }
   };
 
@@ -50,7 +52,7 @@ const AnnouncementsView = () => {
         await api.delete(`/announcements/${id}`);
         fetchAnnouncements();
       } catch (err) {
-        console.error(err);
+        toast.error(err.response?.data?.message || 'Could not delete the announcement.');
       }
     }
   };

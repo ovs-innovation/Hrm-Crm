@@ -67,7 +67,7 @@ const Wfh = () => {
       <div className="mb-6 border border-line bg-surface px-3 py-3">
         <p className="mb-1 text-sm text-ink">Laptop activity</p>
         <p className="mb-3 text-sm text-muted">
-          Install the agent once on this PC. After that, check in and close this site. The laptop keeps tracking in the background until checkout. You do not need this tab open. Phones cannot run the agent. It does not send the keys you type. Download it again after 30 days.
+          Download Windows, then double-click the file. Windows will say Unknown Publisher: click Run, and wait until the window says Installed. The laptop then tracks the open app, idle time, and click counts. It does not take screenshots and it does not send the keys you type. Check in with Home. Phones cannot run the agent. Download it again after 30 days.
         </p>
         <p className="mb-3 text-sm text-ink">
           {session?.laptop
@@ -95,7 +95,7 @@ const Wfh = () => {
             }}>{label}</button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">Windows: double-click VastoraAgent.cmd and wait until the window says Installed. Do not close it before that. Mac or Linux: run the file once in Terminal.</p>
+        <p className="mt-2 text-xs text-muted">Windows: after the download, double-click VastoraAgent.cmd, click Run, and leave the window open until it says Installed. Then refresh this page. Mac or Linux: run the file once in Terminal.</p>
         <p className="mb-2 mt-4 text-sm text-ink">Apps</p>
         {(session?.apps || []).length === 0 && <p className="text-sm text-muted">No app time yet. It appears after the agent sends a pulse.</p>}
         {(session?.apps || []).map((p) => (

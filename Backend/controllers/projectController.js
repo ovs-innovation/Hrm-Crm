@@ -4,6 +4,21 @@ import Client from '../models/Client.js';
 import Task from '../models/Task.js';
 import Employee from '../models/Employee.js';
 
+const canAssignProjects = (req) => {
+  if (req.userType === 'Admin') return true;
+  const role = String(req.user?.role || '').toLowerCase();
+  if (['founder', 'owner', 'admin', 'hr', 'manager'].includes(role)) return true;
+  const blob = `${req.user?.role || ''} ${req.user?.designation || ''}`.toLowerCase();
+  return /team\s*leader|team\s*lead|teamleader/.test(blob);
+};
+
+const assertCanAssign = (req) => {
+  if (canAssignProjects(req)) return;
+  const err = new Error('Only a team leader, manager, or admin can assign projects.');
+  err.status = 403;
+  throw err;
+};
+
 const toFiniteNumber = (value, { field = 'value', required = false, min = 0, max = 1_000_000_000_000 } = {}) => {
   if (value === '' || value === null || value === undefined) {
     if (required) {
@@ -279,6 +294,7 @@ export const getProjects = async (req, res) => {
 
 export const createProject = async (req, res) => {
   try {
+    assertCanAssign(req);
     const payload = await normalizePayload(req.body, { partial: false });
     payload.createdBy = payload.createdBy || req.user?.name || '';
 
@@ -304,6 +320,7 @@ export const createProject = async (req, res) => {
 
 export const updateProject = async (req, res) => {
   try {
+    assertCanAssign(req);
     const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
@@ -337,6 +354,12 @@ export const updateProject = async (req, res) => {
 
 export const deleteProject = async (req, res) => {
   try {
+    if (req.userType !== 'Admin') {
+      const role = String(req.user?.role || '').toLowerCase();
+      if (!['founder', 'owner', 'admin', 'hr', 'manager'].includes(role)) {
+        return res.status(403).json({ message: 'Only a manager or admin can delete a project.' });
+      }
+    }
     if (!mongoose.isValidObjectId(req.params.id)) {
       return res.status(400).json({ message: 'Invalid project id' });
     }

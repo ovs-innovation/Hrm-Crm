@@ -359,7 +359,7 @@ async function seedInsideTenant({ tenantId, passwordHash }) {
         employeeId: emp._id,
         date,
         checkIn: '09:15 AM',
-        checkOut: '06:30 PM',
+        checkOut: '05:30 PM',
         status: 'Completed',
         workMode: 'Office',
         tenantId,

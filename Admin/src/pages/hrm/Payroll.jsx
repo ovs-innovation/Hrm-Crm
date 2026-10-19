@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiPlus, FiTrash2, FiExternalLink } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import PageShell from '../../components/PageShell';
+import VastoraLogo from '../../components/VastoraLogo';
 import Modal from '../../components/Modal';
 import AICopilotCard from '../../components/AICopilotCard';
 import api from '../../services/api';
@@ -126,6 +127,10 @@ const Payroll = () => {
         </>
       }
     >
+      <div className="mb-4 flex items-center justify-between gap-3 rounded border border-line bg-surface px-4 py-3">
+        <VastoraLogo variant="header" />
+        <p className="text-right text-[12px] text-muted">Vastora Tech payroll · {month}</p>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 grid gap-3 sm:grid-cols-3 items-start">
           <div className="rounded border border-line bg-surface p-4"><p className="text-[13px] text-muted">Total payout</p><p className="text-xl font-semibold text-ink">{formatINR(totalNet)}</p></div>

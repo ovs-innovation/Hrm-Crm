@@ -3,7 +3,7 @@
 # Counts activity. Does not send typed characters.
 # Usage: VASTORA_TOKEN=... VASTORA_API=http://localhost:5000 ./vastora-agent.sh
 
-API="${VASTORA_API:-http://localhost:5000}"
+API="${VASTORA_API:-https://hrm.vastoratech.com}"
 API="${API%/}"
 if [ -z "$VASTORA_TOKEN" ]; then
   echo "Set VASTORA_TOKEN to the employee access token."
@@ -26,7 +26,6 @@ json_escape() {
 }
 
 echo "Vastora agent is running. Close this window to stop."
-last_shot=0
 
 while true; do
   app=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true' 2>/dev/null)
@@ -48,17 +47,6 @@ while true; do
 
   body=$(printf '{"elapsed":30,"idleSeconds":%s,"app":"%s","window":"%s","project":"%s","status":"%s"}' \
     "$idle_n" "$app_j" "$title_j" "$project_j" "$status_j")
-  now=$(date +%s)
-  if [ $((now - last_shot)) -ge 600 ]; then
-    file=$(mktemp /tmp/vastora-shot.XXXXXX.jpg)
-    screencapture -x -t jpg "$file"
-    b64=$(base64 < "$file" | tr -d '\n\r')
-    rm -f "$file"
-    # base64 alphabet is JSON-safe; still strip newlines above
-    body=$(printf '{"elapsed":30,"idleSeconds":%s,"app":"%s","window":"%s","project":"%s","status":"%s","screenshot":"data:image/jpeg;base64,%s"}' \
-      "$idle_n" "$app_j" "$title_j" "$project_j" "$status_j" "$b64")
-    last_shot=$now
-  fi
   curl -s -X POST "$API/api/wfh/agent" \
     -H "Authorization: Bearer $VASTORA_TOKEN" \
     -H "Content-Type: application/json" \

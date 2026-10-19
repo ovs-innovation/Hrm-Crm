@@ -39,7 +39,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!canAccessEmployeeRoute(user.role, location.pathname)) {
+  if (!canAccessEmployeeRoute(user, location.pathname)) {
     return <Navigate to="/" replace />;
   }
 

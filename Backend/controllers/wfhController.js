@@ -106,21 +106,6 @@ const addSpan = (list, name, elapsed) => {
 const BROWSERS = ['chrome', 'msedge', 'firefox', 'brave', 'opera'];
 const MEETING_APPS = ['zoom', 'teams', 'webex', 'skype'];
 
-const saveJpeg = (employeeId, bytes, prefix) => {
-  const dir = path.join(path.resolve(), 'uploads', 'wfh');
-  fs.mkdirSync(dir, { recursive: true });
-  const file = `${prefix}-${employeeId}-${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
-  fs.writeFileSync(path.join(dir, file), bytes);
-  return `/uploads/wfh/${file}`;
-};
-
-const jpegBytes = (dataUrl) => {
-  const raw = String(dataUrl || '');
-  if (!raw.startsWith('data:image/jpeg;base64,')) return null;
-  if (raw.length > 1_500_000) return null;
-  return Buffer.from(raw.split(',')[1], 'base64');
-};
-
 const hostOf = (value) => {
   try {
     return new URL(value).hostname.replace(/^www\./, '').slice(0, 120);
@@ -182,14 +167,6 @@ export const agentPulse = async (req, res) => {
     row.files = [...(row.files || []), { at: new Date(), action, name }].slice(-80);
   }
 
-  const shotBytes = jpegBytes(req.body.screenshot);
-  const shotGap = row.lastShotAt ? Date.now() - new Date(row.lastShotAt).getTime() : Infinity;
-  if (shotBytes && shotGap >= 9 * 60 * 1000) {
-    const saved = saveJpeg(req.user._id, shotBytes, 'shot');
-    row.shots = [...(row.shots || []), { at: new Date(), path: saved }].slice(-48);
-    row.lastShotAt = new Date();
-  }
-
   await row.save();
   rememberWfh(snapshot(row));
 
@@ -238,11 +215,17 @@ const agentTokenFor = (user) => jwt.sign({
   purpose: 'wfh-agent',
 }, process.env.JWT_SECRET, { expiresIn: process.env.WFH_AGENT_TOKEN_TTL || '7d' });
 
+const usableApi = (value) => {
+  const cleaned = String(value || '').trim().replace(/\/$/, '');
+  if (!cleaned) return '';
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(cleaned)) return '';
+  return cleaned;
+};
+
 const apiBase = () => {
-  const configured = process.env.WFH_AGENT_API
-    || process.env.EMPLOYEE_PORTAL_URL
-    || (process.env.NODE_ENV === 'production' ? 'https://hrm.vastoratech.com' : '');
-  if (configured) return String(configured).replace(/\/$/, '');
+  const configured = usableApi(process.env.WFH_AGENT_API) || usableApi(process.env.EMPLOYEE_PORTAL_URL);
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'production') return 'https://hrm.vastoratech.com';
   return `http://localhost:${process.env.PORT || 5000}`;
 };
 
@@ -313,10 +296,25 @@ export const downloadAgentLauncher = async (req, res) => {
       ')',
       'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq \'powershell.exe\' -and $_.CommandLine -like \'*Vastora*agent.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"',
       'timeout /t 1 /nobreak >nul',
+      'del /q "%DEST%\\agent.ok" 2>nul',
       'start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%DEST%\\agent.ps1"',
+      'set /a TRIES=0',
+      ':waitok',
+      'if exist "%DEST%\\agent.ok" goto ready',
+      'set /a TRIES+=1',
+      'if %TRIES% GEQ 15 goto nostart',
+      'timeout /t 2 /nobreak >nul',
+      'goto waitok',
+      ':nostart',
       'echo.',
-      'echo Installed. This PC now sends activity to the Vastora website.',
-      'echo Check in with Home, then refresh Work from home. It can take up to 1 minute.',
+      'echo The agent did not start. Windows Security may have blocked it.',
+      'echo Log: %DEST%\\agent.log',
+      'pause',
+      'exit /b 1',
+      ':ready',
+      'echo.',
+      'echo Installed. This PC is sending activity to the Vastora website.',
+      'echo Check in with Home, then refresh Work from home.',
       'echo Log: %DEST%\\agent.log',
       'pause',
       'exit /b 0',

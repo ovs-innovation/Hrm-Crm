@@ -117,7 +117,7 @@ const Attendance = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Days" value={attendanceRecords.length.toString()} subtitle="Recorded this month" icon={FiCalendar} colorClass="text-brand" bgGlow="bg-brand" />
         <StatCard title="Present / Active" value={attendanceRecords.filter(r => (r.status || '').includes('Present') || (r.status || '').includes('Completed')).length.toString()} subtitle="Days present" icon={FiCheckCircle} colorClass="text-brand" bgGlow="bg-brand" />
-        <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => (r.status || '').includes('Late')).length.toString()} subtitle="Arrived after 10:00 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
+        <StatCard title="Late Arrivals" value={attendanceRecords.filter(r => (r.status || '').includes('Late')).length.toString()} subtitle="Arrived after 9:15 AM" icon={FiAlertCircle} colorClass="text-brand" bgGlow="bg-brand" />
         <StatCard title="Absent" value={attendanceRecords.filter(r => r.status === 'Absent').length.toString()} subtitle="On leave or unnotified" icon={FiXCircle} colorClass="text-brand" bgGlow="bg-brand" />
       </div>
 

@@ -1,4 +1,27 @@
 import Holiday from '../models/Holiday.js';
+import { publishAnnouncement } from './announcementController.js';
+
+const holidayAnnouncement = (holiday) => {
+  const when = holiday.date
+    ? new Date(`${holiday.date}T12:00:00+05:30`).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata',
+    })
+    : holiday.day;
+  const optional = String(holiday.type || '').toLowerCase() === 'optional';
+  const description = optional
+    ? `${holiday.name} is an optional holiday on ${when}. You can take this day off if you want.`
+    : `${holiday.name} is a ${String(holiday.type || 'company').toLowerCase()} holiday on ${when}. The office will be closed.`;
+  return {
+    title: `Holiday: ${holiday.name}`,
+    description,
+    type: 'Event',
+    date: holiday.date,
+  };
+};
 
 export const getHolidays = async (req, res) => {
   try {
@@ -20,12 +43,20 @@ export const createHoliday = async (req, res) => {
   try {
     const { name, date, day, type } = req.body;
     const holiday = await Holiday.create({ name, date, day, type });
+    let emailNotice = 'Holiday saved. The announcement could not be published.';
+    try {
+      const published = await publishAnnouncement(holidayAnnouncement(holiday));
+      emailNotice = published.emailNotice;
+    } catch (err) {
+      console.error('[holiday] announcement failed:', err.message);
+    }
     res.status(201).json({
       id: holiday._id.toString(),
       name: holiday.name,
       date: holiday.date,
       day: holiday.day,
-      type: holiday.type
+      type: holiday.type,
+      emailNotice,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
