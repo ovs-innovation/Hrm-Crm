@@ -64,7 +64,7 @@ const CorporateClassic = ({ data }) => {
           {companyGst && <p className="mt-1 text-[11px] font-semibold text-slate-800">GSTIN: {companyGst}</p>}
         </div>
         <div className="text-right shrink-0">
-          <h1 className="mb-2 text-lg font-bold uppercase tracking-tight text-[#1E51A4]">Proforma Invoice</h1>
+          <h1 className="mb-2 text-lg font-bold uppercase tracking-tight text-[#1E51A4]">{data.documentTitle || 'Proforma Invoice'}</h1>
           <div className="space-y-0.5 text-[11px] text-slate-700">
             <div><strong className="text-slate-950">Invoice No:</strong> {invoiceNumber}</div>
             <div><strong className="text-slate-950">Date:</strong> {invoiceDate}</div>
@@ -417,7 +417,7 @@ const GSTBusiness = ({ data }) => {
     <div className="bg-white p-6 text-slate-900" style={{ minHeight: '297mm', fontFamily: 'Inter, sans-serif', fontSize: '11px', boxSizing: 'border-box' }}>
       <div className="border-[1.5px] border-teal-800">
         <div className="bg-teal-800 px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-white">
-          Tax Invoice
+          {data.documentTitle || 'Tax Invoice'}
         </div>
         <div className="grid grid-cols-2 divide-x divide-teal-800 border-b border-teal-800">
           <div className="p-3">

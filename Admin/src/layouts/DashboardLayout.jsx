@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -16,7 +16,7 @@ const DashboardLayout = () => {
     <SocketProvider>
       <div className="app-shell flex min-h-screen w-full bg-canvas">
         <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col md:ml-[220px]">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col md:ml-[240px]">
           <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
           <main className={workspace ? 'min-h-0 flex-1 overflow-hidden bg-white' : 'flex-1 overflow-x-hidden bg-canvas'}>
             <Outlet />

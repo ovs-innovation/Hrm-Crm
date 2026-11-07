@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import VastoraLogo from '../components/VastoraLogo';
@@ -6,48 +6,42 @@ import { getNavAccess } from '../utils/roleAccess';
 import {
   FiHome,
   FiBarChart2,
-  FiChevronDown,
   FiChevronRight,
   FiX,
-  FiTarget,
   FiUser,
-  FiBriefcase,
-  FiDollarSign,
-  FiFolder,
-  FiRadio,
-  FiCheckSquare,
-  FiCalendar,
-  FiPhone,
   FiUsers,
-  FiAward,
-  FiClock,
-  FiLifeBuoy,
+  FiCheckSquare,
   FiSettings,
-  FiFileText,
-  FiCpu,
-  FiBook,
-  FiHash,
-  FiPieChart,
+  FiGrid,
+  FiHeadphones,
 } from 'react-icons/fi';
+
+const SparkleIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <path d="M12 3.5 13.1 8 17.5 9.2 13.1 10.4 12 14.8 10.9 10.4 6.5 9.2 10.9 8 12 3.5Z" />
+    <path d="M18 14.2 18.55 16 20.3 16.55 18.55 17.1 18 18.8 17.45 17.1 15.7 16.55 17.45 16 18 14.2Z" />
+  </svg>
+);
 
 const SECTIONS = [
   {
     id: 'crm',
     title: 'CRM',
     access: 'crm',
+    icon: FiUser,
     items: [
-      { title: 'Leads', to: '/crm/leads', icon: FiTarget },
-      { title: 'Contacts', to: '/crm/contacts', icon: FiUser },
-      { title: 'Accounts', to: '/crm/accounts', icon: FiBriefcase },
-      { title: 'Deals', to: '/crm/deals', icon: FiDollarSign },
+      { title: 'Leads', to: '/crm/leads' },
+      { title: 'Contacts', to: '/crm/contacts' },
+      { title: 'Accounts', to: '/crm/accounts' },
+      { title: 'Deals', to: '/crm/deals' },
       {
         title: 'Sales',
         children: [
-          { title: 'Quotes & Invoices', to: '/crm/invoices', icon: FiFileText },
-          { title: 'Meetings', to: '/crm/meetings', icon: FiCalendar },
-          { title: 'Calls', to: '/crm/calls', icon: FiPhone },
-          { title: 'Campaigns', to: '/crm/campaigns', icon: FiRadio },
-          { title: 'Documents', to: '/crm/documents', icon: FiFolder },
+          { title: 'Billing', to: '/crm/invoices' },
+          { title: 'Meetings', to: '/crm/meetings' },
+          { title: 'Calls', to: '/crm/calls' },
+          { title: 'Campaigns', to: '/crm/campaigns' },
+          { title: 'Documents', to: '/crm/documents' },
         ],
       },
     ],
@@ -56,29 +50,30 @@ const SECTIONS = [
     id: 'hrms',
     title: 'HRMS',
     access: 'hrms',
+    icon: FiUsers,
     items: [
-      { title: 'Employees', to: '/hrm/employees', icon: FiUsers },
-      { title: 'Attendance', to: '/hrm/attendance', icon: FiClock },
-      { title: 'Work from home', to: '/hrm/wfh', icon: FiHome },
-      { title: 'Leave', to: '/hrm/leaves', icon: FiCalendar },
-      { title: 'Payroll', to: '/hrm/payroll', icon: FiDollarSign },
-      { title: 'Recruitment', to: '/hrm/recruitment', icon: FiTarget },
+      { title: 'Employees', to: '/hrm/employees' },
+      { title: 'Attendance', to: '/hrm/attendance' },
+      { title: 'Work from home', to: '/hrm/wfh' },
+      { title: 'Leave', to: '/hrm/leaves' },
+      { title: 'Payroll', to: '/hrm/payroll' },
+      { title: 'Recruitment', to: '/hrm/recruitment' },
       {
         title: 'Organization',
         children: [
-          { title: 'Departments', to: '/hrm/department', icon: FiBriefcase },
-          { title: 'Designations', to: '/hrm/designation', icon: FiAward },
-          { title: 'Org chart', to: '/hrm/org-chart', icon: FiUsers },
-          { title: 'Shift roster', to: '/hrm/shift-roster', icon: FiClock },
-          { title: 'Holidays', to: '/hrm/holiday', icon: FiCalendar },
+          { title: 'Departments', to: '/hrm/department' },
+          { title: 'Designations', to: '/hrm/designation' },
+          { title: 'Org chart', to: '/hrm/org-chart' },
+          { title: 'Shift roster', to: '/hrm/shift-roster' },
+          { title: 'Holidays', to: '/hrm/holiday' },
         ],
       },
       {
         title: 'Announcements',
         children: [
-          { title: 'Announcements', to: '/hrm/announcements', icon: FiRadio },
-          { title: 'Appreciation', to: '/hrm/appreciation', icon: FiAward },
-          { title: 'Daily reports', to: '/hrm/daily-reports', icon: FiFolder },
+          { title: 'Announcements', to: '/hrm/announcements' },
+          { title: 'Appreciation', to: '/hrm/appreciation' },
+          { title: 'Daily reports', to: '/hrm/daily-reports' },
         ],
       },
     ],
@@ -87,89 +82,175 @@ const SECTIONS = [
     id: 'work',
     title: 'Work',
     access: 'work',
+    icon: FiCheckSquare,
     items: [
-      { title: 'Projects', to: '/work/projects', icon: FiBriefcase },
-      { title: 'Tasks', to: '/work/tasks', icon: FiCheckSquare },
+      { title: 'Projects', to: '/work/projects' },
+      { title: 'Tasks', to: '/work/tasks' },
     ],
   },
   {
     id: 'workspace',
     title: 'Workspace',
     access: 'workspace',
-    items: [{ title: 'Channels', to: '/workspace', icon: FiHash }],
+    icon: FiGrid,
+    items: [{ title: 'Channels', to: '/workspace' }],
   },
   {
     id: 'support',
     title: 'Support',
     access: 'support',
-    items: [{ title: 'Tickets', to: '/support/tickets', icon: FiLifeBuoy }],
+    icon: FiHeadphones,
+    items: [{ title: 'Tickets', to: '/support/tickets' }],
   },
   {
     id: 'ai',
     title: 'AI',
     access: 'ai',
+    icon: SparkleIcon,
     items: [
-      { title: 'Copilot', to: '/ai', icon: FiCpu },
-      { title: 'Knowledge base', to: '/ai/knowledge', icon: FiBook },
-      { title: 'Usage', to: '/ai/usage', icon: FiPieChart },
+      { title: 'Copilot', to: '/ai' },
+      { title: 'Knowledge base', to: '/ai/knowledge' },
+      { title: 'Usage', to: '/ai/usage' },
     ],
   },
   {
     id: 'reports',
     title: 'Reports',
     access: 'reports',
+    icon: FiBarChart2,
     items: [
-      { title: 'CRM', to: '/reports?report=sales-overview', icon: FiBarChart2 },
-      { title: 'HR', to: '/reports?report=attendance', icon: FiUsers },
-      { title: 'Work', to: '/reports?report=tasks', icon: FiCheckSquare },
-      { title: 'Finance', to: '/reports?report=payroll', icon: FiDollarSign },
-      { title: 'Builder', to: '/reports/builder', icon: FiFileText },
+      { title: 'CRM', to: '/reports?report=sales-overview' },
+      { title: 'HR', to: '/reports?report=attendance' },
+      { title: 'Work', to: '/reports?report=tasks' },
+      { title: 'Finance', to: '/reports?report=payroll' },
+      { title: 'Builder', to: '/reports/builder' },
     ],
   },
   {
     id: 'admin',
     title: 'Administration',
     access: 'administration',
+    icon: FiSettings,
     items: [
-      { title: 'Company', to: '/settings', icon: FiBriefcase },
-      { title: 'Audit', to: '/settings#audit', icon: FiFileText },
-      { title: 'Setup', to: '/setup-wizard', icon: FiSettings },
+      { title: 'Company', to: '/settings' },
+      { title: 'Audit', to: '/settings#audit' },
+      { title: 'Setup', to: '/setup-wizard' },
     ],
   },
 ];
 
-const NavItem = ({ to, icon: Icon, title, end, onClick }) => (
-  <NavLink
-    to={to}
-    end={end}
-    onClick={onClick}
-    className={({ isActive }) =>
-      `flex h-8 items-center gap-2.5 rounded px-2.5 text-[13px] transition-colors ${
-        isActive
-          ? 'bg-brand-xlight font-medium text-brand'
-          : 'text-ink/70 hover:bg-soft hover:text-ink'
-      }`
+const itemIsActive = (to, location) => {
+  const hashAt = to.indexOf('#');
+  const hash = hashAt >= 0 ? to.slice(hashAt) : '';
+  const withoutHash = hashAt >= 0 ? to.slice(0, hashAt) : to;
+  const queryAt = withoutHash.indexOf('?');
+  const path = queryAt >= 0 ? withoutHash.slice(0, queryAt) : withoutHash;
+  const query = queryAt >= 0 ? withoutHash.slice(queryAt + 1) : '';
+
+  if (query) {
+    if (location.pathname !== path) return false;
+    const want = new URLSearchParams(query);
+    const have = new URLSearchParams(location.search);
+    for (const [key, value] of want) {
+      if (have.get(key) !== value) return false;
     }
+    return true;
+  }
+
+  if (hash) return location.pathname === path && location.hash === hash;
+  if (path === '/settings') return location.pathname === '/settings' && location.hash !== '#audit';
+  if (path === '/' || path === '/ai') return location.pathname === path;
+  return location.pathname === path || location.pathname.startsWith(`${path}/`);
+};
+
+const groupHasActive = (items, location) =>
+  items.some((item) => (item.to ? itemIsActive(item.to, location) : groupHasActive(item.children || [], location)));
+
+const TopButton = ({ icon: Icon, title, open, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-expanded={open}
+    className={`grid h-9 w-full grid-cols-[15px_minmax(0,1fr)_14px] items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] transition-colors ${
+      active ? 'bg-brand-xlight font-medium text-brand' : 'text-ink/75 hover:bg-soft hover:text-ink'
+    }`}
   >
-    <Icon className="h-[15px] w-[15px] shrink-0 opacity-80" strokeWidth={1.75} />
+    <Icon className="h-[15px] w-[15px]" strokeWidth={1.75} />
     <span className="truncate">{title}</span>
-  </NavLink>
+    <FiChevronRight className={`h-3.5 w-3.5 justify-self-end text-muted transition-transform ${open ? 'rotate-90 text-brand' : ''}`} />
+  </button>
 );
 
-const Section = ({ title, children, defaultOpen }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  if (!children || React.Children.count(children) === 0) return null;
+const ChildLink = ({ to, title, onClick, nested }) => {
+  const location = useLocation();
+  const active = itemIsActive(to, location);
   return (
-    <div className="pt-3">
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={`flex h-8 items-center rounded-lg pr-2.5 text-[13px] transition-colors ${
+        nested ? 'pl-[48px]' : 'pl-[35px]'
+      } ${active ? 'bg-brand-xlight font-medium text-brand' : 'text-ink/70 hover:bg-soft hover:text-ink'}`}
+    >
+      <span className="truncate">{title}</span>
+    </NavLink>
+  );
+};
+
+const SubGroup = ({ title, items, onClick, location }) => {
+  const contains = groupHasActive(items, location);
+  const [open, setOpen] = useState(contains);
+  const [tracked, setTracked] = useState(contains);
+  if (contains !== tracked) {
+    setTracked(contains);
+    if (contains) setOpen(true);
+  }
+
+  return (
+    <div>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        className="mb-1 flex w-full items-center justify-between px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex h-8 w-full items-center gap-2 rounded-lg pl-[35px] pr-2.5 text-left text-[13px] text-ink/70 transition-colors hover:bg-soft hover:text-ink"
       >
-        {title}
-        {open ? <FiChevronDown className="h-3 w-3" /> : <FiChevronRight className="h-3 w-3" />}
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+        <FiChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${open ? 'rotate-90' : ''}`} />
       </button>
-      {open && <div className="space-y-0.5">{children}</div>}
+      {open && (
+        <div className="space-y-0.5">
+          {items.map((item) => (
+            <ChildLink key={item.to} to={item.to} title={item.title} onClick={onClick} nested />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Section = ({ title, icon, items, onClick, location }) => {
+  const contains = groupHasActive(items, location);
+  const [open, setOpen] = useState(contains);
+  const [tracked, setTracked] = useState(contains);
+  if (contains !== tracked) {
+    setTracked(contains);
+    if (contains) setOpen(true);
+  }
+
+  return (
+    <div>
+      <TopButton icon={icon} title={title} open={open} active={contains && !open} onClick={() => setOpen((value) => !value)} />
+      {open && (
+        <div className="mt-0.5 space-y-0.5 pb-1">
+          {items.map((item) =>
+            item.children ? (
+              <SubGroup key={item.title} title={item.title} items={item.children} onClick={onClick} location={location} />
+            ) : (
+              <ChildLink key={item.to} to={item.to} title={item.title} onClick={onClick} />
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -179,6 +260,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const adminInfo = useSelector((state) => state.auth.adminInfo || {});
   const access = getNavAccess(adminInfo.role);
   const close = () => setIsOpen(false);
+  const homeActive = location.pathname === '/';
 
   return (
     <>
@@ -187,11 +269,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-col border-r border-line bg-surface transition-transform duration-200 md:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-screen w-[240px] flex-col border-r border-line bg-surface transition-transform duration-200 md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-12 items-center justify-between border-b border-line px-3">
+        <div className="flex h-14 items-center justify-between px-3">
           <VastoraLogo variant="header" />
           <button
             type="button"
@@ -203,47 +285,40 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           </button>
         </div>
 
-        {adminInfo.role && (
-          <div className="border-b border-line px-3 py-2">
-            <p className="truncate text-[11px] text-muted">Signed in as</p>
-            <p className="truncate text-[12px] font-medium text-ink">{adminInfo.name}</p>
-            <span className="mt-1 inline-block rounded bg-brand-xlight px-1.5 py-0.5 text-[10px] font-semibold uppercase text-brand">
-              {adminInfo.role}
-            </span>
-          </div>
-        )}
-
-        <nav className="flex-1 overflow-y-auto px-2 py-2">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
           {access.dashboard && (
-            <NavItem to="/" icon={FiHome} title="Dashboard" end onClick={close} />
+            <NavLink
+              to="/"
+              end
+              onClick={close}
+              className={`grid h-9 grid-cols-[15px_minmax(0,1fr)_14px] items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors ${
+                homeActive ? 'bg-brand-xlight font-medium text-brand' : 'text-ink/75 hover:bg-soft hover:text-ink'
+              }`}
+            >
+              <FiHome className="h-[15px] w-[15px]" strokeWidth={1.75} />
+              <span className="truncate">Dashboard</span>
+              <span />
+            </NavLink>
           )}
 
           {SECTIONS.filter((section) => access[section.access]).map((section) => (
             <Section
               key={section.id}
               title={section.title}
-              defaultOpen={section.items.some((item) =>
-                item.to ? location.pathname.startsWith(item.to.split('?')[0]) : item.children?.some((child) => location.pathname.startsWith(child.to.split('?')[0]))
-              )}
-            >
-              {section.items.map((item) =>
-                item.children ? (
-                  <Section
-                    key={item.title}
-                    title={item.title}
-                    defaultOpen={item.children.some((child) => location.pathname.startsWith(child.to.split('?')[0]))}
-                  >
-                    {item.children.map((child) => (
-                      <NavItem key={child.to} {...child} onClick={close} />
-                    ))}
-                  </Section>
-                ) : (
-                  <NavItem key={item.to} {...item} onClick={close} />
-                )
-              )}
-            </Section>
+              icon={section.icon}
+              items={section.items}
+              onClick={close}
+              location={location}
+            />
           ))}
         </nav>
+
+        {adminInfo.role && (
+          <div className="border-t border-line px-4 py-3">
+            <p className="truncate text-[13px] font-medium text-ink">{adminInfo.name}</p>
+            <p className="mt-0.5 truncate text-[11px] uppercase tracking-wide text-muted">{adminInfo.role}</p>
+          </div>
+        )}
       </aside>
     </>
   );

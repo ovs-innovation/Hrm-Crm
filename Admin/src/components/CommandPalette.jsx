@@ -8,7 +8,7 @@ const PAGES = [
   { label: 'Contacts', path: '/crm/contacts' },
   { label: 'Accounts', path: '/crm/accounts' },
   { label: 'Deals', path: '/crm/deals' },
-  { label: 'Quotes & Invoices', path: '/crm/invoices' },
+  { label: 'Billing (Invoices & Proposals)', path: '/crm/invoices' },
   { label: 'Meetings', path: '/crm/meetings' },
   { label: 'Calls', path: '/crm/calls' },
   { label: 'Campaigns', path: '/crm/campaigns' },
