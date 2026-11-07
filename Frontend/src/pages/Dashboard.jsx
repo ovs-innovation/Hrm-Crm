@@ -363,12 +363,16 @@ const Dashboard = () => {
           ) : (
             <ul>
               {openTasks.slice(0, 6).map((task) => (
-                <li key={task._id} className="flex items-center justify-between gap-4 border-b border-line px-4 py-3 last:border-0">
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-ink">{task.title}</p>
-                    <p className="mt-0.5 text-[12px] text-muted">Due {prettyDate(task.dueDate)}</p>
-                  </div>
-                  <span className="shrink-0 bg-soft px-2 py-0.5 text-[12px] text-ink">{task.status}</span>
+                <li key={task._id} className="border-b border-line last:border-0">
+                  <Link to="/tasks" className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-soft/50">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-ink">{task.title}</p>
+                      <p className="mt-0.5 line-clamp-1 text-[12px] text-muted">
+                        {task.description?.trim() || `Due ${prettyDate(task.dueDate)}`}
+                      </p>
+                    </div>
+                    <span className="shrink-0 bg-soft px-2 py-0.5 text-[12px] text-ink">{task.status}</span>
+                  </Link>
                 </li>
               ))}
             </ul>

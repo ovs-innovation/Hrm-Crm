@@ -229,8 +229,13 @@ const Tasks = () => {
               <input type="range" min="0" max="100" value={selected.progress || 0} onChange={(e) => setSelected({ ...selected, progress: Number(e.target.value) })} onMouseUp={(e) => saveTask({ progress: Number(e.target.value) })} className="mt-2 w-full" />
             </label>
           </div>
-          {selected.description && <p className="mt-4 text-[13px] text-ink">{selected.description}</p>}
-          <label className="mt-4 block text-[12px] text-muted">Comment
+          <div className="mt-4">
+            <p className="text-[12px] font-medium uppercase tracking-wider text-muted">What to do</p>
+            <p className="mt-1 whitespace-pre-wrap rounded border border-line bg-soft/40 px-3 py-2 text-[13px] text-ink">
+              {selected.description?.trim() || 'No instructions were added for this task.'}
+            </p>
+          </div>
+          <label className="mt-4 block text-[12px] text-muted">Employee comment
             <textarea value={selected.employeeComment || ''} onChange={(e) => setSelected({ ...selected, employeeComment: e.target.value })} onBlur={() => saveTask({ employeeComment: selected.employeeComment || '' })} className="mt-1 w-full rounded border border-line p-2 text-[13px] text-ink" rows={3} />
           </label>
         </section>
@@ -264,12 +269,15 @@ const Tasks = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-ink text-muted mb-1">Description</label>
+                  <label className="block text-sm font-medium text-ink text-muted mb-1">
+                    What to do <span className="font-normal text-muted">(employee will see this)</span>
+                  </label>
                   <textarea
+                    required
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-brand/30 focus:border-brand h-24 resize-none"
-                    placeholder="Detailed instructions..."
+                    className="w-full p-2.5 bg-surface border border-line border-line rounded-lg focus:ring-2 focus:ring-brand/30 focus:border-brand h-28 resize-none"
+                    placeholder="Write clear steps: what to deliver, where, and by when…"
                   ></textarea>
                 </div>
                 <div>
