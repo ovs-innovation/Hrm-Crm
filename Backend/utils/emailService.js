@@ -66,3 +66,30 @@ export const dealStageEmailHtml = (title, stage, owner) => `
     <p><strong>${escapeHtml(title)}</strong> moved to <strong>${escapeHtml(stage)}</strong>.</p>
     ${owner ? `<p>Owner: ${escapeHtml(owner)}</p>` : ''}
   </div>`;
+
+export const taskAssignedEmailHtml = ({
+  name,
+  title,
+  description,
+  dueDate,
+  priority,
+  projectName,
+  assignedBy,
+  link,
+}) => `
+  <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+    <h2 style="color:#2E6DB4;margin:0 0 12px">New task assigned</h2>
+    <p style="margin:0 0 16px">Hi ${escapeHtml(name) || 'there'},</p>
+    <p style="margin:0 0 16px"><strong>${escapeHtml(assignedBy) || 'Your manager'}</strong> assigned you a task. Open the employee portal to start it.</p>
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px;background:#f8fafc;margin:0 0 16px">
+      <p style="margin:0 0 8px;font-size:16px;font-weight:700">${escapeHtml(title)}</p>
+      ${description ? `<p style="margin:0 0 12px;white-space:pre-wrap;color:#334155;line-height:1.5">${escapeHtml(description)}</p>` : ''}
+      <p style="margin:0;color:#64748b;font-size:13px">
+        ${dueDate ? `Due: <strong style="color:#1a1a1a">${escapeHtml(dueDate)}</strong>` : ''}
+        ${priority ? ` · Priority: <strong style="color:#1a1a1a">${escapeHtml(priority)}</strong>` : ''}
+        ${projectName ? ` · Project: <strong style="color:#1a1a1a">${escapeHtml(projectName)}</strong>` : ''}
+      </p>
+    </div>
+    ${link ? `<p style="margin:0 0 8px"><a href="${escapeHtml(link)}" style="background:#2E6DB4;color:#fff;padding:12px 20px;text-decoration:none;border-radius:8px;display:inline-block">Open My Tasks</a></p>` : ''}
+    <p style="color:#666;font-size:13px;margin:16px 0 0">Sent from Vastora HRM.</p>
+  </div>`;

@@ -2,6 +2,8 @@ import Task from '../models/Task.js';
 import { logAudit } from '../utils/auditLogger.js';
 import Employee from '../models/Employee.js';
 import mongoose from 'mongoose';
+import { createNotification } from '../utils/notify.js';
+import { sendEmail, taskAssignedEmailHtml } from '../utils/emailService.js';
 
 const STAFF_ROLES = new Set(['founder', 'owner', 'admin', 'hr', 'manager']);
 
@@ -79,7 +81,7 @@ export const createTask = async (req, res) => {
 
     const payloadBase = {
       title,
-      description,
+      description: description || '',
       projectName,
       assignedBy,
       dueDate,
@@ -87,15 +89,67 @@ export const createTask = async (req, res) => {
       status: 'Pending',
     };
 
-    if (Array.isArray(assignedTo)) {
-      const tasks = await Task.insertMany(
-        assignedTo.filter(Boolean).map((empId) => ({ ...payloadBase, assignedTo: empId }))
-      );
-      return res.status(201).json(tasks);
+    const portalUrl = (process.env.EMPLOYEE_PORTAL_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const tasksLink = `${portalUrl}/tasks`;
+    const created = [];
+
+    for (const emp of employees) {
+      const assigneeKey = emp.employeeId || String(emp._id);
+      const task = await Task.create({ ...payloadBase, assignedTo: assigneeKey });
+      created.push(task);
+
+      try {
+        await createNotification({
+          userId: emp._id,
+          userType: 'Employee',
+          title: 'New task assigned',
+          message: `${assignedBy} assigned “${title}”${dueDate ? ` · due ${dueDate}` : ''}. Open My tasks to view instructions.`,
+          link: '/tasks',
+          module: 'task',
+          category: 'task',
+        });
+      } catch (notifyErr) {
+        console.error('[task] notification failed', emp.email || assigneeKey, notifyErr.message);
+      }
+
+      if (emp.email) {
+        try {
+          await sendEmail({
+            to: emp.email,
+            subject: `New task assigned: ${title}`,
+            html: taskAssignedEmailHtml({
+              name: emp.name,
+              title,
+              description: description || '',
+              dueDate,
+              priority: payloadBase.priority,
+              projectName,
+              assignedBy,
+              link: tasksLink,
+            }),
+            text: [
+              `Hi ${emp.name || 'there'},`,
+              `${assignedBy} assigned you a task: ${title}`,
+              description ? `\nWhat to do:\n${description}` : '',
+              dueDate ? `Due: ${dueDate}` : '',
+              `Open: ${tasksLink}`,
+            ].filter(Boolean).join('\n'),
+          });
+        } catch (mailErr) {
+          console.error('[task] email failed', emp.email, mailErr.message);
+        }
+      }
     }
 
-    const task = await Task.create({ ...payloadBase, assignedTo });
-    return res.status(201).json(task);
+    await logAudit({
+      req,
+      action: 'CREATE',
+      module: 'task',
+      entityId: created[0]?._id,
+      entityLabel: title,
+    }).catch(() => {});
+
+    return res.status(201).json(created.length === 1 ? created[0] : created);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
