@@ -18,6 +18,14 @@ import { SOCKET_EVENTS, userRoom, tenantRoom, channelRoom } from './events.js';
 const app = express();
 const server = http.createServer(app);
 
+// Handle premature client disconnections without crashing streams
+server.on('clientError', (err, socket) => {
+  if (err.code === 'ECONNRESET' || err.code === 'EPIPE') {
+    return;
+  }
+  socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+});
+
 const allowedOrigins = [
   'https://hrm.vastoratech.com',
   'https://hrmadmin.vastoratech.com',

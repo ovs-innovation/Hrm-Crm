@@ -46,8 +46,14 @@ adminSchema.pre('save', async function () {
     return;
   }
 
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  const isAlreadyHashed =
+    typeof this.password === 'string' &&
+    /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(this.password);
+
+  if (!isAlreadyHashed) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
 });
 
 const Admin = mongoose.model('Admin', adminSchema);

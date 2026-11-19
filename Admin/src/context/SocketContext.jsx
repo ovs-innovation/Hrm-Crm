@@ -24,7 +24,7 @@ export const SocketProvider = ({ children }) => {
     const instance = io(window.location.origin, {
       path: '/socket.io',
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 12,
     });

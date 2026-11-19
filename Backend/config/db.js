@@ -3,46 +3,69 @@ import mongoose from 'mongoose';
 
 mongoose.set('bufferCommands', false);
 
+let isDatabaseInitialized = false;
+
 async function ensureDevAdmin() {
+  if (isDatabaseInitialized) return;
+  isDatabaseInitialized = true;
+
   const { default: Tenant } = await import('../models/Tenant.js');
   const { default: Admin } = await import('../models/Admin.js');
   const { withoutTenantScope } = await import('../plugins/tenantScope.plugin.js');
 
-  await withoutTenantScope(async () => {
-    let tenant = await Tenant.findOne({ subdomain: 'default' });
-    if (!tenant) {
-      tenant = await Tenant.create({
-        _id: '64a100000000000000000001',
-        companyName: 'Default Trial Tenant',
-        subdomain: 'default',
-        apiKey: crypto.randomBytes(24).toString('hex'),
-        plan: 'Enterprise',
-        isActive: true,
-        limits: { maxEmployees: 250, maxLeads: 5000, maxWorkflows: 50 },
-        billingStatus: 'Active',
-      });
-    }
+  try {
+    await withoutTenantScope(async () => {
+      let tenant = await Tenant.findOne({ subdomain: 'default' });
+      if (!tenant) {
+        tenant = await Tenant.create({
+          _id: '64a100000000000000000001',
+          companyName: 'Default Trial Tenant',
+          subdomain: 'default',
+          apiKey: crypto.randomBytes(24).toString('hex'),
+          plan: 'Enterprise',
+          isActive: true,
+          limits: { maxEmployees: 250, maxLeads: 5000, maxWorkflows: 50 },
+          billingStatus: 'Active',
+        });
+      }
 
-    const email = 'admin@vastora.tech';
-    const existing = await Admin.findOne({ email });
-    if (!existing) {
-      await Admin.create({
-        name: 'Vastora Admin',
-        email,
-        password: 'Vastora#Admin2026',
-        role: 'Admin',
-        tenantId: tenant._id,
-      });
-      console.log('Dev admin created: admin@vastora.tech');
-    }
+      const email = 'admin@vastora.tech';
+      const existing = await Admin.findOne({ email });
+      if (!existing) {
+        await Admin.create({
+          name: 'Vastora Admin',
+          email,
+          password: 'Vastora#Admin2026',
+          role: 'Admin',
+          tenantId: tenant._id,
+        });
+        console.log('Dev admin created: admin@vastora.tech');
+      }
 
-    const { restoreSavedEmployees } = await import('../utils/employeeStore.js');
-    await restoreSavedEmployees();
-    const { restoreSavedAttendance } = await import('../utils/attendanceStore.js');
-    await restoreSavedAttendance();
-    const { restoreSavedWfh } = await import('../utils/wfhStore.js');
-    await restoreSavedWfh();
-  });
+      try {
+        const { restoreSavedEmployees } = await import('../utils/employeeStore.js');
+        await restoreSavedEmployees();
+      } catch (err) {
+        console.error('[restoreSavedEmployees]', err.message);
+      }
+
+      try {
+        const { restoreSavedAttendance } = await import('../utils/attendanceStore.js');
+        await restoreSavedAttendance();
+      } catch (err) {
+        console.error('[restoreSavedAttendance]', err.message);
+      }
+
+      try {
+        const { restoreSavedWfh } = await import('../utils/wfhStore.js');
+        await restoreSavedWfh();
+      } catch (err) {
+        console.error('[restoreSavedWfh]', err.message);
+      }
+    });
+  } catch (err) {
+    console.error('[ensureDevAdmin]', err.message);
+  }
 }
 
 async function connectUri(uri, label) {
@@ -72,6 +95,13 @@ async function connectMemoryFallback() {
 }
 
 const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    if (process.env.NODE_ENV !== 'production') {
+      await ensureDevAdmin();
+    }
+    return mongoose.connection;
+  }
+
   const uri = process.env.MONGO_URI;
   if (!uri) {
     console.error('MONGO_URI is missing in Backend/.env');
@@ -96,8 +126,12 @@ const connectDB = async () => {
       }, 5000);
       return null;
     }
-    console.log('Starting local MongoDB fallback so login can work...');
-    return connectMemoryFallback();
+    // Only fall back to memory server if explicitly allowed
+    if (process.env.ALLOW_LOCAL_FALLBACK === 'true') {
+      console.log('Starting local MongoDB fallback so login can work...');
+      return connectMemoryFallback();
+    }
+    throw error;
   }
 };
 

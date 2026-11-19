@@ -63,25 +63,38 @@ export const restoreSavedEmployees = async () => {
   await withoutTenantScope(async () => {
     const tenant = await Tenant.findOne({ subdomain: 'default' });
     if (!tenant) return;
+    const defaultPassword = process.env.DEFAULT_EMPLOYEE_PASSWORD || 'Vastora#Emp2026';
+
+    let restoredCount = 0;
     for (const row of saved) {
-      const email = String(row.email || '').toLowerCase().trim();
-      const exists = await Employee.findOne({ email });
-      if (exists) {
-        exists.name = row.name || exists.name;
-        exists.designation = row.designation || exists.designation;
-        exists.department = row.department || exists.department;
-        exists.role = row.role || exists.role;
-        await exists.save();
-        continue;
+      try {
+        const email = String(row.email || '').toLowerCase().trim();
+        const exists = await Employee.findOne({ email });
+        if (exists) {
+          exists.name = row.name || exists.name;
+          exists.designation = row.designation || exists.designation;
+          exists.department = row.department || exists.department;
+          exists.role = row.role || exists.role;
+          if (!exists.password) {
+            exists.password = defaultPassword;
+          }
+          await exists.save();
+          restoredCount++;
+          continue;
+        }
+        const { password: _ignored, ...safeRow } = row;
+        await Employee.create({
+          ...safeRow,
+          password: row.password || defaultPassword,
+          _id: row._id || undefined,
+          email,
+          tenantId: tenant._id,
+        });
+        restoredCount++;
+      } catch (err) {
+        console.error(`[employeeStore] Error restoring employee ${row.email}:`, err.message);
       }
-      const { password: _ignored, ...safeRow } = row;
-      await Employee.create({
-        ...safeRow,
-        _id: row._id || undefined,
-        email,
-        tenantId: tenant._id,
-      });
     }
+    console.log(`Permanent employees restored: ${restoredCount}`);
   });
-  console.log(`Permanent employees restored: ${saved.length}`);
 };

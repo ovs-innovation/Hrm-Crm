@@ -56,7 +56,7 @@ const Messenger = () => {
     const socketInstance = io(window.location.origin, {
       path: '/socket.io',
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 12,
     });

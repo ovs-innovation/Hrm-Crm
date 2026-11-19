@@ -66,7 +66,7 @@ const AIInbox = () => {
     const socket = io(window.location.origin, {
       path: '/socket.io',
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
     });
     socketRef.current = socket;

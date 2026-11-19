@@ -60,6 +60,12 @@ tenantScoped(employeeSchema);
 employeeSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 employeeSchema.index({ tenantId: 1, employeeId: 1 }, { unique: true });
 
+employeeSchema.pre('validate', function () {
+  if (!this.password) {
+    this.password = process.env.DEFAULT_EMPLOYEE_PASSWORD || 'Vastora#Emp2026';
+  }
+});
+
 employeeSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
@@ -73,8 +79,14 @@ employeeSchema.pre('save', async function () {
     return;
   }
 
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  const isAlreadyHashed =
+    typeof this.password === 'string' &&
+    /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(this.password);
+
+  if (!isAlreadyHashed) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
 });
 
 const Employee = mongoose.model('Employee', employeeSchema);

@@ -91,7 +91,7 @@ export const restoreSavedWfh = async () => {
           alerts: row.alerts,
           log: row.log,
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
     }
   });

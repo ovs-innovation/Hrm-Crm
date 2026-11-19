@@ -37,6 +37,7 @@ const SECTIONS = [
       {
         title: 'Sales',
         children: [
+          { title: 'Forms', to: '/crm/forms' },
           { title: 'Billing', to: '/crm/invoices' },
           { title: 'Meetings', to: '/crm/meetings' },
           { title: 'Calls', to: '/crm/calls' },
@@ -181,17 +182,18 @@ const TopButton = ({ icon: Icon, title, open, active, onClick }) => (
   </button>
 );
 
-const ChildLink = ({ to, title, onClick, nested }) => {
+const ChildLink = ({ to, title, icon: Icon, onClick, nested }) => {
   const location = useLocation();
   const active = itemIsActive(to, location);
   return (
     <NavLink
       to={to}
       onClick={onClick}
-      className={`flex h-8 items-center rounded-lg pr-2.5 text-[13px] transition-colors ${
-        nested ? 'pl-[48px]' : 'pl-[35px]'
+      className={`flex h-8 items-center gap-2 rounded-lg pr-2.5 text-[13px] transition-colors ${
+        nested ? (Icon ? 'pl-[44px]' : 'pl-[48px]') : (Icon ? 'pl-[28px]' : 'pl-[35px]')
       } ${active ? 'bg-brand-xlight font-medium text-brand' : 'text-ink/70 hover:bg-soft hover:text-ink'}`}
     >
+      {Icon && <Icon className={`h-3.5 w-3.5 shrink-0 ${active ? 'text-brand' : 'text-muted'}`} strokeWidth={1.75} />}
       <span className="truncate">{title}</span>
     </NavLink>
   );
@@ -220,7 +222,7 @@ const SubGroup = ({ title, items, onClick, location }) => {
       {open && (
         <div className="space-y-0.5">
           {items.map((item) => (
-            <ChildLink key={item.to} to={item.to} title={item.title} onClick={onClick} nested />
+            <ChildLink key={item.to} to={item.to} title={item.title} icon={item.icon} onClick={onClick} nested />
           ))}
         </div>
       )}
@@ -246,7 +248,7 @@ const Section = ({ title, icon, items, onClick, location }) => {
             item.children ? (
               <SubGroup key={item.title} title={item.title} items={item.children} onClick={onClick} location={location} />
             ) : (
-              <ChildLink key={item.to} to={item.to} title={item.title} onClick={onClick} />
+              <ChildLink key={item.to} to={item.to} title={item.title} icon={item.icon} onClick={onClick} />
             )
           )}
         </div>

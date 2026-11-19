@@ -44,6 +44,7 @@ import OrgChart from './pages/employees/OrgChart';
 import AiCostDashboard from './pages/crm/AiCostDashboard';
 import AIInbox from './pages/crm/AIInbox';
 import KnowledgeBase from './pages/crm/KnowledgeBase';
+import Forms from './pages/crm/Forms';
 
 const Workspace = lazy(() => import('./pages/workspace/Workspace'));
 
@@ -92,6 +93,8 @@ function App() {
           <Route path="ai/usage" element={<AiCostDashboard />} />
 
           {/* CRM — Sales */}
+          <Route path="crm/forms" element={<Forms />} />
+          <Route path="crm/form" element={<Navigate to="/crm/forms" replace />} />
           <Route path="crm/leads" element={<Leads />} />
           <Route path="crm/contacts" element={<Contacts />} />
           <Route path="crm/accounts" element={<Clients />} />

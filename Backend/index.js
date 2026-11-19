@@ -53,6 +53,7 @@ import aiInboxRoutes from './routes/aiInboxRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import workspaceRoutes from './routes/workspaceRoutes.js';
 import wfhRoutes from './routes/wfhRoutes.js';
+import formRoutes from './routes/formRoutes.js';
 import { app, server } from './socket/socket.js';
 import { resolveTenant } from './middlewares/tenantMiddleware.js';
 import { protect } from './middlewares/authMiddleware.js';
@@ -97,11 +98,10 @@ app.use(helmet({
 }));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  'https://hrm.vastoratech.com',
-  'https://hrmadmin.vastoratech.com',
-  ...(process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174').split(','),
-].map((o) => o.trim()).filter(Boolean);
+const allowedOrigins = (process.env.CORS_ORIGIN || 'https://hrm.vastoratech.com,https://hrmadmin.vastoratech.com')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -129,6 +129,9 @@ app.use(cors({
     }
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'Accept'],
+  optionsSuccessStatus: 204,
 }));
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
@@ -202,6 +205,7 @@ app.use('/api/meetings', standardLimiter, meetingRoutes);
 app.use('/api/calls', standardLimiter, callRoutes);
 app.use('/api/campaigns', standardLimiter, campaignRoutes);
 app.use('/api/documents', standardLimiter, documentRoutes);
+app.use('/api/forms', formRoutes);
 app.use('/api/settings', standardLimiter, settingsRoutes);
 app.use('/api/activities', standardLimiter, activityRoutes);
 app.use('/api/notifications', standardLimiter, notificationRoutes);
@@ -230,7 +234,8 @@ app.use('/api/demo', (req, res, next) => {
 }, standardLimiter, demoRoutes);
 app.use('/api/executive', standardLimiter, executiveRoutes);
 
-// ─── Static Files (auth required — cookies / Bearer) ───────────────────────────
+// ─── Static Files (forms media public; other docs auth protected) ─────────────
+app.use('/uploads/forms', express.static(path.join(__dirname, '/uploads/forms')));
 app.use('/uploads', protect, express.static(path.join(__dirname, '/uploads')));
 
 // ─── Health / Readiness ───────────────────────────────────────────────────────
@@ -264,6 +269,16 @@ app.use((err, req, res, next) => {
 });
 
 const port = process.env.PORT || 5000;
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`🔥 [Port Conflict] Port ${port} is already in use (EADDRINUSE). Another server instance may be running.`);
+    process.exit(1);
+  }
+  console.error('🔥 [Server Error]', err);
+  process.exit(1);
+});
+
 server.listen(port, '0.0.0.0', () => console.log(`✅ Vastora Server started on port ${port}`));
 
 const shutdown = async (signal) => {
