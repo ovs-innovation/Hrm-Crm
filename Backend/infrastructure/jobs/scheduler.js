@@ -3,7 +3,7 @@ import InfraSettings from '../models/InfraSettings.js';
 import InfraServer from '../models/InfraServer.js';
 import InfraBackup from '../models/InfraBackup.js';
 import { runWebsiteChecksForTenant } from '../services/websiteCheckService.js';
-import { refreshDomainStatuses, refreshSslStatuses } from '../services/expiryService.js';
+import { refreshDomainStatuses, refreshSslStatuses, queueClientExpiryNotices } from '../services/expiryService.js';
 import { cleanupMetrics, ingestServerMetrics } from '../services/metricsService.js';
 import { cleanupInfraLogs, writeInfraLog } from '../services/logService.js';
 import { getMonitoringProvider } from '../providers/index.js';
@@ -48,6 +48,7 @@ const runWebsiteJob = async () => {
   const tenants = await listTenantIds();
   for (const tid of tenants) {
     await safeRun(`websites:${tid}`, () => withTenant(tid, runWebsiteChecksForTenant));
+    await safeRun(`client-mail:${tid}`, () => withTenant(tid, queueClientExpiryNotices));
   }
 };
 

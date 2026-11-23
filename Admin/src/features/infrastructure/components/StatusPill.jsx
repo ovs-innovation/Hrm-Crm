@@ -20,6 +20,11 @@ const STYLES = {
   stopped: 'bg-soft text-muted',
   unknown: 'bg-soft text-muted',
   info: 'bg-brand/10 text-brand',
+  pending: 'bg-amber-50 text-amber-700',
+  sent: 'bg-emerald-50 text-emerald-700',
+  open: 'bg-rose-50 text-rose-700',
+  investigating: 'bg-amber-50 text-amber-700',
+  resolved: 'bg-emerald-50 text-emerald-700',
 };
 
 export default function StatusPill({ value }) {

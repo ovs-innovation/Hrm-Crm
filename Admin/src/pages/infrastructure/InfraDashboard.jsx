@@ -57,7 +57,7 @@ export default function InfraDashboard() {
   return (
     <PageShell
       title="Infrastructure"
-      description="VPS, websites, SSL and services — cached metrics, auto-refresh every 30s"
+      description="A simple view of your server, websites, and domains. Numbers refresh every 30 seconds."
       actions={
         <button type="button" onClick={load} className="btn-outline h-8 px-3 text-[13px]">
           Refresh
@@ -91,7 +91,7 @@ export default function InfraDashboard() {
 
           {data?.business && (
             <div className="rounded border border-line bg-surface p-4">
-              <h3 className="mb-3 text-[13px] font-semibold text-ink">Business</h3>
+              <h3 className="mb-3 text-[13px] font-semibold text-ink">Today</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Kpi label="Websites" value={data.business.websites ?? '—'} sub={`${data.business.websitesOnline ?? 0} online · ${data.business.websitesDown ?? 0} down`} />
                 <Kpi label="Domains" value={data.business.domains ?? '—'} sub={`${data.business.domainRenewals ?? 0} renewals`} />

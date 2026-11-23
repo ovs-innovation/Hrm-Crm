@@ -185,6 +185,7 @@ export const refreshDomainStatuses = async (tenantId) => {
         dedupeMinutes: 1440,
       });
     }
+    await queueClientExpiryNotice(row);
     if (prev !== row.status) {
       await writeInfraLog({
         tenantId,
@@ -193,6 +194,37 @@ export const refreshDomainStatuses = async (tenantId) => {
         message: `Domain ${row.domain} status → ${row.status}`,
       });
     }
+  }
+};
+
+/** Internal alert only. Client email waits for an admin approve action. */
+export const queueClientExpiryNotice = async (row) => {
+  const email = String(row.clientEmail || '').trim();
+  if (!email || row.clientMailStatus === 'sent' || row.clientMailStatus === 'pending') return;
+  const days = daysUntil(row.expiryDate || row.renewalDate);
+  if (days == null || days > 5) return;
+  row.clientMailStatus = 'pending';
+  await row.save();
+  await raiseAlert({
+    tenantId: row.tenantId,
+    type: 'domain_expiring',
+    severity: days < 0 ? 'critical' : 'warning',
+    title: `Approve renewal email: ${row.domain}`,
+    message: `${row.clientName || 'Client'} (${email}) has ${days} day(s) left. Approve to send the email.`,
+    entityType: 'domain',
+    entityId: row._id,
+    dedupeMinutes: 24 * 60,
+  });
+};
+
+export const queueClientExpiryNotices = async (tenantId) => {
+  const rows = await InfraDomain.find({
+    tenantId,
+    clientEmail: { $nin: ['', null] },
+    clientMailStatus: 'none',
+  }).limit(200);
+  for (const row of rows) {
+    await queueClientExpiryNotice(row);
   }
 };
 

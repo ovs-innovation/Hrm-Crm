@@ -44,6 +44,7 @@ router.post('/domains', ctrl.createDomain);
 router.post('/domains/refresh', ctrl.refreshDomainsNow);
 router.get('/domains/:id', ctrl.getDomain);
 router.put('/domains/:id', ctrl.updateDomain);
+router.post('/domains/:id/approve-client-mail', ctrl.approveDomainClientMail);
 router.delete('/domains/:id', ctrl.deleteDomain);
 
 router.get('/ssl', ctrl.listSsl);

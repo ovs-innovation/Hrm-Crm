@@ -11,6 +11,14 @@ const infraDomainSchema = new mongoose.Schema(
     autoRenewal: { type: Boolean, default: false },
     reminderDaysBefore: { type: Number, default: 30, min: 1, max: 365 },
     owner: { type: String, default: '' },
+    clientName: { type: String, default: '', trim: true, maxlength: 120 },
+    clientEmail: { type: String, default: '', trim: true, lowercase: true, maxlength: 180 },
+    clientMailStatus: {
+      type: String,
+      enum: ['none', 'pending', 'sent'],
+      default: 'none',
+    },
+    clientMailSentAt: { type: Date, default: null },
     notes: { type: String, default: '', maxlength: 2000 },
     status: {
       type: String,

@@ -34,6 +34,8 @@ const infraWebsiteSchema = new mongoose.Schema(
     lastCheckedAt: { type: Date, default: null },
     lastDowntimeAt: { type: Date, default: null },
     notes: { type: String, default: '', maxlength: 2000 },
+    clientName: { type: String, default: '', trim: true, maxlength: 120 },
+    clientEmail: { type: String, default: '', trim: true, lowercase: true, maxlength: 180 },
     createdBy: { type: String, default: '' },
   },
   { timestamps: true }

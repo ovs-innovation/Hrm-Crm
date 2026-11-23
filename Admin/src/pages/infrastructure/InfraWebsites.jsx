@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const empty = {
   name: '', domain: '', environment: 'production', protocol: 'https',
-  port: '', healthPath: '/health', autoPing: true,
+  port: '', healthPath: '/health', autoPing: true, clientName: '', clientEmail: '',
 };
 
 const rtColor = (ms) => {
@@ -89,6 +89,7 @@ export default function InfraWebsites() {
                 <td className="px-4 py-3">
                   <p className="font-medium text-ink">{w.name}</p>
                   <p className="text-[12px] text-muted">{w.protocol}://{w.domain}{w.port ? `:${w.port}` : ''}{w.healthPath}</p>
+                  {(w.clientName || w.clientEmail) && <p className="text-[12px] text-muted">{w.clientName} {w.clientEmail}</p>}
                 </td>
                 <td className="px-4 py-3 text-muted">{w.environment}</td>
                 <td className="px-4 py-3"><StatusPill value={w.status} /></td>
@@ -122,6 +123,8 @@ export default function InfraWebsites() {
               <input placeholder="Port (optional)" className="app-input h-9 text-[13px]" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} />
             </div>
             <input placeholder="Health path /health" className="app-input h-9 w-full text-[13px]" value={form.healthPath} onChange={(e) => setForm({ ...form, healthPath: e.target.value })} />
+            <input placeholder="Client name" className="app-input h-9 w-full text-[13px]" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} />
+            <input type="email" placeholder="Client email" className="app-input h-9 w-full text-[13px]" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} />
             <select className="app-input h-9 w-full text-[13px]" value={form.environment} onChange={(e) => setForm({ ...form, environment: e.target.value })}>
               {['production', 'staging', 'development', 'other'].map((x) => <option key={x}>{x}</option>)}
             </select>

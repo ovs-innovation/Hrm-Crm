@@ -13,6 +13,7 @@ import { checkWebsiteOnce } from '../services/websiteCheckService.js';
 import { ingestServerMetrics, getMetricSeries } from '../services/metricsService.js';
 import { normalizeAgentPayload } from '../services/agentPullService.js';
 import { listIncidents, updateIncident } from '../services/incidentService.js';
+import { sendEmail } from '../../utils/emailService.js';
 import { writeInfraLog } from '../services/logService.js';
 import { getMonitoringProvider } from '../providers/index.js';
 import {
@@ -315,7 +316,7 @@ export const updateWebsite = async (req, res) => {
     if (!row) return res.status(404).json({ message: 'Not found' });
     const allowed = [
       'name', 'domain', 'environment', 'protocol', 'port', 'healthPath',
-      'autoPing', 'serverId', 'status', 'notes',
+      'autoPing', 'serverId', 'status', 'notes', 'clientName', 'clientEmail',
     ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) row[key] = req.body[key];
@@ -448,18 +449,53 @@ export const createDomain = async (req, res) => {
   }
 };
 
+export const approveDomainClientMail = async (req, res) => {
+  try {
+    const row = await InfraDomain.findOne({ _id: req.params.id, tenantId: tenantIdOf(req) });
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    const email = String(row.clientEmail || '').trim();
+    if (!email) return res.status(400).json({ message: 'Add the client email first' });
+    const days = daysUntil(row.expiryDate || row.renewalDate);
+    if (days == null) return res.status(400).json({ message: 'This domain has no expiry date' });
+    if (days > 5) return res.status(400).json({ message: 'Client email is only sent when 5 days or less remain' });
+    const who = row.clientName || 'there';
+    const when = days < 0 ? 'has expired' : `expires in ${days} day${days === 1 ? '' : 's'}`;
+    await sendEmail({
+      to: email,
+      subject: `Your domain ${row.domain} ${days < 0 ? 'has expired' : 'expires soon'}`,
+      text: `Hello ${who}, your domain ${row.domain} ${when}. Please renew it so the website stays online.`,
+      html: `<p>Hello ${who},</p><p>Your domain <strong>${row.domain}</strong> ${when}.</p><p>Please renew it so the website stays online.</p><p>Vastora</p>`,
+    });
+    row.clientMailStatus = 'sent';
+    row.clientMailSentAt = new Date();
+    await row.save();
+    cacheDel(`infra:dashboard:${tenantIdOf(req)}`);
+    res.json({ ...row.toObject(), daysRemaining: days });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const updateDomain = async (req, res) => {
   try {
     const row = await InfraDomain.findOne({ _id: req.params.id, tenantId: tenantIdOf(req) });
     if (!row) return res.status(404).json({ message: 'Not found' });
     const allowed = [
       'domain', 'registrar', 'purchaseDate', 'renewalDate', 'expiryDate',
-      'autoRenewal', 'reminderDaysBefore', 'owner', 'notes',
+      'autoRenewal', 'reminderDaysBefore', 'owner', 'notes', 'clientName', 'clientEmail',
     ];
+    const emailBefore = row.clientEmail;
+    const statusBefore = row.clientMailStatus;
     for (const key of allowed) {
       if (req.body[key] !== undefined) row[key] = req.body[key];
     }
     row.status = domainStatusFromExpiry(row.expiryDate || row.renewalDate, row.reminderDaysBefore);
+    if (row.clientEmail !== emailBefore) {
+      row.clientMailStatus = 'none';
+      row.clientMailSentAt = null;
+    } else if (!row.clientEmail) {
+      row.clientMailStatus = statusBefore === 'sent' ? 'sent' : 'none';
+    }
     await row.save();
     cacheDel(`infra:dashboard:${tenantIdOf(req)}`);
     res.json({ ...row.toObject(), daysRemaining: daysUntil(row.expiryDate || row.renewalDate) });

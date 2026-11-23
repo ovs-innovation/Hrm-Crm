@@ -32,6 +32,7 @@ export const infraApi = {
   updateDomain: (id, body) => api.put(`${base}/domains/${id}`, body).then((r) => r.data),
   deleteDomain: (id) => api.delete(`${base}/domains/${id}`).then((r) => r.data),
   refreshDomains: () => api.post(`${base}/domains/refresh`).then((r) => r.data),
+  approveDomainMail: (id) => api.post(`${base}/domains/${id}/approve-client-mail`).then((r) => r.data),
 
   listSsl: () => api.get(`${base}/ssl`).then((r) => r.data),
   createSsl: (body) => api.post(`${base}/ssl`, body).then((r) => r.data),
