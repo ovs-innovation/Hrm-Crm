@@ -142,6 +142,7 @@ const SECTIONS = [
       { title: 'SSL Certificates', to: '/infrastructure/ssl' },
       { title: 'Backups', to: '/infrastructure/backups' },
       { title: 'Alerts', to: '/infrastructure/alerts' },
+      { title: 'Incidents', to: '/infrastructure/incidents' },
       { title: 'Logs', to: '/infrastructure/logs' },
       { title: 'Settings', to: '/infrastructure/settings' },
     ],

@@ -4,6 +4,7 @@ import { raiseAlert } from './alertService.js';
 import { writeInfraLog } from './logService.js';
 import { getOrCreateSettings } from './settingsService.js';
 import { fetchLiveSslCertificate } from './expiryService.js';
+import { openIncident, noteRecovery } from './incidentService.js';
 
 const classifyStatus = (ok, ms, httpStatus, slowMs) => {
   if (!ok) return 'offline';
@@ -98,6 +99,21 @@ export const checkWebsiteOnce = async (site, settings) => {
       entityType: 'website',
       entityId: site._id,
     });
+    await openIncident({
+      tenantId: site.tenantId,
+      title: `${site.name} down`,
+      priority: 'critical',
+      entityType: 'website',
+      entityId: site._id,
+      message: `HTTP ${httpStatus || 'n/a'}${errorMsg ? ` ${errorMsg}` : ''}`,
+    }).catch(() => {});
+  } else if (status === 'online') {
+    await noteRecovery({
+      tenantId: site.tenantId,
+      entityType: 'website',
+      entityId: site._id,
+      message: `Website responded ${httpStatus} in ${responseTimeMs}ms`,
+    }).catch(() => {});
   }
 
   return site;

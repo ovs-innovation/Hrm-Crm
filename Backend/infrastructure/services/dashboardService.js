@@ -8,6 +8,7 @@ import InfraAlert from '../models/InfraAlert.js';
 import InfraLog from '../models/InfraLog.js';
 import { cacheGet, cacheSet } from '../utils/cache.js';
 import { daysUntil } from './expiryService.js';
+import { buildHealthReasons } from './healthScore.js';
 
 /** Average only real numeric samples; return null when none available. */
 const avgOrNull = (arr, pick) => {
@@ -84,6 +85,26 @@ export const getInfraDashboard = async (tenantId) => {
     .sort((a, b) => a.daysRemaining - b.daysRemaining)
     .slice(0, 10);
 
+  const pm2 = servers.flatMap((s) => s.latestMetrics?.agentExtras?.pm2?.processes || []);
+  const docker = servers.flatMap((s) => s.latestMetrics?.agentExtras?.docker?.containers || []);
+  const pm2Down = pm2.filter((p) => p.status && !['online', 'running'].includes(String(p.status).toLowerCase())).length;
+  const dockerDown = docker.filter((c) => c.status && !String(c.status).toLowerCase().includes('up') && String(c.status).toLowerCase() !== 'running').length;
+  const sslExpired = ssls.filter((s) => s.status === 'expired' || (daysUntil(s.expiryDate) != null && daysUntil(s.expiryDate) < 0)).length;
+  const reasons = buildHealthReasons({
+    cpuUsage,
+    ramUsage,
+    diskUsage,
+    sslSoon: sslExpiring.filter((s) => s.daysRemaining >= 0).length,
+    sslExpired,
+    sslTotal: ssls.length,
+    pm2Down,
+    pm2Total: pm2.length,
+    dockerDown,
+    dockerTotal: docker.length,
+    backupsFailed: backups.filter((b) => b.status === 'failed').length,
+    backupsTotal: backups.length,
+  });
+
   const healthScore = (() => {
     if (!servers.length && !websites.length) return null;
     let score = 100;
@@ -126,6 +147,20 @@ export const getInfraDashboard = async (tenantId) => {
             : healthScore >= 60
               ? 'Degraded'
               : 'Critical',
+      reasons,
+    },
+    business: {
+      websites: websites.length,
+      websitesOnline: onlineSites,
+      websitesDown: offlineSites,
+      domains: domains.length,
+      domainRenewals: domainRenewals.length,
+      ssl: ssls.length,
+      sslExpiring: sslExpiring.length,
+      criticalAlerts: alerts.filter((a) => !a.resolved && a.severity === 'critical').length,
+      cpuUsage,
+      ramUsage,
+      diskUsage,
     },
     counts: {
       servers: servers.length,

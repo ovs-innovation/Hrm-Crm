@@ -12,6 +12,7 @@ import { listAlerts, resolveAlert } from '../services/alertService.js';
 import { checkWebsiteOnce } from '../services/websiteCheckService.js';
 import { ingestServerMetrics, getMetricSeries } from '../services/metricsService.js';
 import { normalizeAgentPayload } from '../services/agentPullService.js';
+import { listIncidents, updateIncident } from '../services/incidentService.js';
 import { writeInfraLog } from '../services/logService.js';
 import { getMonitoringProvider } from '../providers/index.js';
 import {
@@ -645,6 +646,27 @@ export const exportLogs = async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="infra-logs.csv"');
     res.send(header + csv);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getIncidents = async (req, res) => {
+  try {
+    res.json(await listIncidents(tenantIdOf(req)));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const patchIncident = async (req, res) => {
+  try {
+    const row = await updateIncident(tenantIdOf(req), req.params.id, {
+      ...req.body,
+      actor: actorOf(req),
+    });
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    res.json(row);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

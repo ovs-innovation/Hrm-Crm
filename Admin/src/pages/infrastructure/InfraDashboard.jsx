@@ -89,6 +89,27 @@ export default function InfraDashboard() {
             </div>
           ))}
 
+          {data?.business && (
+            <div className="rounded border border-line bg-surface p-4">
+              <h3 className="mb-3 text-[13px] font-semibold text-ink">Business</h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Kpi label="Websites" value={data.business.websites ?? '—'} sub={`${data.business.websitesOnline ?? 0} online · ${data.business.websitesDown ?? 0} down`} />
+                <Kpi label="Domains" value={data.business.domains ?? '—'} sub={`${data.business.domainRenewals ?? 0} renewals`} />
+                <Kpi label="SSL" value={data.business.ssl ?? '—'} sub={`${data.business.sslExpiring ?? 0} in 30 days`} />
+                <Kpi label="Critical alerts" value={data.business.criticalAlerts ?? '—'} />
+              </div>
+              {(data.health?.reasons || []).length > 0 && (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {data.health.reasons.map((reason) => (
+                    <li key={reason.key} className="rounded border border-line px-2 py-1 text-[12px] text-ink">
+                      {reason.level === 'ok' ? '✔' : '⚠'} {reason.text}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi label="System health" value={data?.health?.score == null ? '—' : `${data.health.score}`} sub={data?.health?.label} />
             <Kpi label="Servers online" value={`${c.serversOnline ?? 0}/${c.servers ?? 0}`} />

@@ -55,6 +55,7 @@ const InfraDomains = lazy(() => import('./pages/infrastructure/InfraDomains'));
 const InfraSsl = lazy(() => import('./pages/infrastructure/InfraSsl'));
 const InfraBackups = lazy(() => import('./pages/infrastructure/InfraBackups'));
 const InfraAlerts = lazy(() => import('./pages/infrastructure/InfraAlerts'));
+const InfraIncidents = lazy(() => import('./pages/infrastructure/InfraIncidents'));
 const InfraLogs = lazy(() => import('./pages/infrastructure/InfraLogs'));
 const InfraSettings = lazy(() => import('./pages/infrastructure/InfraSettings'));
 
@@ -170,6 +171,7 @@ function App() {
           <Route path="infrastructure/ssl" element={<Suspense fallback={<InfraFallback />}><InfraSsl /></Suspense>} />
           <Route path="infrastructure/backups" element={<Suspense fallback={<InfraFallback />}><InfraBackups /></Suspense>} />
           <Route path="infrastructure/alerts" element={<Suspense fallback={<InfraFallback />}><InfraAlerts /></Suspense>} />
+          <Route path="infrastructure/incidents" element={<Suspense fallback={<InfraFallback />}><InfraIncidents /></Suspense>} />
           <Route path="infrastructure/logs" element={<Suspense fallback={<InfraFallback />}><InfraLogs /></Suspense>} />
           <Route path="infrastructure/settings" element={<Suspense fallback={<InfraFallback />}><InfraSettings /></Suspense>} />
 

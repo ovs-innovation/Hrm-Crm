@@ -44,6 +44,9 @@ export const infraApi = {
   updateBackup: (id, body) => api.put(`${base}/backups/${id}`, body).then((r) => r.data),
   deleteBackup: (id) => api.delete(`${base}/backups/${id}`).then((r) => r.data),
 
+  listIncidents: () => api.get(`${base}/incidents`).then((r) => r.data),
+  updateIncident: (id, body) => api.patch(`${base}/incidents/${id}`, body).then((r) => r.data),
+
   listAlerts: (params) => api.get(`${base}/alerts`, { params }).then((r) => r.data),
   resolveAlert: (id, body) => api.patch(`${base}/alerts/${id}/resolve`, body).then((r) => r.data),
 

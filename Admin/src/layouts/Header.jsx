@@ -49,6 +49,7 @@ const CRUMBS = [
   ['/infrastructure/ssl', [['Infrastructure', '/infrastructure'], ['SSL Certificates', '/infrastructure/ssl']]],
   ['/infrastructure/backups', [['Infrastructure', '/infrastructure'], ['Backups', '/infrastructure/backups']]],
   ['/infrastructure/alerts', [['Infrastructure', '/infrastructure'], ['Alerts', '/infrastructure/alerts']]],
+  ['/infrastructure/incidents', [['Infrastructure', '/infrastructure'], ['Incidents', '/infrastructure/incidents']]],
   ['/infrastructure/logs', [['Infrastructure', '/infrastructure'], ['Logs', '/infrastructure/logs']]],
   ['/infrastructure/settings', [['Infrastructure', '/infrastructure'], ['Settings', '/infrastructure/settings']]],
   ['/infrastructure', [['Infrastructure', '/infrastructure'], ['Dashboard', '/infrastructure']]],

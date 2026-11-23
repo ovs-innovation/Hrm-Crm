@@ -59,6 +59,9 @@ router.get('/backups/:id', ctrl.getBackup);
 router.put('/backups/:id', ctrl.updateBackup);
 router.delete('/backups/:id', ctrl.deleteBackup);
 
+router.get('/incidents', ctrl.getIncidents);
+router.patch('/incidents/:id', ctrl.patchIncident);
+
 router.get('/alerts', ctrl.getAlerts);
 router.patch('/alerts/:id/resolve', ctrl.patchAlert);
 

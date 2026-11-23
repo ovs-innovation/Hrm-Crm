@@ -31,6 +31,7 @@ const PAGES = [
   { label: 'Infra websites', path: '/infrastructure/websites' },
   { label: 'Infra SSL', path: '/infrastructure/ssl' },
   { label: 'Infra alerts', path: '/infrastructure/alerts' },
+  { label: 'Infra incidents', path: '/infrastructure/incidents' },
 ];
 
 const CommandPalette = () => {
