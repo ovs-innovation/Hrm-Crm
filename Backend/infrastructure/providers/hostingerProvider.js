@@ -55,6 +55,19 @@ export class HostingerMonitoringProvider extends BaseMonitoringProvider {
     return val == null ? null : Number(val);
   }
 
+  /** Hostinger VM details sometimes return disk/memory in bytes, sometimes GB/MB. */
+  #asGb(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return n > 1e9 ? n / (1024 ** 3) : n;
+  }
+
+  #asMb(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return n > 1e9 ? n / (1024 ** 2) : n;
+  }
+
   #mapVm(row) {
     const ipv4 = Array.isArray(row.ipv4)
       ? row.ipv4[0]?.address || row.ipv4[0]
@@ -100,7 +113,8 @@ export class HostingerMonitoringProvider extends BaseMonitoringProvider {
     const diskBytes = this.#latestSample(payload.disk_space);
     const outBytes = this.#latestSample(payload.outgoing_traffic);
     const inBytes = this.#latestSample(payload.incoming_traffic);
-    const uptimeMs = this.#latestSample(payload.uptime);
+    const uptimeRaw = this.#latestSample(payload.uptime);
+    const uptimeUnit = String(payload.uptime?.unit || 'seconds').toLowerCase();
 
     // Hostinger returns absolute RAM/disk bytes for the latest sample — percent needs totals from VM details when available
     let ramTotalMb = Number(this.config.ramTotalMb) || 0;
@@ -108,8 +122,8 @@ export class HostingerMonitoringProvider extends BaseMonitoringProvider {
     try {
       const details = await this.#request(`/api/vps/v1/virtual-machines/${encodeURIComponent(providerRef)}`);
       const vm = details?.data || details || {};
-      if (vm.memory) ramTotalMb = Number(vm.memory) || ramTotalMb; // often MB
-      if (vm.disk) diskTotalGb = Number(vm.disk) || diskTotalGb; // often GB
+      if (vm.memory) ramTotalMb = this.#asMb(vm.memory) || ramTotalMb;
+      if (vm.disk) diskTotalGb = this.#asGb(vm.disk) || diskTotalGb;
     } catch {
       /* optional */
     }
@@ -138,7 +152,9 @@ export class HostingerMonitoringProvider extends BaseMonitoringProvider {
       netDownloadMbps: null,
       networkTxBytes: outBytes != null ? Math.round(outBytes) : null,
       networkRxBytes: inBytes != null ? Math.round(inBytes) : null,
-      uptimeSec: uptimeMs != null ? Math.round(uptimeMs / 1000) : null,
+      uptimeSec: uptimeRaw == null
+        ? null
+        : Math.round(uptimeUnit.startsWith('milli') ? uptimeRaw / 1000 : uptimeRaw),
       collectedAt: new Date(),
     };
   }
