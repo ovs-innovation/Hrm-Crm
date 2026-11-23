@@ -7,10 +7,26 @@ import cors from 'cors';
 function buildCorsApp(customEnvCorsOrigin) {
   const app = express();
 
-  const allowedOrigins = (customEnvCorsOrigin || process.env.CORS_ORIGIN || 'https://hrm.vastoratech.com,https://hrmadmin.vastoratech.com,https://apnadigitalindia.com,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000')
+  const DEFAULT_ALLOWED_ORIGINS = [
+    'https://apnadigitalindia.com',
+    'https://www.apnadigitalindia.com',
+    'https://form.apnadigitalindia.com',
+    'http://apnadigitalindia.com',
+    'http://www.apnadigitalindia.com',
+    'https://hrm.vastoratech.com',
+    'https://hrmadmin.vastoratech.com',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:3000',
+  ];
+
+  const envOrigins = (customEnvCorsOrigin || process.env.CORS_ORIGIN || '')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
+
+  const allowedOrigins = Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...envOrigins]));
 
   const corsMiddleware = cors({
     origin: (origin, callback) => {
@@ -20,15 +36,28 @@ function buildCorsApp(customEnvCorsOrigin) {
 
       let originHost = '';
       try {
-        originHost = new URL(origin).hostname;
+        originHost = new URL(origin).hostname.toLowerCase();
       } catch {
-        originHost = origin;
+        originHost = String(origin || '').toLowerCase();
       }
+
+      const isApnaDigital =
+        originHost === 'apnadigitalindia.com' ||
+        originHost.endsWith('.apnadigitalindia.com');
+
+      const isVastora =
+        originHost === 'vastoratech.com' ||
+        originHost.endsWith('.vastoratech.com');
 
       const isLoopback = originHost === 'localhost' || originHost === '127.0.0.1';
       const isPrivateLan = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(originHost);
       const localHost = isLoopback || (process.env.NODE_ENV !== 'production' && isPrivateLan);
-      const isAllowed = allowedOrigins.includes(origin) || localHost;
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        isApnaDigital ||
+        isVastora ||
+        localHost;
 
       if (isAllowed) {
         callback(null, true);
@@ -38,7 +67,16 @@ function buildCorsApp(customEnvCorsOrigin) {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'x-tenant-id',
+      'Accept',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+    ],
     optionsSuccessStatus: 204,
   });
 
@@ -183,6 +221,41 @@ describe('Production CORS Settings Verification', () => {
     });
 
     assert.strictEqual(res.error, null);
+  });
+
+  it('automatically permits www and subdomains of apnadigitalindia.com and vastoratech.com', async () => {
+    const domains = [
+      'https://apnadigitalindia.com',
+      'https://www.apnadigitalindia.com',
+      'https://form.apnadigitalindia.com',
+      'http://apnadigitalindia.com',
+      'http://www.apnadigitalindia.com',
+      'https://hrm.vastoratech.com',
+      'https://hrmadmin.vastoratech.com',
+      'https://subdomain.vastoratech.com',
+    ];
+
+    for (const origin of domains) {
+      const res = await simulateCorsRequest(corsMiddleware, {
+        method: 'POST',
+        origin,
+      });
+
+      assert.strictEqual(res.error, null, `Domain ${origin} must be permitted`);
+      assert.strictEqual(res.headers['access-control-allow-origin'], origin);
+      assert.strictEqual(res.headers['access-control-allow-credentials'], 'true');
+    }
+  });
+
+  it('permits apnadigitalindia.com even when CORS_ORIGIN environment variable is completely empty', async () => {
+    const { corsMiddleware: emptyEnvCors } = buildCorsApp(' ');
+    const res = await simulateCorsRequest(emptyEnvCors, {
+      method: 'POST',
+      origin: 'https://apnadigitalindia.com',
+    });
+
+    assert.strictEqual(res.error, null);
+    assert.strictEqual(res.headers['access-control-allow-origin'], 'https://apnadigitalindia.com');
   });
 
   it('blocks disallowed third-party origins securely', async () => {

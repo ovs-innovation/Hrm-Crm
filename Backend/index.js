@@ -99,12 +99,28 @@ app.use(helmet({
 }));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CORS_ORIGIN || 'https://hrm.vastoratech.com,https://hrmadmin.vastoratech.com')
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://apnadigitalindia.com',
+  'https://www.apnadigitalindia.com',
+  'https://form.apnadigitalindia.com',
+  'http://apnadigitalindia.com',
+  'http://www.apnadigitalindia.com',
+  'https://hrm.vastoratech.com',
+  'https://hrmadmin.vastoratech.com',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:3000',
+];
+
+const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 
-app.use(cors({
+const allowedOrigins = Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...envOrigins]));
+
+const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) {
       return callback(null, true);
@@ -112,16 +128,29 @@ app.use(cors({
 
     let originHost = '';
     try {
-      originHost = new URL(origin).hostname;
-    } catch (e) {
-      originHost = origin;
+      originHost = new URL(origin).hostname.toLowerCase();
+    } catch {
+      originHost = String(origin || '').toLowerCase();
     }
+
+    const isApnaDigital =
+      originHost === 'apnadigitalindia.com' ||
+      originHost.endsWith('.apnadigitalindia.com');
+
+    const isVastora =
+      originHost === 'vastoratech.com' ||
+      originHost.endsWith('.vastoratech.com');
 
     const isLoopback = originHost === 'localhost' || originHost === '127.0.0.1';
     const isPrivateLan = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(originHost);
     // Private LAN origins only in non-production (dev/VPN testing).
     const localHost = isLoopback || (process.env.NODE_ENV !== 'production' && isPrivateLan);
-    const isAllowed = allowedOrigins.includes(origin) || localHost;
+
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      isApnaDigital ||
+      isVastora ||
+      localHost;
 
     if (isAllowed) {
       callback(null, true);
@@ -131,9 +160,20 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'Accept'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'x-tenant-id',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+  ],
   optionsSuccessStatus: 204,
-}));
+};
+
+app.use(cors(corsOptions));
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const standardLimiter = rateLimit({
@@ -264,6 +304,11 @@ app.get(['/ready', '/api/ready'], (req, res) => {
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   if (err.message?.startsWith('CORS:')) {
+    const reqOrigin = req.headers.origin;
+    if (reqOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     return res.status(403).json({ message: err.message });
   }
   console.error('[Unhandled Error]', err);
