@@ -54,6 +54,7 @@ import systemRoutes from './routes/systemRoutes.js';
 import workspaceRoutes from './routes/workspaceRoutes.js';
 import wfhRoutes from './routes/wfhRoutes.js';
 import formRoutes from './routes/formRoutes.js';
+import { infraRoutes, startInfrastructureJobs } from './infrastructure/index.js';
 import { app, server } from './socket/socket.js';
 import { resolveTenant } from './middlewares/tenantMiddleware.js';
 import { protect } from './middlewares/authMiddleware.js';
@@ -233,6 +234,7 @@ app.use('/api/demo', (req, res, next) => {
   next();
 }, standardLimiter, demoRoutes);
 app.use('/api/executive', standardLimiter, executiveRoutes);
+app.use('/api/infrastructure', standardLimiter, infraRoutes);
 
 // ─── Static Files (forms media public; other docs auth protected) ─────────────
 app.use('/uploads/forms', express.static(path.join(__dirname, '/uploads/forms')));
@@ -279,7 +281,14 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-server.listen(port, '0.0.0.0', () => console.log(`✅ Vastora Server started on port ${port}`));
+server.listen(port, '0.0.0.0', () => {
+  console.log(`✅ Vastora Server started on port ${port}`);
+  try {
+    startInfrastructureJobs();
+  } catch (err) {
+    console.error('[infra] failed to start jobs', err.message);
+  }
+});
 
 const shutdown = async (signal) => {
   console.log(`[Shutdown] ${signal} received — closing server`);

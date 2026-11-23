@@ -47,6 +47,18 @@ import KnowledgeBase from './pages/crm/KnowledgeBase';
 import Forms from './pages/crm/Forms';
 
 const Workspace = lazy(() => import('./pages/workspace/Workspace'));
+const InfraDashboard = lazy(() => import('./pages/infrastructure/InfraDashboard'));
+const InfraServers = lazy(() => import('./pages/infrastructure/InfraServers'));
+const InfraWebsites = lazy(() => import('./pages/infrastructure/InfraWebsites'));
+const InfraServices = lazy(() => import('./pages/infrastructure/InfraServices'));
+const InfraDomains = lazy(() => import('./pages/infrastructure/InfraDomains'));
+const InfraSsl = lazy(() => import('./pages/infrastructure/InfraSsl'));
+const InfraBackups = lazy(() => import('./pages/infrastructure/InfraBackups'));
+const InfraAlerts = lazy(() => import('./pages/infrastructure/InfraAlerts'));
+const InfraLogs = lazy(() => import('./pages/infrastructure/InfraLogs'));
+const InfraSettings = lazy(() => import('./pages/infrastructure/InfraSettings'));
+
+const InfraFallback = () => <div className="p-6 text-[13px] text-muted">Loading infrastructure…</div>;
 
 function App() {
   return (
@@ -148,6 +160,18 @@ function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="crm" element={<Navigate to="/crm/accounts" replace />} />
           <Route path="projects" element={<Navigate to="/work/projects" replace />} />
+
+          {/* Infrastructure — isolated module */}
+          <Route path="infrastructure" element={<Suspense fallback={<InfraFallback />}><InfraDashboard /></Suspense>} />
+          <Route path="infrastructure/servers" element={<Suspense fallback={<InfraFallback />}><InfraServers /></Suspense>} />
+          <Route path="infrastructure/websites" element={<Suspense fallback={<InfraFallback />}><InfraWebsites /></Suspense>} />
+          <Route path="infrastructure/services" element={<Suspense fallback={<InfraFallback />}><InfraServices /></Suspense>} />
+          <Route path="infrastructure/domains" element={<Suspense fallback={<InfraFallback />}><InfraDomains /></Suspense>} />
+          <Route path="infrastructure/ssl" element={<Suspense fallback={<InfraFallback />}><InfraSsl /></Suspense>} />
+          <Route path="infrastructure/backups" element={<Suspense fallback={<InfraFallback />}><InfraBackups /></Suspense>} />
+          <Route path="infrastructure/alerts" element={<Suspense fallback={<InfraFallback />}><InfraAlerts /></Suspense>} />
+          <Route path="infrastructure/logs" element={<Suspense fallback={<InfraFallback />}><InfraLogs /></Suspense>} />
+          <Route path="infrastructure/settings" element={<Suspense fallback={<InfraFallback />}><InfraSettings /></Suspense>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

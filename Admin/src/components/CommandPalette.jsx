@@ -26,6 +26,11 @@ const PAGES = [
   { label: 'Knowledge base', path: '/ai/knowledge' },
   { label: 'Reports', path: '/reports' },
   { label: 'Company settings', path: '/settings' },
+  { label: 'Infrastructure', path: '/infrastructure' },
+  { label: 'Infra servers', path: '/infrastructure/servers' },
+  { label: 'Infra websites', path: '/infrastructure/websites' },
+  { label: 'Infra SSL', path: '/infrastructure/ssl' },
+  { label: 'Infra alerts', path: '/infrastructure/alerts' },
 ];
 
 const CommandPalette = () => {

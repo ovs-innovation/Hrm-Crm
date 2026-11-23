@@ -14,6 +14,7 @@ import {
   FiSettings,
   FiGrid,
   FiHeadphones,
+  FiServer,
 } from 'react-icons/fi';
 
 const SparkleIcon = ({ className }) => (
@@ -125,6 +126,24 @@ const SECTIONS = [
       { title: 'Work', to: '/reports?report=tasks' },
       { title: 'Finance', to: '/reports?report=payroll' },
       { title: 'Builder', to: '/reports/builder' },
+    ],
+  },
+  {
+    id: 'infrastructure',
+    title: 'Infrastructure',
+    access: 'infrastructure',
+    icon: FiServer,
+    items: [
+      { title: 'Dashboard', to: '/infrastructure' },
+      { title: 'Servers', to: '/infrastructure/servers' },
+      { title: 'Websites', to: '/infrastructure/websites' },
+      { title: 'Services', to: '/infrastructure/services' },
+      { title: 'Domains', to: '/infrastructure/domains' },
+      { title: 'SSL Certificates', to: '/infrastructure/ssl' },
+      { title: 'Backups', to: '/infrastructure/backups' },
+      { title: 'Alerts', to: '/infrastructure/alerts' },
+      { title: 'Logs', to: '/infrastructure/logs' },
+      { title: 'Settings', to: '/infrastructure/settings' },
     ],
   },
   {

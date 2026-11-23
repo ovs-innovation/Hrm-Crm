@@ -10,6 +10,7 @@ const emptyAccess = {
   ai: false,
   reports: false,
   administration: false,
+  infrastructure: false,
 };
 
 export const getNavAccess = (role) => {
@@ -25,6 +26,7 @@ export const getNavAccess = (role) => {
     ai: true,
     reports: true,
     administration: true,
+    infrastructure: true,
   };
 
   if (!r) return emptyAccess;
@@ -32,15 +34,15 @@ export const getNavAccess = (role) => {
   if (['admin', 'founder', 'owner'].includes(r)) return full;
 
   if (r === 'sales') {
-    return { ...full, hrms: false, support: false, administration: false };
+    return { ...full, hrms: false, support: false, administration: false, infrastructure: false };
   }
 
   if (r === 'hr') {
-    return { ...full, crm: false, administration: false };
+    return { ...full, crm: false, administration: false, infrastructure: false };
   }
 
   if (r === 'manager') {
-    return { ...full, administration: false };
+    return { ...full, administration: false, infrastructure: false };
   }
 
   // Unknown role — do not grant full portal
@@ -58,6 +60,7 @@ export const canAccessRoute = (role, path) => {
   if (path.startsWith('/ai') || path.startsWith('/ai-hub')) return access.ai;
   if (path.startsWith('/reports') || path.startsWith('/analytics')) return access.reports;
   if (path.startsWith('/settings') || path.startsWith('/setup-wizard')) return access.administration;
+  if (path.startsWith('/infrastructure')) return access.infrastructure;
   // Fail closed for unmapped paths
   return false;
 };

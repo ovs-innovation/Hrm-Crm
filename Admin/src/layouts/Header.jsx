@@ -42,6 +42,16 @@ const CRUMBS = [
   ['/reports', [['Reports', '/reports']]],
   ['/settings', [['Administration', '/settings'], ['Company', '/settings']]],
   ['/setup-wizard', [['Administration', '/settings'], ['Setup', '/setup-wizard']]],
+  ['/infrastructure/servers', [['Infrastructure', '/infrastructure'], ['Servers', '/infrastructure/servers']]],
+  ['/infrastructure/websites', [['Infrastructure', '/infrastructure'], ['Websites', '/infrastructure/websites']]],
+  ['/infrastructure/services', [['Infrastructure', '/infrastructure'], ['Services', '/infrastructure/services']]],
+  ['/infrastructure/domains', [['Infrastructure', '/infrastructure'], ['Domains', '/infrastructure/domains']]],
+  ['/infrastructure/ssl', [['Infrastructure', '/infrastructure'], ['SSL Certificates', '/infrastructure/ssl']]],
+  ['/infrastructure/backups', [['Infrastructure', '/infrastructure'], ['Backups', '/infrastructure/backups']]],
+  ['/infrastructure/alerts', [['Infrastructure', '/infrastructure'], ['Alerts', '/infrastructure/alerts']]],
+  ['/infrastructure/logs', [['Infrastructure', '/infrastructure'], ['Logs', '/infrastructure/logs']]],
+  ['/infrastructure/settings', [['Infrastructure', '/infrastructure'], ['Settings', '/infrastructure/settings']]],
+  ['/infrastructure', [['Infrastructure', '/infrastructure'], ['Dashboard', '/infrastructure']]],
 ];
 
 const ROUTE_TITLES = {
@@ -67,6 +77,16 @@ const ROUTE_TITLES = {
   '/workspace': 'Workspace',
   '/hrm/employees': 'Employees',
   '/settings': 'Settings',
+  '/infrastructure': 'Infrastructure',
+  '/infrastructure/servers': 'Servers',
+  '/infrastructure/websites': 'Websites',
+  '/infrastructure/services': 'Services',
+  '/infrastructure/domains': 'Domains',
+  '/infrastructure/ssl': 'SSL Certificates',
+  '/infrastructure/backups': 'Backups',
+  '/infrastructure/alerts': 'Alerts',
+  '/infrastructure/logs': 'Logs',
+  '/infrastructure/settings': 'Infra settings',
 };
 
 const Header = ({ toggleMobileMenu }) => {
