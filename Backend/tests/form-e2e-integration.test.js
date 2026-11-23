@@ -8,6 +8,7 @@ import FormSubmission from '../models/FormSubmission.js';
 import Tenant from '../models/Tenant.js';
 import {
   submitForm,
+  saveFormStep,
   getFormSubmissions,
   getFormSubmissionById,
   updateFormSubmissionStatus,
@@ -349,6 +350,7 @@ describe('Full End-to-End Integration Flow: ApnaDigital Form -> CRM Backend -> M
         businessCategory: 'Cafe',
         mobileNumber: '9123456789',
         emailAddress: 'alice@coffee.com',
+        registeredAddress: '123 Coffee Lane, Connaught Place, New Delhi',
       },
     };
     const subRes1 = createMockRes();
@@ -378,6 +380,291 @@ describe('Full End-to-End Integration Flow: ApnaDigital Form -> CRM Backend -> M
     // Verify completely deleted from MongoDB
     const docAfter = await FormSubmission.findById(createdMongoId);
     assert.strictEqual(docAfter, null, 'Document must no longer exist in MongoDB');
+  });
+
+  it('11. 4-step frontend form submission with logo upload, conditional tax details, and dynamic addon pricing', async () => {
+    const uploadDir = path.join(path.resolve(), 'uploads', 'forms');
+    const customLogoFilename = `form-${Date.now()}-123456.png`;
+    const customLogoPath = path.join(uploadDir, customLogoFilename);
+    fs.writeFileSync(customLogoPath, 'MOCK_CUSTOM_LOGO_BYTES');
+    sampleFilesCreated.push(customLogoPath);
+
+    const stepReq = {
+      body: {
+        sourceWebsite: 'ApnaDigital',
+        customerDetails: {
+          fullName: 'Vikram Malhotra',
+          companyName: 'Malhotra Technologies Pvt Ltd',
+          mobileNumber: '+91 98765 43210',
+          emailAddress: 'VIKRAM@MALHOTRATECH.COM',
+          gstStatus: 'registered',
+          gstNumber: '07AAAAA0000A1Z5',
+          registeredAddress: 'Level 4, Cyber City, Gurugram, Haryana',
+        },
+        businessInfo: {
+          businessCategory: 'IT & Software Services',
+          aboutUs: 'Next-generation cloud and digital transformation agency.',
+          servicesProducts: 'Enterprise SaaS, DevOps pipelines, and Custom CRM.',
+          workingHours: '9:00 AM - 6:00 PM IST',
+          location: 'Cyber City, Gurugram',
+        },
+        contactDetails: {
+          contactMobile: '9876543210',
+          contactEmail: 'hello@malhotratech.com',
+          whatsappNumber: '9876543210',
+          businessAddress: 'Level 4, Cyber City, Gurugram, Haryana',
+          socialLinks: {
+            instagram: 'https://instagram.com/malhotratech',
+            facebook: 'https://facebook.com/malhotratech',
+            linkedin: 'https://linkedin.com/company/malhotra-tech',
+            youtube: 'https://youtube.com/@malhotratech',
+          },
+        },
+        websiteDesign: {
+          tagline: 'Engineering the future of enterprise software',
+          needLogoDesign: 'false',
+          primaryColor: '#0055FF',
+          secondaryColor: '#111827',
+          fontStyle: 'crisp-geometric',
+          websiteTheme: 'dark-saas',
+        },
+        billingDetails: {
+          basePackagePrice: 4999,
+          currency: 'INR',
+        },
+      },
+      files: [
+        {
+          fieldname: 'logo',
+          filename: customLogoFilename,
+          originalname: 'malhotra-tech-logo.png',
+          mimetype: 'image/png',
+          size: 32000,
+        },
+      ],
+      ip: '103.21.244.2',
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      },
+    };
+
+    const stepRes = createMockRes();
+
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await submitForm(stepReq, stepRes);
+    });
+
+    assert.strictEqual(stepRes.statusCode, 201);
+    assert.strictEqual(stepRes.data.success, true);
+    assert.ok(stepRes.data.submissionId.startsWith('SUB-'));
+    assert.strictEqual(stepRes.data.data.businessName, 'Malhotra Technologies Pvt Ltd');
+    assert.strictEqual(stepRes.data.data.ownerName, 'Vikram Malhotra');
+    assert.strictEqual(stepRes.data.data.totalAmount, 4999);
+
+    // Verify stored record in MongoDB
+    const stored = await FormSubmission.findOne({ submissionId: stepRes.data.submissionId });
+    assert.ok(stored, 'Record must exist in MongoDB');
+    assert.strictEqual(stored.businessDetails.businessName, 'Malhotra Technologies Pvt Ltd');
+    assert.strictEqual(stored.businessDetails.ownerName, 'Vikram Malhotra');
+    assert.strictEqual(stored.businessDetails.mobileNumber, '9876543210');
+    assert.strictEqual(stored.businessDetails.emailAddress, 'vikram@malhotratech.com');
+    assert.strictEqual(stored.businessDetails.gstStatus, 'registered');
+    assert.strictEqual(stored.businessDetails.gstNumber, '07AAAAA0000A1Z5');
+    assert.strictEqual(stored.businessDetails.registeredAddress, 'Level 4, Cyber City, Gurugram, Haryana');
+    assert.strictEqual(stored.websiteDesign.logo.url, `/uploads/forms/${customLogoFilename}`);
+    assert.strictEqual(stored.websiteDesign.primaryColor, '#0055FF');
+    assert.strictEqual(stored.websiteDesign.fontStyle, 'crisp-geometric');
+    assert.strictEqual(stored.websiteDesign.websiteTheme, 'dark-saas');
+    assert.strictEqual(stored.contactDetails.socialLinks.linkedin, 'https://linkedin.com/company/malhotra-tech');
+    assert.strictEqual(stored.billingDetails.totalAmount, 4999);
+
+    // Test CRM detail retrieval auto-marks as Viewed
+    const getRes = createMockRes();
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await getFormSubmissionById({ params: { id: stored._id.toString() } }, getRes);
+    });
+    assert.strictEqual(getRes.statusCode, 200);
+    assert.strictEqual(getRes.data.status, 'Viewed');
+    assert.strictEqual(getRes.data.wasNew, true);
+  });
+
+  it('7. Progressive 4-step workflow: maintains same submissionId across all 4 steps, saves with New status, and marks Viewed upon opening', async () => {
+    let progressiveSubId = null;
+
+    // STEP 1: Customer details & tax info
+    const step1Req = {
+      body: {
+        step: '1',
+        fullName: 'Aarav Sharma',
+        companyName: 'Sharma Organic Foods',
+        mobileNumber: '9988776655',
+        emailAddress: 'aarav@sharmaorganics.com',
+        gstStatus: 'registered',
+        gstNumber: '07BBBBB1111B1Z9',
+        registeredAddress: 'Sector 62, Noida, Uttar Pradesh',
+      },
+      ip: '103.21.244.5',
+      headers: {},
+    };
+    const step1Res = createMockRes();
+
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await saveFormStep(step1Req, step1Res);
+    });
+
+    assert.strictEqual(step1Res.statusCode, 200);
+    assert.strictEqual(step1Res.data.success, true);
+    assert.ok(step1Res.data.submissionId.startsWith('SUB-'));
+    assert.strictEqual(step1Res.data.status, 'New');
+    assert.strictEqual(step1Res.data.stepCompleted, 1);
+    progressiveSubId = step1Res.data.submissionId;
+
+    // Verify in MongoDB: document created with status 'New'
+    let doc = await FormSubmission.findOne({ submissionId: progressiveSubId });
+    assert.ok(doc);
+    assert.strictEqual(doc.status, 'New');
+    assert.strictEqual(doc.businessDetails.businessName, 'Sharma Organic Foods');
+    assert.strictEqual(doc.businessDetails.ownerName, 'Aarav Sharma');
+    assert.strictEqual(doc.businessDetails.gstStatus, 'registered');
+    assert.strictEqual(doc.businessDetails.gstNumber, '07BBBBB1111B1Z9');
+
+    // STEP 2: Business profile, contact, social links + logo upload with SAME submissionId
+    const step2LogoFilename = 'test-step2-logo.png';
+    const uploadDir = path.join(path.resolve(), 'uploads', 'forms');
+    fs.writeFileSync(path.join(uploadDir, step2LogoFilename), 'PNG_STEP2_LOGO_BYTES');
+    sampleFilesCreated.push(path.join(uploadDir, step2LogoFilename));
+
+    const step2Req = {
+      body: {
+        submissionId: progressiveSubId,
+        step: '2',
+        fullName: 'Aarav Sharma',
+        companyName: 'Sharma Organic Foods',
+        mobileNumber: '9988776655',
+        emailAddress: 'aarav@sharmaorganics.com',
+        businessCategory: 'Organic Food & Agriculture',
+        aboutUs: 'Pioneering 100% certified pesticide-free organic farming.',
+        servicesProducts: 'Organic Pulses, Farm Fresh Dairy, Cold Pressed Oils',
+        contactMobile: '9988776655',
+        contactEmail: 'sales@sharmaorganics.com',
+        whatsappNumber: '9988776655',
+        businessAddress: 'Farm 7, Noida Expressway, UP',
+        instagramUrl: 'https://instagram.com/sharmaorganics',
+        facebookUrl: 'https://facebook.com/sharmaorganics',
+      },
+      file: {
+        fieldname: 'logo',
+        filename: step2LogoFilename,
+        originalname: 'sharma-organics-logo.png',
+        mimetype: 'image/png',
+        size: 24000,
+      },
+      ip: '103.21.244.5',
+      headers: {},
+    };
+    const step2Res = createMockRes();
+
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await saveFormStep(step2Req, step2Res);
+    });
+
+    assert.strictEqual(step2Res.statusCode, 200);
+    assert.strictEqual(step2Res.data.submissionId, progressiveSubId, 'Must keep the exact same submissionId');
+    assert.strictEqual(step2Res.data.status, 'New');
+    assert.strictEqual(step2Res.data.stepCompleted, 2);
+
+    doc = await FormSubmission.findOne({ submissionId: progressiveSubId });
+    assert.strictEqual(doc.submissionId, progressiveSubId);
+    assert.strictEqual(doc.businessDetails.businessCategory, 'Organic Food & Agriculture');
+    assert.strictEqual(doc.businessInfo.aboutBusiness, 'Pioneering 100% certified pesticide-free organic farming.');
+    assert.strictEqual(doc.websiteDesign.logo.url, `/uploads/forms/${step2LogoFilename}`);
+    assert.strictEqual(doc.contactDetails.instagramLink, 'https://instagram.com/sharmaorganics');
+
+    // STEP 3: Website Design & Branding with SAME submissionId
+    const step3Req = {
+      body: {
+        submissionId: progressiveSubId,
+        step: '3',
+        fullName: 'Aarav Sharma',
+        companyName: 'Sharma Organic Foods',
+        mobileNumber: '9988776655',
+        emailAddress: 'aarav@sharmaorganics.com',
+        tagline: 'Pure. Natural. Delivered Fresh.',
+        needLogoDesign: 'false',
+        primaryColor: '#16A34A',
+        secondaryColor: '#14532D',
+        fontStyle: 'classic-serif',
+        websiteTheme: 'bold-creative',
+      },
+      ip: '103.21.244.5',
+      headers: {},
+    };
+    const step3Res = createMockRes();
+
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await saveFormStep(step3Req, step3Res);
+    });
+
+    assert.strictEqual(step3Res.statusCode, 200);
+    assert.strictEqual(step3Res.data.submissionId, progressiveSubId);
+    assert.strictEqual(step3Res.data.status, 'New');
+    assert.strictEqual(step3Res.data.stepCompleted, 3);
+
+    doc = await FormSubmission.findOne({ submissionId: progressiveSubId });
+    assert.strictEqual(doc.websiteDesign.tagline, 'Pure. Natural. Delivered Fresh.');
+    assert.strictEqual(doc.websiteDesign.primaryColor, '#16A34A');
+    assert.strictEqual(doc.websiteDesign.logo.url, `/uploads/forms/${step2LogoFilename}`, 'Logo from Step 2 preserved');
+
+    // STEP 4: Review & Final Confirmation (Save & Pay)
+    const step4Req = {
+      body: {
+        submissionId: progressiveSubId,
+        step: '4',
+        isFinal: 'true',
+        fullName: 'Aarav Sharma',
+        companyName: 'Sharma Organic Foods',
+        mobileNumber: '9988776655',
+        emailAddress: 'aarav@sharmaorganics.com',
+        totalAmount: '4999',
+      },
+      ip: '103.21.244.5',
+      headers: {},
+    };
+    const step4Res = createMockRes();
+
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await saveFormStep(step4Req, step4Res);
+    });
+
+    assert.strictEqual(step4Res.statusCode, 200);
+    assert.strictEqual(step4Res.data.submissionId, progressiveSubId);
+    assert.strictEqual(step4Res.data.status, 'New');
+
+    doc = await FormSubmission.findOne({ submissionId: progressiveSubId });
+    assert.strictEqual(doc.status, 'New');
+    assert.ok(doc.completedAt, 'completedAt timestamp must be saved');
+    assert.strictEqual(doc.billingDetails.totalAmount, 4999);
+
+    // Verify CRM listing returns New Forms count accurately
+    const listReq = { query: { page: '1', limit: '10' } };
+    const listRes = createMockRes();
+
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await getFormSubmissions(listReq, listRes);
+    });
+
+    assert.strictEqual(listRes.statusCode, 200);
+    assert.ok(listRes.data.newCount >= 1);
+    assert.ok(listRes.data.submissions.some((s) => s.submissionId === progressiveSubId && s.status === 'New'));
+
+    // Verify opening details automatically marks as Viewed
+    const getRes = createMockRes();
+    await contextStorage.run({ tenantId: tenant._id.toString(), skipTenantScope: false }, async () => {
+      await getFormSubmissionById({ params: { id: doc._id.toString() } }, getRes);
+    });
+    assert.strictEqual(getRes.statusCode, 200);
+    assert.strictEqual(getRes.data.status, 'Viewed');
+    assert.strictEqual(getRes.data.wasNew, true);
   });
 });
 

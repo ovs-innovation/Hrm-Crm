@@ -8,6 +8,7 @@ import { requireStaff, requireAdmin } from '../middlewares/roleMiddleware.js';
 import { safeUploadFilename, MIME_TO_EXT } from '../utils/uploadSafe.js';
 import {
   submitForm,
+  saveFormStep,
   uploadFormFile,
   getFormSubmissions,
   getFormSubmissionById,
@@ -52,7 +53,7 @@ const ALLOWED_MIME_TYPES = new Set([
 
 const upload = multer({
   storage,
-  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max file size
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
   fileFilter: (_req, file, cb) => {
     if (ALLOWED_MIME_TYPES.has(file.mimetype) || MIME_TO_EXT[file.mimetype]) {
       return cb(null, true);
@@ -72,7 +73,7 @@ const handleMulterUpload = (uploadMiddleware) => (req, res, next) => {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
           success: false,
-          message: 'File size exceeds maximum allowed limit of 15MB.',
+          message: 'File size exceeds maximum allowed limit of 10MB.',
         });
       }
       if (err.code === 'INVALID_FILE_TYPE') {
@@ -103,7 +104,9 @@ const publicFormLimiter = rateLimit({
 });
 
 // ─── Public Endpoints (for ApnaDigital Website) ─────────────────────────────
+router.post('/step', publicFormLimiter, handleMulterUpload(upload.any()), saveFormStep);
 router.post('/submit', publicFormLimiter, handleMulterUpload(upload.any()), submitForm);
+router.post('/', publicFormLimiter, handleMulterUpload(upload.any()), submitForm);
 router.post('/upload', publicFormLimiter, handleMulterUpload(upload.single('file')), uploadFormFile);
 
 // ─── Protected CRM Endpoints ────────────────────────────────────────────────

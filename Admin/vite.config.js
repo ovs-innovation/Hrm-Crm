@@ -1,4 +1,5 @@
 import path from "path"
+import fs from "fs"
 import { defineConfig, createLogger } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -17,6 +18,20 @@ logger.error = (msg, options) => {
   originalLoggerError(msg, options);
 };
 
+// Dynamically resolve Backend port from Backend/.env or process.env, defaulting to 5001
+let backendPort = '5001';
+try {
+  const envPath = path.resolve(__dirname, '../Backend/.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const match = envContent.match(/^PORT\s*=\s*(\d+)/m);
+    if (match) backendPort = match[1];
+  }
+} catch {
+  // fallback
+}
+const backendTarget = process.env.VITE_BACKEND_URL || `http://localhost:${backendPort}`;
+
 export default defineConfig({
   customLogger: logger,
   plugins: [
@@ -31,11 +46,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: backendTarget,
         changeOrigin: true,
         ws: true,
         rewriteWsOrigin: true,
@@ -47,7 +62,7 @@ export default defineConfig({
         },
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: backendTarget,
         changeOrigin: true,
       }
     }

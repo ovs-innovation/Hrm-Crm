@@ -3,8 +3,10 @@ import path from 'path';
 /** Map trusted MIME → extension (never trust originalname). */
 export const MIME_TO_EXT = {
   'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
   'image/png': '.png',
   'image/webp': '.webp',
+  'image/svg+xml': '.svg',
   'image/gif': '.gif',
   'application/pdf': '.pdf',
   'text/plain': '.txt',

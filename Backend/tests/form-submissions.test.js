@@ -189,4 +189,120 @@ describe('Forms Module (ApnaDigital Requirement Form Submissions)', () => {
       FormSubmission.findOneAndDelete = originalFindOneAndDelete;
     }
   });
+
+  it('rejects invalid GSTIN format when gstStatus is registered', async () => {
+    let statusCode = null;
+    let responseBody = null;
+
+    const mockReq = {
+      body: {
+        customerDetails: {
+          fullName: 'Rajesh Kumar',
+          companyName: 'Kumar Traders',
+          mobileNumber: '9876543210',
+          emailAddress: 'rajesh@kumartraders.in',
+          gstStatus: 'registered',
+          gstNumber: 'INVALID_GST_123',
+          registeredAddress: '123 MG Road, Bengaluru',
+        },
+        businessCategory: 'Retail & Wholesale',
+      },
+    };
+
+    const mockRes = {
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(data) {
+        responseBody = data;
+        return this;
+      },
+    };
+
+    await submitForm(mockReq, mockRes);
+
+    assert.strictEqual(statusCode, 400);
+    assert.strictEqual(responseBody.success, false);
+    assert.ok(responseBody.errors.some((e) => e.field === 'gstNumber'));
+  });
+
+  it('rejects invalid PAN format when gstStatus is not_registered', async () => {
+    let statusCode = null;
+    let responseBody = null;
+
+    const mockReq = {
+      body: {
+        customerDetails: {
+          fullName: 'Pooja Sharma',
+          companyName: 'Pooja Designs',
+          mobileNumber: '9876543210',
+          emailAddress: 'pooja@poojadesigns.com',
+          gstStatus: 'not_registered',
+          panNumber: '12345BADPAN',
+          registeredAddress: 'Shop 4, Hauz Khas, New Delhi',
+        },
+        businessCategory: 'Design & Creative',
+      },
+    };
+
+    const mockRes = {
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(data) {
+        responseBody = data;
+        return this;
+      },
+    };
+
+    await submitForm(mockReq, mockRes);
+
+    assert.strictEqual(statusCode, 400);
+    assert.strictEqual(responseBody.success, false);
+    assert.ok(responseBody.errors.some((e) => e.field === 'panNumber'));
+  });
+
+  it('calculates package pricing dynamically with and without logo addon', async () => {
+    // 1. Without logo addon (4999)
+    const baseDoc = new FormSubmission({
+      tenantId: new mongoose.Types.ObjectId(),
+      businessDetails: {
+        businessName: 'Apex Logistics',
+        ownerName: 'Vansh Kesarwani',
+        businessCategory: 'Logistics',
+        mobileNumber: '9876543210',
+        emailAddress: 'vansh@apex.com',
+        registeredAddress: 'Sector 62, Noida',
+      },
+      websiteDesign: {
+        needLogoDesign: false,
+      },
+    });
+    await baseDoc.validate();
+    assert.strictEqual(baseDoc.billingDetails.basePackagePrice, 4999);
+    assert.strictEqual(baseDoc.billingDetails.logoDesignPrice, 0);
+    assert.strictEqual(baseDoc.billingDetails.totalAmount, 4999);
+
+    // 2. With logo addon (5998 = 4999 + 999)
+    const addonDoc = new FormSubmission({
+      tenantId: new mongoose.Types.ObjectId(),
+      businessDetails: {
+        businessName: 'Apex Logistics',
+        ownerName: 'Vansh Kesarwani',
+        businessCategory: 'Logistics',
+        mobileNumber: '9876543210',
+        emailAddress: 'vansh@apex.com',
+        registeredAddress: 'Sector 62, Noida',
+      },
+      websiteDesign: {
+        needLogoDesign: true,
+      },
+    });
+    await addonDoc.validate();
+    assert.strictEqual(addonDoc.billingDetails.basePackagePrice, 4999);
+    assert.strictEqual(addonDoc.billingDetails.logoDesignPrice, 999);
+    assert.strictEqual(addonDoc.billingDetails.totalAmount, 5998);
+  });
 });
