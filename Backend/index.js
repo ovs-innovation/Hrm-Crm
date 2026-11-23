@@ -173,7 +173,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const standardLimiter = rateLimit({
