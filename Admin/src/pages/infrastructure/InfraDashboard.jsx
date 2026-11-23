@@ -68,6 +68,27 @@ export default function InfraDashboard() {
         <p className="text-[13px] text-muted">Loading…</p>
       ) : (
         <div className="space-y-4">
+          {(data?.fleet || []).map((server) => (
+            <div key={server.id} className="rounded border border-line bg-surface p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-[14px] font-semibold text-ink">{server.name}</h3>
+                  <p className="text-[12px] text-muted">
+                    {[server.hostname, server.ipAddress, server.osVersion, server.provider].filter(Boolean).join(' · ') || '—'}
+                  </p>
+                </div>
+                <StatusPill value={server.status} />
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <ProcessList title="PM2" rows={server.pm2} />
+                <ProcessList title="Docker" rows={server.docker} />
+              </div>
+              <p className="mt-2 text-[11px] text-muted">
+                Metrics {server.collectedAt ? new Date(server.collectedAt).toLocaleString() : '—'}
+              </p>
+            </div>
+          ))}
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi label="System health" value={data?.health?.score == null ? '—' : `${data.health.score}`} sub={data?.health?.label} />
             <Kpi label="Servers online" value={`${c.serversOnline ?? 0}/${c.servers ?? 0}`} />
@@ -208,6 +229,29 @@ const Kpi = ({ label, value, sub }) => (
     <p className="text-[12px] text-muted">{label}</p>
     <p className="mt-1 text-[20px] font-semibold tabular-nums text-ink">{value}</p>
     {sub && <p className="mt-0.5 text-[12px] text-muted">{sub}</p>}
+  </div>
+);
+
+const ProcessList = ({ title, rows }) => (
+  <div>
+    <p className="mb-1 text-[12px] font-medium text-muted">{title} · {rows?.length || 0}</p>
+    {!rows?.length ? (
+      <p className="text-[13px] text-muted">—</p>
+    ) : (
+      <ul className="max-h-48 divide-y divide-line overflow-auto">
+        {rows.map((row) => (
+          <li key={row.name || row.id} className="flex items-center justify-between py-1.5 text-[13px]">
+            <span className="text-ink">{row.name}</span>
+            <span className="text-muted">
+              {row.status || '—'}
+              {row.cpu != null ? ` · ${row.cpu}%` : ''}
+              {row.memoryMb != null ? ` · ${row.memoryMb} MB` : ''}
+              {row.restarts != null ? ` · restarts ${row.restarts}` : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
   </div>
 );
 
